@@ -1,0 +1,43 @@
+name: wickly
+description: "Wickly — тёплый личный дневник без аккаунта. Локально, приватно, с P2P-синхронизацией. Material 3 Expressive."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Material You — динамический цвет из обоев системы (Android 12+).
+  dynamic_color: ^1.7.0
+  # Хранение выбранного цвета/темы/языка.
+  shared_preferences: ^2.2.3
+  # Колор-пикер «бесконечных тем» в настройках.
+  flutter_colorpicker: ^1.1.0
+  # Версия приложения в разделе «О программе».
+  package_info_plus: ^8.0.0
+  # Ссылка на исходники.
+  url_launcher: ^6.3.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Фирменные шрифты «ДНК». Оба обязательны в каждом нашем приложении.
+  fonts:
+    - family: Unbounded
+      fonts:
+        - asset: assets/fonts/Unbounded.ttf
+    - family: Onest
+      fonts:
+        - asset: assets/fonts/Onest.ttf
