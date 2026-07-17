@@ -16,7 +16,7 @@ void main() {
         true);
   });
 
-  test('Entry round-trip через колонки', () {
+  test('Entry round-trip: плейнтекст-строка + payload', () {
     final e = Entry.create(
       journalId: 'j1',
       title: 'T',
@@ -27,7 +27,7 @@ void main() {
       lon: 37.62,
       favorite: true,
     );
-    final back = Entry.fromRow(e.toColumns());
+    final back = Entry.fromStorage(e.toRowColumns(), e.toPayload());
     expect(back.id, e.id);
     expect(back.title, 'T');
     expect(back.body, 'B');

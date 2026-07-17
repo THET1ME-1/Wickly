@@ -69,20 +69,17 @@ class AppDatabase {
         PRIMARY KEY (id)
       )
     ''');
+    // Приватные поля (заголовок, текст, настроение, место, гео) лежат
+    // зашифрованными в колонке `enc` (AES-GCM). Открытыми остаются только
+    // неприватные поля для сортировки/фильтрации.
     await db.execute('''
       CREATE TABLE entries (
         id TEXT NOT NULL,
         journal_id TEXT NOT NULL,
-        title TEXT,
-        body TEXT,
         entry_date INTEGER NOT NULL,
         created_at INTEGER NOT NULL,
-        mood INTEGER,
-        weather TEXT,
-        place TEXT,
-        lat REAL,
-        lon REAL,
         favorite INTEGER NOT NULL DEFAULT 0,
+        enc TEXT,
         PRIMARY KEY (id)
       )
     ''');

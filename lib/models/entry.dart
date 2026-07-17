@@ -125,37 +125,48 @@ class Entry {
     );
   }
 
-  factory Entry.fromRow(Map<String, Object?> r) => Entry(
-        id: r['id'] as String,
-        journalId: r['journal_id'] as String,
-        title: r['title'] as String?,
-        body: r['body'] as String?,
-        entryDate:
-            DateTime.fromMillisecondsSinceEpoch((r['entry_date'] as int?) ?? 0),
-        createdAt:
-            DateTime.fromMillisecondsSinceEpoch((r['created_at'] as int?) ?? 0),
-        mood: r['mood'] as int?,
-        weather: r['weather'] as String?,
-        place: r['place'] as String?,
-        lat: (r['lat'] as num?)?.toDouble(),
-        lon: (r['lon'] as num?)?.toDouble(),
-        favorite: ((r['favorite'] as int?) ?? 0) == 1,
-      );
-
-  Map<String, Object?> toColumns() => {
+  /// Плейнтекст-колонки таблицы `entries` (для запросов/сортировки —
+  /// не содержат приватного: только id, дневник, даты, флаг).
+  Map<String, Object?> toRowColumns() => {
         'id': id,
         'journal_id': journalId,
-        'title': title,
-        'body': body,
         'entry_date': entryDate.millisecondsSinceEpoch,
         'created_at': createdAt.millisecondsSinceEpoch,
+        'favorite': favorite ? 1 : 0,
+      };
+
+  /// Приватные поля — шифруются (AES-GCM) в колонку `enc`.
+  Map<String, Object?> toPayload() => {
+        'title': title,
+        'body': body,
         'mood': mood,
         'weather': weather,
         'place': place,
         'lat': lat,
         'lon': lon,
-        'favorite': favorite ? 1 : 0,
       };
+
+  /// Собирает запись из плейнтекст-строки и расшифрованного payload.
+  factory Entry.fromStorage(
+    Map<String, Object?> row,
+    Map<String, Object?> payload,
+  ) =>
+      Entry(
+        id: row['id'] as String,
+        journalId: row['journal_id'] as String,
+        entryDate: DateTime.fromMillisecondsSinceEpoch(
+            (row['entry_date'] as int?) ?? 0),
+        createdAt: DateTime.fromMillisecondsSinceEpoch(
+            (row['created_at'] as int?) ?? 0),
+        favorite: ((row['favorite'] as int?) ?? 0) == 1,
+        title: payload['title'] as String?,
+        body: payload['body'] as String?,
+        mood: payload['mood'] as int?,
+        weather: payload['weather'] as String?,
+        place: payload['place'] as String?,
+        lat: (payload['lat'] as num?)?.toDouble(),
+        lon: (payload['lon'] as num?)?.toDouble(),
+      );
 
   Entry copyWith({
     String? journalId,
