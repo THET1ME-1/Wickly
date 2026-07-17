@@ -76,6 +76,15 @@ const Map<String, Map<String, String>> _strings = {
     'it': 'La prima è in arrivo',
     'pt': 'A primeira está por vir',
   },
+  'new_entry': {
+    'ru': 'Новая запись', 'en': 'New entry', 'de': 'Neuer Eintrag',
+    'fr': 'Nouvelle entrée', 'es': 'Nueva entrada', 'it': 'Nuova voce',
+    'pt': 'Nova anotação',
+  },
+  'journal_default': {
+    'ru': 'Личное', 'en': 'Personal', 'de': 'Persönlich', 'fr': 'Personnel',
+    'es': 'Personal', 'it': 'Personale', 'pt': 'Pessoal',
+  },
 
   // ------------------------------ Настройки ------------------------------
   'settings': {

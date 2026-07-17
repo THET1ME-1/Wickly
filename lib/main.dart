@@ -2,7 +2,9 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'data/app_database.dart';
 import 'l10n/locale_controller.dart';
+import 'l10n/strings.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
@@ -13,6 +15,10 @@ Future<void> main() async {
   // ОБЯЗАТЕЛЬНО до runApp — иначе первый кадр мигнёт дефолтной темой/языком.
   await ThemeController.instance.load();
   await LocaleController.instance.load();
+
+  // Локальное хранилище (SQLite + CRDT). Язык уже загружен — имя дефолтного
+  // дневника берём локализованным.
+  await AppDatabase.instance.init(defaultJournalName: tr('journal_default'));
 
   runApp(const WicklyApp());
 }
