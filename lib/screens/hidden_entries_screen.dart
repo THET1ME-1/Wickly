@@ -9,6 +9,7 @@ import '../theme/wickly_design.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/entry_card.dart';
 import 'lock_screen.dart';
+import 'editor_screen.dart';
 import 'reader_screen.dart';
 
 /// Скрытые записи — за замком, даже если весь дневник открыт.
@@ -75,7 +76,18 @@ class _HiddenEntriesScreenState extends State<HiddenEntriesScreen> {
 
   Future<void> _open(Entry entry) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ReaderScreen(entryId: entry.id)),
+      MaterialPageRoute(
+        builder: (_) => ReaderScreen(
+          entryId: entry.id,
+          // Без этого карандаш в читалке просто ничего не делал: обработчик
+          // правки передавали только из ленты.
+          onEdit: (e) => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => EditorScreen(entry: e, journalId: e.journalId),
+            ),
+          ),
+        ),
+      ),
     );
     await _load();
   }

@@ -49,12 +49,16 @@ class EditorScreen extends StatefulWidget {
   /// виджете на домашнем экране.
   final int? initialMood;
 
+  /// Каким днём датировать новую запись — из календаря.
+  final DateTime? initialDate;
+
   const EditorScreen({
     super.key,
     this.entry,
     required this.journalId,
     this.promptKey,
     this.initialMood,
+    this.initialDate,
   });
 
   @override
@@ -91,6 +95,7 @@ class _EditorScreenState extends State<EditorScreen> {
           journalId: widget.journalId,
           promptKey: widget.promptKey,
           mood: widget.initialMood,
+          entryDate: widget.initialDate,
           draft: true,
         ).copyWith(
           coverMode: AppPrefs.instance.coverBanner
@@ -100,6 +105,11 @@ class _EditorScreenState extends State<EditorScreen> {
     _title = TextEditingController(text: _entry.title ?? '');
     _title.addListener(_onChanged);
     _blocks = EditorDocument.parse(_entry.body);
+    EditorDocument.applyTimes(
+      _blocks,
+      _entry.blockTimes,
+      fallback: _entry.entryDate,
+    );
     for (final b in _blocks) {
       if (b is TextBlock) _watch(b);
     }
@@ -187,7 +197,7 @@ class _EditorScreenState extends State<EditorScreen> {
   String get _bodyText => EditorDocument.serialize(_blocks);
 
   TextBlock _newTextBlock([String text = '']) {
-    final block = TextBlock(text: text);
+    final block = TextBlock(text: text, createdAt: DateTime.now());
     _watch(block);
     return block;
   }
@@ -228,7 +238,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
     setState(() {
       if (active == null || index < 0) {
-        _blocks.add(MediaBlock(ids));
+        _blocks.add(MediaBlock(ids, createdAt: DateTime.now()));
         final tail = _newTextBlock();
         _blocks.add(tail);
         _active = tail;
@@ -252,7 +262,7 @@ class _EditorScreenState extends State<EditorScreen> {
       active.controller.text = before;
       final tail = _newTextBlock(after);
       _blocks
-        ..insert(index + 1, MediaBlock(ids))
+        ..insert(index + 1, MediaBlock(ids, createdAt: DateTime.now()))
         ..insert(index + 2, tail);
       _active = tail;
       WidgetsBinding.instance
@@ -341,6 +351,7 @@ class _EditorScreenState extends State<EditorScreen> {
       title: _title.text.trim(),
       body: body,
       wordCount: MarkdownLite.wordCount(body),
+      blockTimes: EditorDocument.timesOf(_blocks, fallback: _entry.entryDate),
       writeMs: _entry.writeMs + sinceLastSave,
       draft: !finish,
     );
@@ -706,7 +717,6 @@ class _EditorScreenState extends State<EditorScreen> {
             decoration: BoxDecoration(
               color: scheme.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(WicklyDesign.radiusCard),
-              border: Border.all(color: scheme.outlineVariant),
             ),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
             child: Column(
@@ -742,6 +752,21 @@ class _EditorScreenState extends State<EditorScreen> {
                         ),
                       ),
                     ),
+                    // Когда появилась эта тема. У записи целиком время своё,
+                    // но темы пишутся в разные заходы, и по ним видно, что
+                    // утреннее, а что вечернее.
+                    if (block.createdAt != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8, top: 3),
+                        child: Text(
+                          Dates.time(block.createdAt!),
+                          style: TextStyle(
+                            fontFamily: AppTheme.bodyFont,
+                            fontSize: 11.5,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
                     // Ручка переноса. Удержание на самой карточке тоже
                     // работает, но внутри текста длинный тап забирает
                     // выделение — иначе текст нельзя было бы выделить.
@@ -987,6 +1012,9 @@ class _Toolbar extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Один ряд с прокруткой: два ряда съедали высоту у текста, а
+            // разделитель показывает, где кончается разметка и начинаются
+            // вложения.
             _Row(children: [
               _Btn(
                 icon: Icons.format_bold_rounded,
@@ -1018,8 +1046,7 @@ class _Toolbar extends StatelessWidget {
                 tooltip: tr('format_quote'),
                 onTap: () => onFormat('> ', prefix: true),
               ),
-            ]),
-            _Row(children: [
+              const _ToolDivider(),
               _Btn(
                 icon: Icons.image_rounded,
                 tooltip: tr('add_photo'),
@@ -1078,6 +1105,22 @@ class _Row extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Тонкая черта между разметкой и вложениями в панели.
+class _ToolDivider extends StatelessWidget {
+  const _ToolDivider();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 14),
+        child: SizedBox(
+          width: 1,
+          child: ColoredBox(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+      );
 }
 
 class _Btn extends StatelessWidget {

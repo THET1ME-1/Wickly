@@ -19,6 +19,7 @@ import '../services/update_service.dart';
 import '../services/widget_service.dart';
 import '../widgets/update_sheet.dart';
 import '../utils/dates.dart';
+import '../widgets/day_sheet.dart';
 import '../widgets/entry_card.dart';
 import 'calendar_screen.dart';
 import 'catalog_manager_screen.dart';
@@ -141,13 +142,14 @@ class _ShellScreenState extends State<ShellScreen> {
 
   // ----------------------------- Переходы -----------------------------
 
-  Future<void> _write({String? promptKey, int? mood}) async {
+  Future<void> _write({String? promptKey, int? mood, DateTime? date}) async {
     final journalId = AppPrefs.instance.lastJournalId ?? 'default';
     await Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => EditorScreen(
         journalId: journalId,
         promptKey: promptKey,
         initialMood: mood,
+        initialDate: date,
       ),
     ));
     if (mounted) setState(() {});
@@ -268,6 +270,7 @@ class _ShellScreenState extends State<ShellScreen> {
             moreItems: _moreItems,
             onChangeMonth: (m) => setState(() => _month = m),
             onWrite: _write,
+            onWriteOn: (day) => _write(date: day),
             onOpenEntry: _openEntry,
             onSearch: _openSearch,
             onMemories: _openMemories,
@@ -320,6 +323,9 @@ class _Body extends StatelessWidget {
   final List<MoreItem> moreItems;
   final ValueChanged<DateTime> onChangeMonth;
   final VoidCallback onWrite;
+
+  /// Записать конкретным днём — из листа дня в календаре.
+  final void Function(DateTime day) onWriteOn;
   final void Function(Entry) onOpenEntry;
   final VoidCallback onSearch;
   final VoidCallback onMemories;
@@ -333,6 +339,7 @@ class _Body extends StatelessWidget {
     required this.moreItems,
     required this.onChangeMonth,
     required this.onWrite,
+    required this.onWriteOn,
     required this.onOpenEntry,
     required this.onSearch,
     required this.onMemories,
@@ -376,6 +383,11 @@ class _Body extends StatelessWidget {
         );
 
       case ShellTab.calendar:
+        final ofMonth = entries
+            .where((e) =>
+                e.entryDate.year == month.year &&
+                e.entryDate.month == month.month)
+            .toList();
         // Охват считаем по прошедшим дням месяца: «17 из 31» в середине июля
         // выглядит как провал, хотя половина месяца ещё не наступила.
         final monthEnd = DateTime(month.year, month.month + 1, 0);
@@ -389,17 +401,30 @@ class _Body extends StatelessWidget {
             streak: StatsService.streak(entries, now: now),
             month: month,
             now: now,
+            entriesThisMonth: ofMonth.length,
+            wordsThisMonth:
+                ofMonth.fold<int>(0, (sum, e) => sum + e.wordCount),
           ),
           onChangeMonth: onChangeMonth,
           onWrite: onWrite,
-          onOpenDay: (day) {
+          // Раньше тап по дате открывал первую запись дня и молчал про
+          // остальные, а с пустого дня нельзя было начать запись.
+          onOpenDay: (day) async {
             final ofDay = entries
                 .where((e) =>
                     e.entryDate.year == day.year &&
                     e.entryDate.month == day.month &&
                     e.entryDate.day == day.day)
                 .toList();
-            if (ofDay.isNotEmpty) onOpenEntry(ofDay.first);
+            final items = await FeedService.decorate(ofDay);
+            if (!context.mounted) return;
+            final picked = await showDaySheet(
+              context,
+              day: day,
+              items: items,
+              onWrite: () => onWriteOn(day),
+            );
+            if (picked != null) onOpenEntry(picked);
           },
         );
 

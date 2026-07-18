@@ -171,6 +171,14 @@ class Entry {
   /// Ключ журнальной подсказки, если запись начата с неё.
   final String? promptKey;
 
+  /// Когда появилась каждая тема записи (unix ms), по порядку блоков.
+  ///
+  /// Живёт в шифрованном payload, а не в самом тексте: разметка уходит в
+  /// экспорт и синхронизацию, и служебные метки там были бы мусором. Список
+  /// может разойтись с числом блоков — тогда недостающим временем считается
+  /// время самой записи.
+  final List<int> blockTimes;
+
   final bool favorite;
   final bool pinned;
   final bool hidden; // скрытая запись: видна только после разблокировки
@@ -197,6 +205,7 @@ class Entry {
     this.wordCount = 0,
     this.writeMs = 0,
     this.promptKey,
+    this.blockTimes = const [],
     this.favorite = false,
     this.pinned = false,
     this.hidden = false,
@@ -261,6 +270,7 @@ class Entry {
         'wordCount': wordCount,
         'writeMs': writeMs,
         'promptKey': promptKey,
+        'blockTimes': blockTimes,
       };
 
   /// Собирает запись из плейнтекст-строки и расшифрованного payload.
@@ -295,6 +305,10 @@ class Entry {
         wordCount: (payload['wordCount'] as int?) ?? 0,
         writeMs: (payload['writeMs'] as int?) ?? 0,
         promptKey: payload['promptKey'] as String?,
+        blockTimes: [
+          for (final v in (payload['blockTimes'] as List?) ?? const [])
+            if (v is num) v.toInt(),
+        ],
       );
 
   /// `null` в аргументе означает «не трогать»; чтобы стереть значение,
@@ -318,6 +332,7 @@ class Entry {
     int? wordCount,
     int? writeMs,
     String? promptKey,
+    List<int>? blockTimes,
     bool? favorite,
     bool? pinned,
     bool? hidden,
@@ -347,6 +362,7 @@ class Entry {
         wordCount: wordCount ?? this.wordCount,
         writeMs: writeMs ?? this.writeMs,
         promptKey: promptKey ?? this.promptKey,
+        blockTimes: blockTimes ?? this.blockTimes,
         favorite: favorite ?? this.favorite,
         pinned: pinned ?? this.pinned,
         hidden: hidden ?? this.hidden,

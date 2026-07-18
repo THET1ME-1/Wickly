@@ -24,7 +24,11 @@ class TextBlock extends EditorBlock {
   final FocusNode titleFocus;
   final FocusNode focus;
 
-  TextBlock({String text = '', String heading = ''})
+  /// Когда тема появилась. Null — у старой записи времени нет, показывать
+  /// нечего: выдумывать «сейчас» для текста трёхлетней давности нельзя.
+  DateTime? createdAt;
+
+  TextBlock({String text = '', String heading = '', this.createdAt})
       : title = TextEditingController(text: heading),
         controller = MarkdownEditingController(text: text),
         titleFocus = FocusNode(),
@@ -45,12 +49,49 @@ class TextBlock extends EditorBlock {
 class MediaBlock extends EditorBlock {
   final List<String> mediaIds;
 
-  MediaBlock(this.mediaIds);
+  DateTime? createdAt;
+
+  MediaBlock(this.mediaIds, {this.createdAt});
 }
 
 /// Перевод записи из текста в блоки и обратно.
 class EditorDocument {
   const EditorDocument._();
+
+  /// Раздаёт блокам их время из записи.
+  ///
+  /// Список времён хранится отдельно от текста и может с ним разойтись —
+  /// после правок в другой версии или после синхронизации. Лишнее
+  /// отбрасываем, недостающему времени ставим [fallback] — время записи.
+  static void applyTimes(
+    List<EditorBlock> blocks,
+    List<int> times, {
+    required DateTime fallback,
+  }) {
+    for (var i = 0; i < blocks.length; i++) {
+      final at = i < times.length
+          ? DateTime.fromMillisecondsSinceEpoch(times[i])
+          : fallback;
+      switch (blocks[i]) {
+        case TextBlock b:
+          b.createdAt = at;
+        case MediaBlock b:
+          b.createdAt = at;
+      }
+    }
+  }
+
+  /// Времена блоков в том же порядке — для сохранения в запись.
+  static List<int> timesOf(List<EditorBlock> blocks, {DateTime? fallback}) => [
+        for (final b in blocks)
+          (switch (b) {
+                    TextBlock() => b.createdAt,
+                    MediaBlock() => b.createdAt,
+                  } ??
+                  fallback ??
+                  DateTime.now())
+              .millisecondsSinceEpoch,
+      ];
 
   /// Переставляет блок с позиции [oldIndex] на [newIndex].
   ///

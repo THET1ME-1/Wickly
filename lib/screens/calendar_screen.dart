@@ -7,6 +7,7 @@ import '../theme/mood_palette_ext.dart';
 import '../theme/wickly_design.dart';
 import '../utils/dates.dart';
 import '../widgets/count_up_number.dart';
+import '../widgets/mood_chart.dart';
 import '../widgets/pressable.dart';
 import '../widgets/reveal.dart';
 
@@ -25,6 +26,10 @@ class CalendarData {
   final DateTime month;
   final DateTime now;
 
+  /// Записей и слов за показываемый месяц — сводка считала только дни.
+  final int entriesThisMonth;
+  final int wordsThisMonth;
+
   const CalendarData({
     required this.moodByDay,
     required this.writtenDays,
@@ -32,7 +37,18 @@ class CalendarData {
     required this.streak,
     required this.month,
     required this.now,
+    this.entriesThisMonth = 0,
+    this.wordsThisMonth = 0,
   });
+
+  /// Настроение по дням месяца для графика: пропуск — день без отметки.
+  List<double?> get moodTrend {
+    final days = DateTime(month.year, month.month + 1, 0).day;
+    return [
+      for (var d = 1; d <= days; d++)
+        moodByDay[month.year * 10000 + month.month * 100 + d],
+    ];
+  }
 }
 
 /// Календарь настроения: каждый день окрашен тем, как он прошёл.
@@ -347,6 +363,17 @@ class _SummaryCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          // График месяца: по нему видно полосы — неделя провалов, ровный
+          // период, пропуски. Раньше на календаре были только три числа.
+          if (data.moodByDay.isNotEmpty)
+            MoodChart(
+              values: data.moodTrend,
+              height: 84,
+              startLabel: '1',
+              middleLabel: '${DateTime(data.month.year, data.month.month + 1, 0).day ~/ 2}',
+              endLabel: '${DateTime(data.month.year, data.month.month + 1, 0).day}',
+            ),
           const SizedBox(height: 14),
           Row(
             children: [
@@ -376,6 +403,45 @@ class _SummaryCard extends StatelessWidget {
                     child: MoodDot(mood: s.mostCommon, size: 22),
                   ),
                   label: tr('most_common'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _Stat(
+                  value: CountUpNumber(
+                    value: data.entriesThisMonth.toDouble(),
+                    style: _valueStyle(context),
+                  ),
+                  label: tr('entries_short'),
+                ),
+              ),
+              Expanded(
+                child: _Stat(
+                  value: CountUpNumber(
+                    value: data.wordsThisMonth.toDouble(),
+                    compact: true,
+                    thousandSuffix: tr('thousand_suffix'),
+                    style: _valueStyle(context),
+                  ),
+                  label: tr('words_short'),
+                ),
+              ),
+              Expanded(
+                child: _Stat(
+                  value: CountUpNumber(
+                    value: data.writtenDays
+                        .where((d) =>
+                            d ~/ 10000 == data.month.year &&
+                            (d ~/ 100) % 100 == data.month.month)
+                        .length
+                        .toDouble(),
+                    style: _valueStyle(context),
+                  ),
+                  label: tr('days_written_short'),
                 ),
               ),
             ],

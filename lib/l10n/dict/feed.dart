@@ -263,6 +263,35 @@ const Map<String, Map<String, String>> feedStrings = {
     'fr': 'Moins de {name}', 'es': 'Menos {name}', 'it': 'Meno {name}',
     'pt': 'Menos {name}',
   },
+  'entries_short': {
+    'ru': 'записей', 'en': 'entries', 'de': 'Einträge', 'fr': 'entrées',
+    'es': 'entradas', 'it': 'voci', 'pt': 'notas',
+  },
+  'words_short': {
+    'ru': 'слов', 'en': 'words', 'de': 'Wörter', 'fr': 'mots',
+    'es': 'palabras', 'it': 'parole', 'pt': 'palavras',
+  },
+  'days_written_short': {
+    'ru': 'дней с записью', 'en': 'days written', 'de': 'Tage geschrieben',
+    'fr': 'jours écrits', 'es': 'días escritos', 'it': 'giorni scritti',
+    'pt': 'dias escritos',
+  },
+  'thousand_suffix': {
+    'ru': 'к', 'en': 'k', 'de': 'Tsd', 'fr': 'k', 'es': 'mil', 'it': 'k',
+    'pt': 'mil',
+  },
+  'day_empty': {
+    'ru': 'В этот день записей нет', 'en': 'Nothing written on this day',
+    'de': 'An diesem Tag gibt es nichts', 'fr': 'Rien d’écrit ce jour-là',
+    'es': 'Nada escrito ese día', 'it': 'Niente scritto in questo giorno',
+    'pt': 'Nada escrito nesse dia',
+  },
+  'day_write': {
+    'ru': 'Записать этим днём', 'en': 'Write for this day',
+    'de': 'Für diesen Tag schreiben', 'fr': 'Écrire pour ce jour',
+    'es': 'Escribir para ese día', 'it': 'Scrivi per questo giorno',
+    'pt': 'Escrever nesse dia',
+  },
   'filter_favorite': {
     'ru': 'Избранное', 'en': 'Favorites', 'de': 'Favoriten', 'fr': 'Favoris',
     'es': 'Favoritos', 'it': 'Preferiti', 'pt': 'Favoritos',

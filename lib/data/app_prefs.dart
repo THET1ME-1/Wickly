@@ -42,7 +42,10 @@ class AppPrefs extends ChangeNotifier {
   String? _pinHash;
   String? _pinSalt;
   bool _biometrics = false;
-  int _lockTimeoutSec = 0;
+  /// Через сколько секунд в фоне запирать дневник. Минута по умолчанию:
+  /// с нулём замок срабатывал на каждое мелкое переключение — человек
+  /// возвращался в свою же запись через ввод кода.
+  int _lockTimeoutSec = 60;
   String _startScreen = 'feed';
   double _textScale = 1;
   bool _reminder = false;
@@ -111,7 +114,7 @@ class AppPrefs extends ChangeNotifier {
     _pinHash = p.getString(_kPinHash);
     _pinSalt = p.getString(_kPinSalt);
     _biometrics = p.getBool(_kBiometrics) ?? false;
-    _lockTimeoutSec = p.getInt(_kLockTimeout) ?? 0;
+    _lockTimeoutSec = p.getInt(_kLockTimeout) ?? 60;
     _startScreen = p.getString(_kStartScreen) ?? 'feed';
     _textScale = p.getDouble(_kTextScale) ?? 1;
     _reminder = p.getBool(_kReminder) ?? false;
