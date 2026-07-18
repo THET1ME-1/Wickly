@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../data/media_repository.dart';
 import '../data/media_store.dart';
@@ -10,8 +11,12 @@ import '../models/media.dart';
 import '../services/web_photo_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/wickly_design.dart';
+import 'photo_crop_sheet.dart';
 import 'pressable.dart';
 import 'sheet_scaffold.dart';
+
+/// Откуда берём свой снимок под обложку.
+enum _Source { gallery, camera }
 
 /// Что человек выбрал шапкой записи.
 class CoverChoice {
@@ -71,6 +76,9 @@ class _CoverSheetState extends State<_CoverSheet> {
   bool _searched = false;
   String? _busyId;
 
+  /// Откуда сейчас берём свой снимок, чтобы не открыть камеру дважды подряд.
+  _Source? _picking;
+
   @override
   void dispose() {
     _query.dispose();
@@ -88,6 +96,51 @@ class _CoverSheetState extends State<_CoverSheet> {
       _results = results;
       _searching = false;
     });
+  }
+
+  /// Свой снимок под обложку: взять из галереи или снять, обрезать под шапку,
+  /// положить в дневник.
+  ///
+  /// Кадрируем до сохранения: в складе должен лежать ровно тот кадр, который
+  /// человек видел в рамке, иначе обложка и предпоказ разойдутся.
+  Future<void> _pickOwn(_Source source) async {
+    setState(() => _picking = source);
+    try {
+      final file = await ImagePicker().pickImage(
+        source: source == _Source.camera
+            ? ImageSource.camera
+            : ImageSource.gallery,
+      );
+      if (file == null || !mounted) return;
+
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+
+      final cropped = await showPhotoCropSheet(context, bytes: bytes);
+      if (cropped == null || !mounted) return;
+
+      final name = await MediaStore.instance.put(cropped, ext: 'jpg');
+      final media = Media.create(
+        entryId: widget.entryId,
+        kind: MediaKind.photo,
+        file: name,
+        // Ниже нуля, чтобы обложка не лезла в начало галереи записи.
+        sort: -1,
+      );
+      await MediaRepository.instance.insert(media);
+
+      if (mounted) {
+        Navigator.of(context)
+            .pop(CoverChoice(CoverMode.own, mediaId: media.id));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(tr('cover_crop_failed'))));
+      }
+    } finally {
+      if (mounted) setState(() => _picking = null);
+    }
   }
 
   /// Скачивает выбранный снимок в дневник и делает его обложкой.
@@ -155,6 +208,22 @@ class _CoverSheetState extends State<_CoverSheet> {
                 ? () => Navigator.of(context)
                     .pop(const CoverChoice(CoverMode.auto))
                 : null,
+          ),
+          _ModeRow(
+            icon: Icons.crop_rounded,
+            title: tr('cover_own_photo'),
+            subtitle: tr('cover_own_photo_sub'),
+            selected: widget.current == CoverMode.own,
+            busy: _picking == _Source.gallery,
+            onTap: _picking != null ? null : () => _pickOwn(_Source.gallery),
+          ),
+          _ModeRow(
+            icon: Icons.photo_camera_rounded,
+            title: tr('cover_take_photo'),
+            subtitle: tr('cover_take_photo_sub'),
+            selected: false,
+            busy: _picking == _Source.camera,
+            onTap: _picking != null ? null : () => _pickOwn(_Source.camera),
           ),
 
           const SizedBox(height: 18),
@@ -340,12 +409,16 @@ class _ModeRow extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
 
+  /// Ждём галерею, камеру или обрезку — вместо галочки крутилка.
+  final bool busy;
+
   const _ModeRow({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.selected,
     this.onTap,
+    this.busy = false,
   });
 
   @override
@@ -402,7 +475,16 @@ class _ModeRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (selected)
+                if (busy)
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  )
+                else if (selected)
                   Icon(Icons.check_rounded, color: scheme.onPrimaryContainer),
               ],
             ),

@@ -436,16 +436,17 @@ class _EditorScreenState extends State<EditorScreen> {
     );
     if (choice == null || !mounted) return;
 
-    // Скачанный снимок живёт, только пока он обложка. Сменили или выключили —
+    // Снимок обложки живёт, только пока он обложка. Сменили или выключили —
     // удаляем: иначе он остаётся вложением и всплывает в галерее записи как
-    // чужая фотография, которую человек туда не клал.
-    final stale = _entry.coverMode == CoverMode.web ? _entry.coverMediaId : null;
+    // фотография, которую человек туда не клал. Это верно и для скачанного по
+    // теме, и для своего кадрированного.
+    final stale = _entry.coverMode.isPinned ? _entry.coverMediaId : null;
 
     setState(() {
       _entry = _entry.copyWith(
         coverMode: choice.mode,
         coverMediaId: choice.mediaId,
-        clearCover: choice.mode != CoverMode.web && choice.mediaId == null,
+        clearCover: !choice.mode.isPinned && choice.mediaId == null,
       );
       _dirty = true;
     });
@@ -822,6 +823,7 @@ class _EditorScreenState extends State<EditorScreen> {
             CoverMode.none => Icons.crop_din_rounded,
             CoverMode.auto => Icons.photo_rounded,
             CoverMode.web => Icons.image_search_rounded,
+            CoverMode.own => Icons.crop_rounded,
           },
           label: tr('cover'),
           onTap: _pickCover,

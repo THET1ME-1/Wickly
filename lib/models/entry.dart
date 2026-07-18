@@ -11,12 +11,19 @@ enum CoverMode {
   auto,
 
   /// Снимок, подобранный по теме записи.
-  web;
+  web,
+
+  /// Свой снимок, обрезанный под шапку. Лежит рядом с вложениями, но в
+  /// галерее записи не показывается: он часть оформления, а не память.
+  own;
 
   static CoverMode parse(String? raw) => CoverMode.values.firstWhere(
         (m) => m.name == raw,
         orElse: () => CoverMode.auto,
       );
+
+  /// Шапку держит конкретное вложение, а не первое попавшееся.
+  bool get isPinned => this == CoverMode.web || this == CoverMode.own;
 }
 
 /// Дневник (журнал): у пользователя их может быть несколько — «Личное»,

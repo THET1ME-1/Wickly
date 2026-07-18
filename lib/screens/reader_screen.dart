@@ -169,7 +169,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         : _media.where((m) => m.id == e.coverMediaId).firstOrNull;
     final cover = switch (e.coverMode) {
       CoverMode.none => null,
-      CoverMode.web => chosen,
+      CoverMode.web || CoverMode.own => chosen,
       CoverMode.auto => chosen ?? _media.where((m) => m.isVisual).firstOrNull,
     };
     final byId = {for (final m in _media) m.id: m};

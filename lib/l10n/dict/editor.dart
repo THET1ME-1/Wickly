@@ -288,6 +288,75 @@ const Map<String, Map<String, String>> editorStrings = {
     'pt': 'As fotos vêm do Openverse com licenças livres; o autor é creditado '
         'sob a capa. A escolhida é baixada para o diário e abre sem internet.',
   },
+  'cover_own_photo': {
+    'ru': 'Из галереи', 'en': 'From gallery', 'de': 'Aus der Galerie',
+    'fr': 'Depuis la galerie', 'es': 'De la galería', 'it': 'Dalla galleria',
+    'pt': 'Da galeria',
+  },
+  'cover_own_photo_sub': {
+    'ru': 'Свой снимок только под обложку — в галерею записи он не попадёт',
+    'en': 'A photo just for the cover; it stays out of the entry’s gallery',
+    'de': 'Ein Foto nur fürs Cover — es landet nicht in der Galerie',
+    'fr': 'Une photo réservée à la couverture, hors de la galerie',
+    'es': 'Una foto solo para la portada; no entra en la galería',
+    'it': 'Una foto solo per la copertina: resta fuori dalla galleria',
+    'pt': 'Uma foto só para a capa; fica fora da galeria',
+  },
+  'cover_take_photo': {
+    'ru': 'Снять сейчас', 'en': 'Take a photo', 'de': 'Jetzt aufnehmen',
+    'fr': 'Prendre une photo', 'es': 'Hacer una foto',
+    'it': 'Scatta una foto', 'pt': 'Tirar uma foto',
+  },
+  'cover_take_photo_sub': {
+    'ru': 'Камера откроется прямо отсюда',
+    'en': 'The camera opens right here',
+    'de': 'Die Kamera öffnet sich direkt hier',
+    'fr': 'L’appareil photo s’ouvre ici même',
+    'es': 'La cámara se abre aquí mismo',
+    'it': 'La fotocamera si apre qui',
+    'pt': 'A câmara abre aqui mesmo',
+  },
+  'cover_crop_zoom': {
+    'ru': 'Размер', 'en': 'Size', 'de': 'Größe', 'fr': 'Taille',
+    'es': 'Tamaño', 'it': 'Dimensione', 'pt': 'Tamanho',
+  },
+  'cover_crop_left': {
+    'ru': 'Влево', 'en': 'Left', 'de': 'Links', 'fr': 'Gauche',
+    'es': 'Izquierda', 'it': 'Sinistra', 'pt': 'Esquerda',
+  },
+  'cover_crop_right': {
+    'ru': 'Вправо', 'en': 'Right', 'de': 'Rechts', 'fr': 'Droite',
+    'es': 'Derecha', 'it': 'Destra', 'pt': 'Direita',
+  },
+  'cover_crop_reset': {
+    'ru': 'Сброс', 'en': 'Reset', 'de': 'Zurück', 'fr': 'Réinit.',
+    'es': 'Restablecer', 'it': 'Reimposta', 'pt': 'Repor',
+  },
+  'cover_crop_hint': {
+    'ru': 'Тяни снимок пальцем, щипком меняй размер. В рамке — то, что ляжет '
+        'в шапку записи.',
+    'en': 'Drag the photo, pinch to resize. What’s inside the frame becomes '
+        'the entry’s header.',
+    'de': 'Zieh das Foto, zoome mit zwei Fingern. Was im Rahmen liegt, wird '
+        'zum Kopf des Eintrags.',
+    'fr': 'Fais glisser la photo, pince pour redimensionner. Ce qui est dans '
+        'le cadre devient l’en-tête de l’entrée.',
+    'es': 'Arrastra la foto y pellizca para cambiar el tamaño. Lo que quede '
+        'en el marco será la cabecera de la entrada.',
+    'it': 'Trascina la foto, pizzica per ridimensionare. Ciò che sta nel '
+        'riquadro diventa la testata della nota.',
+    'pt': 'Arrasta a foto e faz pinça para redimensionar. O que ficar no '
+        'quadro vira o cabeçalho da entrada.',
+  },
+  'cover_crop_failed': {
+    'ru': 'Не вышло обрезать этот снимок. Попробуй другой.',
+    'en': 'Could not crop this photo. Try another one.',
+    'de': 'Dieses Foto ließ sich nicht zuschneiden. Nimm ein anderes.',
+    'fr': 'Impossible de recadrer cette photo. Essaie-en une autre.',
+    'es': 'No se pudo recortar esta foto. Prueba con otra.',
+    'it': 'Non è stato possibile ritagliare questa foto. Provane un’altra.',
+    'pt': 'Não deu para recortar esta foto. Tenta outra.',
+  },
   'cover_quota_left': {
     'ru': 'Осталось {n} поисков сегодня из {of}',
     'en': '{n} of {of} searches left today',
