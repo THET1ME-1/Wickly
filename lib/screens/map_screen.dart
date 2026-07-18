@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../l10n/strings.dart';
 import '../models/entry.dart';
+import '../models/media.dart';
 import '../theme/app_theme.dart';
 import '../theme/mood_palette_ext.dart';
 import '../theme/wickly_design.dart';
@@ -55,12 +56,17 @@ class MapPlace {
 /// иначе карта превращается в кашу. Снизу карточка выбранного места.
 class MapView extends StatefulWidget {
   final List<MapPlace> places;
+
+  /// Обложка записи по её id — для карточки выбранного места.
+  final Map<String, Media> covers;
+
   final void Function(MapPlace place)? onOpenPlace;
   final VoidCallback? onSearch;
 
   const MapView({
     super.key,
     required this.places,
+    this.covers = const {},
     this.onOpenPlace,
     this.onSearch,
   });
@@ -150,6 +156,7 @@ class _MapViewState extends State<MapView> {
                         WicklyDesign.screenPad, 0, WicklyDesign.screenPad, 12),
                     child: _PlaceCard(
                       place: _selected!,
+                      cover: widget.covers[_selected!.latest.id],
                       onTap: () => widget.onOpenPlace?.call(_selected!),
                     ),
                   ),
@@ -299,9 +306,14 @@ class _Pin extends StatelessWidget {
 /// Карточка места снизу: сколько записей, когда была последняя, какая погода.
 class _PlaceCard extends StatelessWidget {
   final MapPlace place;
+
+  /// Снимок последней записи места. Без него карточка рисовала один
+  /// градиент-заглушку: фото в неё просто не передавали.
+  final Media? cover;
+
   final VoidCallback? onTap;
 
-  const _PlaceCard({required this.place, this.onTap});
+  const _PlaceCard({required this.place, this.cover, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -325,6 +337,7 @@ class _PlaceCard extends StatelessWidget {
                     width: 52,
                     height: 52,
                     child: MediaThumb(
+                      media: cover,
                       coverKey: CoverPalette.forSeed(place.latest.id),
                     ),
                   ),
@@ -336,7 +349,9 @@ class _PlaceCard extends StatelessWidget {
                     children: [
                       Text(
                         place.title,
-                        maxLines: 1,
+                        // Адреса длинные: в одну строку от них оставался
+                        // огрызок вроде «Vagias 28, Gazi 714 14, Г…».
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: AppTheme.displayFont,
@@ -401,6 +416,20 @@ class _PlaceCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Обложка для каждой записи — первое наглядное вложение.
+///
+/// Карта раньше не получала вложений вовсе и рисовала градиент вместо фото.
+Map<String, Media> coversByEntry(List<Media> media) {
+  final out = <String, Media>{};
+  for (final m in media) {
+    if (!m.isVisual) continue;
+    final current = out[m.entryId];
+    // Обложка записи лежит с отрицательным порядком — она и должна победить.
+    if (current == null || m.sort < current.sort) out[m.entryId] = m;
+  }
+  return out;
 }
 
 /// Складывает записи с координатами в места.

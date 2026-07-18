@@ -404,10 +404,16 @@ class _Body extends StatelessWidget {
         );
 
       case ShellTab.map:
-        return MapView(
-          places: groupIntoPlaces(entries),
-          onSearch: onSearch,
-          onOpenPlace: (place) => onOpenEntry(place.latest),
+        // Вложения тянем отдельным потоком — так же, как медиа-вкладка:
+        // без них карточка места показывала градиент вместо снимка.
+        return StreamBuilder<List<Media>>(
+          stream: MediaRepository.instance.watchAll(),
+          builder: (context, snapshot) => MapView(
+            places: groupIntoPlaces(entries),
+            covers: coversByEntry(snapshot.data ?? const <Media>[]),
+            onSearch: onSearch,
+            onOpenPlace: (place) => onOpenEntry(place.latest),
+          ),
         );
 
       case ShellTab.media:
