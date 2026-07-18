@@ -288,6 +288,57 @@ const Map<String, Map<String, String>> editorStrings = {
     'pt': 'As fotos vêm do Openverse com licenças livres; o autor é creditado '
         'sob a capa. A escolhida é baixada para o diário e abre sem internet.',
   },
+  'cover_quota_left': {
+    'ru': 'Осталось {n} поисков сегодня из {of}',
+    'en': '{n} of {of} searches left today',
+    'de': 'Noch {n} von {of} Suchen heute',
+    'fr': 'Il reste {n} recherches sur {of} aujourd’hui',
+    'es': 'Quedan {n} de {of} búsquedas hoy',
+    'it': 'Restano {n} ricerche su {of} oggi',
+    'pt': 'Restam {n} de {of} buscas hoje',
+  },
+  'cover_quota_note': {
+    'ru': 'Лимит Openverse считается по твоему адресу в сети — он твой, а не '
+        'общий на всех, и обновляется каждые сутки.',
+    'en': 'The Openverse limit counts against your own network address — it is '
+        'yours, not shared with everyone, and it resets daily.',
+    'de': 'Das Openverse-Limit zählt für deine eigene Netzwerkadresse — es '
+        'gehört dir, nicht allen zusammen, und setzt sich täglich zurück.',
+    'fr': 'La limite Openverse compte pour ta propre adresse réseau — elle est '
+        'à toi, pas partagée avec tout le monde, et se réinitialise chaque '
+        'jour.',
+    'es': 'El límite de Openverse cuenta por tu propia dirección de red — es '
+        'tuyo, no compartido con todos, y se reinicia cada día.',
+    'it': 'Il limite di Openverse conta sul tuo indirizzo di rete — è tuo, non '
+        'condiviso con tutti, e si azzera ogni giorno.',
+    'pt': 'O limite do Openverse conta pelo teu endereço de rede — é teu, não '
+        'partilhado com todos, e reinicia todos os dias.',
+  },
+  'cover_quota_exhausted': {
+    'ru': 'Поиски на сегодня кончились. Обложку можно выбрать из своих снимков '
+        'или подождать до завтра.',
+    'en': 'Today’s searches are used up. Pick a cover from your own photos or '
+        'wait until tomorrow.',
+    'de': 'Die Suchen für heute sind aufgebraucht. Wähle ein Cover aus deinen '
+        'eigenen Fotos oder warte bis morgen.',
+    'fr': 'Les recherches du jour sont épuisées. Choisis une couverture parmi '
+        'tes photos ou attends demain.',
+    'es': 'Se acabaron las búsquedas de hoy. Elige una portada de tus propias '
+        'fotos o espera a mañana.',
+    'it': 'Le ricerche di oggi sono finite. Scegli una copertina dalle tue '
+        'foto o aspetta domani.',
+    'pt': 'As buscas de hoje acabaram. Escolhe uma capa das tuas fotos ou '
+        'espera até amanhã.',
+  },
+  'cover_quota_minute': {
+    'ru': 'Слишком часто. Осталось {n} на эту минуту.',
+    'en': 'Too fast. {n} left this minute.',
+    'de': 'Zu schnell. Noch {n} in dieser Minute.',
+    'fr': 'Trop vite. Il reste {n} cette minute.',
+    'es': 'Demasiado rápido. Quedan {n} este minuto.',
+    'it': 'Troppo in fretta. Ne restano {n} in questo minuto.',
+    'pt': 'Rápido demais. Restam {n} neste minuto.',
+  },
   'cover_nothing_found': {
     'ru': 'Ничего не нашлось. Попробуй другое слово.',
     'en': 'Nothing found. Try another word.',

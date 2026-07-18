@@ -202,6 +202,7 @@ class _CoverSheetState extends State<_CoverSheet> {
               color: scheme.onSurfaceVariant,
             ),
           ),
+          const CoverQuotaBadge(),
           const SizedBox(height: 14),
 
           if (_searching)
@@ -237,6 +238,96 @@ class _CoverSheetState extends State<_CoverSheet> {
           const SizedBox(height: 12),
         ],
       ),
+    );
+  }
+}
+
+/// Сколько поисков обложки осталось на сегодня.
+///
+/// Openverse отдаёт остаток в заголовках, но только после первого запроса —
+/// до него плашки нет вовсе: пугать числом раньше, чем человек что-то сделал,
+/// незачем.
+class CoverQuotaBadge extends StatelessWidget {
+  const CoverQuotaBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return ValueListenableBuilder<WebPhotoQuota>(
+      valueListenable: WebPhotoService.quota,
+      builder: (context, quota, _) {
+        if (!quota.known) return const SizedBox.shrink();
+
+        final String text;
+        if (quota.exhausted) {
+          text = quota.leftToday == 0 || quota.leftThisMinute > 0
+              ? tr('cover_quota_exhausted')
+              : trf('cover_quota_minute', {'n': quota.leftThisMinute});
+        } else if (quota.leftToday >= 0 && quota.perDay > 0) {
+          text = trf('cover_quota_left', {
+            'n': quota.leftToday,
+            'of': quota.perDay,
+          });
+        } else {
+          return const SizedBox.shrink();
+        }
+
+        final accent = quota.low ? scheme.error : scheme.onSurfaceVariant;
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: quota.low
+                  ? scheme.errorContainer.withValues(alpha: 0.5)
+                  : scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  quota.low
+                      ? Icons.hourglass_bottom_rounded
+                      : Icons.data_usage_rounded,
+                  size: 18,
+                  color: accent,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        text,
+                        style: TextStyle(
+                          fontFamily: AppTheme.bodyFont,
+                          fontSize: 12.5,
+                          height: 1.35,
+                          fontWeight: FontWeight.w600,
+                          color: accent,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        tr('cover_quota_note'),
+                        style: TextStyle(
+                          fontFamily: AppTheme.bodyFont,
+                          fontSize: 11.5,
+                          height: 1.35,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

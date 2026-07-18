@@ -49,3 +49,8 @@ dist/
 #   flutter test --update-goldens test_golden
 test_golden/goldens/
 test_golden/failures/
+
+# Ключ подписи релиза — НЕ коммитить (репо публичный)
+*.jks
+*.keystore
+key.properties
