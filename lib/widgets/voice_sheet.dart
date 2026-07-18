@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -173,7 +174,7 @@ class _VoiceSheetState extends State<_VoiceSheet> {
         cancelOnError: true,
       ),
       onResult: (r) => setState(() => _transcript = r.recognizedWords),
-      onSoundLevelChange: _pushLevel,
+      onSoundLevelChange: _pushSpeechLevel,
     );
   }
 
@@ -188,13 +189,16 @@ class _VoiceSheetState extends State<_VoiceSheet> {
       } catch (e) {
         path = null;
       }
+      // Диктофон дописывает файл уже после stop(), поэтому короткая запись
+      // могла уехать в дневник нулевой. Ждём, пока в файле появятся байты.
+      final ok = path != null && await _hasSound(path);
       if (!mounted) return;
       setState(() {
         _running = false;
-        _audioPath = path;
-        // Пустой путь означает, что диктофон не отдал файл. Молчать нельзя:
-        // человек говорил в микрофон и вправе знать, что записи нет.
-        if (path == null) _error = tr('voice_record_failed');
+        _audioPath = ok ? path : null;
+        // Молчать нельзя: человек говорил в микрофон и вправе знать, что
+        // записи нет, а не находить пустоту потом.
+        if (!ok) _error = tr('voice_record_failed');
       });
       return;
     }
@@ -211,16 +215,24 @@ class _VoiceSheetState extends State<_VoiceSheet> {
       final dir = await getTemporaryDirectory();
       final path =
           '${dir.path}/wickly_voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      await _recorder.start(const RecordConfig(), path: path);
+      // Параметры задаём явно: значения по умолчанию у разных прошивок
+      // разные, и на части устройств запись уходит в пустой файл.
+      await _recorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.aacLc,
+          sampleRate: 44100,
+          numChannels: 1,
+        ),
+        path: path,
+      );
       if (!mounted) return;
 
       _elapsed = Duration.zero;
       _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) async {
         try {
           final amp = await _recorder.getAmplitude();
-          // Амплитуда приходит в дБ (около −60…0) — приводим к 0..1.
-          _pushLevel(
-              ((amp.current + 45) / 45).clamp(0.05, 1).toDouble() * 10 - 5);
+          // Амплитуда приходит в дБ (около −45…0) — приводим к 0..1.
+          _pushLevel(((amp.current + 45) / 45).clamp(0.05, 1).toDouble());
         } catch (_) {
           // Уровень — украшение. Не отдал, и ладно: запись важнее волны.
         }
@@ -244,9 +256,24 @@ class _VoiceSheetState extends State<_VoiceSheet> {
     }
   }
 
-  void _pushLevel(double raw) {
-    // Уровень речи приходит примерно в −2…10; сглаживаем и нормируем.
-    final norm = ((raw + 2) / 12).clamp(0.05, 1).toDouble();
+  /// Дожидается, пока диктофон допишет файл, и проверяет, что он не пустой.
+  Future<bool> _hasSound(String path) async {
+    final file = File(path);
+    for (var i = 0; i < 20; i++) {
+      if (file.existsSync() && await file.length() > 1024) return true;
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    return false;
+  }
+
+  /// Уровень распознавания приходит примерно в −2…10 — приводим к 0..1.
+  void _pushSpeechLevel(double raw) =>
+      _pushLevel(((raw + 2) / 12).clamp(0.05, 1).toDouble());
+
+  /// Принимает готовый 0..1. Раньше сюда шли обе шкалы разом, и уровень
+  /// диктофона нормировался дважды: волна прижималась к минимуму и стояла
+  /// ровным частоколом независимо от голоса.
+  void _pushLevel(double norm) {
     _level = _level * 0.6 + norm * 0.4;
     _levels
       ..removeAt(0)

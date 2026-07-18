@@ -71,7 +71,9 @@ class EntryCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             _title(e),
-                            maxLines: 1,
+                            // Три строки: заголовок записи — главное, что
+                            // человек ищет глазами в ленте.
+                            maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontFamily: AppTheme.displayFont,

@@ -362,7 +362,8 @@ class _CoverBar extends StatelessWidget {
         foregroundColor: scheme.onSurface,
         title: Text(
           title == null || title.isEmpty ? tr('entry_untitled') : title,
-          maxLines: 1,
+          // Без обложки это единственное место, где виден заголовок целиком.
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontFamily: AppTheme.displayFont,

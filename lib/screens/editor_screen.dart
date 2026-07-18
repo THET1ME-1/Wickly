@@ -18,6 +18,7 @@ import '../theme/mood_palette_ext.dart';
 import '../theme/wickly_design.dart';
 import '../utils/dates.dart';
 import '../utils/markdown_edit.dart';
+import '../widgets/audio_player_bar.dart';
 import '../widgets/context_chip.dart';
 import '../widgets/cover_sheet.dart';
 import '../widgets/markdown_controller.dart';
@@ -605,6 +606,9 @@ class _EditorScreenState extends State<EditorScreen> {
                   const SizedBox(height: 14),
                   TextField(
                     controller: _title,
+                    // Без этого TextField держит одну строку и длинный
+                    // заголовок уезжает вбок: видно только его начало.
+                    maxLines: null,
                     textCapitalization: TextCapitalization.sentences,
                     style: TextStyle(
                       fontFamily: AppTheme.displayFont,
@@ -702,6 +706,10 @@ class _EditorScreenState extends State<EditorScreen> {
                     letterSpacing: -0.2,
                     color: scheme.onSurface,
                   ),
+                  // Тема тоже переносится: у длинных заголовков было видно
+                  // только начало. Ценой ухода Enter в перенос строки —
+                  // прыжок в текст по Enter при этом невозможен.
+                  maxLines: null,
                   decoration: InputDecoration(
                     hintText: tr('block_title_hint'),
                     filled: false,
@@ -711,7 +719,6 @@ class _EditorScreenState extends State<EditorScreen> {
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
-                  onSubmitted: (_) => block.focus.requestFocus(),
                 ),
                 const SizedBox(height: 2),
                 TextField(
@@ -759,12 +766,38 @@ class _EditorScreenState extends State<EditorScreen> {
             if (_mediaById[id] != null) _mediaById[id]!,
         ];
         if (items.isEmpty) return const SizedBox.shrink();
+        // Голос показываем плеером, как в читалке. В сетке он превращался в
+        // безликую плитку и прятался под «+N» среди фотографий — человек
+        // считал, что заметка не записалась.
+        final visual =
+            items.where((m) => m.kind != MediaKind.audio).toList();
+        final audio = items.where((m) => m.kind == MediaKind.audio).toList();
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: MediaGrid(
-            media: items,
-            onOpen: (i) => showMediaViewer(context, items, i),
-            onRemove: _removeMedia,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (visual.isNotEmpty)
+                MediaGrid(
+                  media: visual,
+                  onOpen: (i) => showMediaViewer(context, visual, i),
+                  onRemove: _removeMedia,
+                ),
+              for (final m in audio)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Expanded(child: AudioPlayerBar(media: m)),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        tooltip: tr('delete'),
+                        onPressed: () => _removeMedia(m),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
         );
     }
