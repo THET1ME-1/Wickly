@@ -59,6 +59,10 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Долгий тап по иконке приложения — сразу новая запись. -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts"/>
             <!-- Переходы из виджета: wickly://write и wickly://write?mood=4 -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>

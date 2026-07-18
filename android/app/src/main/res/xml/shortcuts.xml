@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Долгий тап по иконке: сразу новая запись, минуя ленту. Диплинк тот же,
+     что у виджета на домашнем экране, — wickly://write. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="write"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_write_short"
+        android:shortcutLongLabel="@string/shortcut_write_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="wickly://write"
+            android:targetPackage="com.wickly"
+            android:targetClass="com.wickly.wickly.MainActivity"/>
+    </shortcut>
+</shortcuts>

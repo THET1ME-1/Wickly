@@ -8,4 +8,6 @@
     <string name="widget_mood_3">Норм</string>
     <string name="widget_mood_4">Хорошо</string>
     <string name="widget_mood_5">Отлично</string>
+    <string name="shortcut_write_short">Записать</string>
+    <string name="shortcut_write_long">Новая запись</string>
 </resources>

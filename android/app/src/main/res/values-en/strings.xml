@@ -7,4 +7,6 @@
     <string name="widget_mood_3">Okay</string>
     <string name="widget_mood_4">Good</string>
     <string name="widget_mood_5">Great</string>
+    <string name="shortcut_write_short">Write</string>
+    <string name="shortcut_write_long">New entry</string>
 </resources>
