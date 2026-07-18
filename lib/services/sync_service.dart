@@ -131,11 +131,17 @@ class SyncService {
   }
 
   /// Фраза сопряжения: четыре слова, которые легко продиктовать вслух.
+  ///
+  /// Слова разные: повтор и на слух путает, и уменьшает и без того небольшое
+  /// число сочетаний.
   static String generatePhrase() {
-    final random = SecretKeyData.random(length: 8).bytes;
-    return [
-      for (var i = 0; i < 4; i++) _words[random[i] % _words.length],
-    ].join('-');
+    final random = SecretKeyData.random(length: 32).bytes;
+    final pool = [..._words];
+    final picked = <String>[];
+    for (var i = 0; picked.length < 4 && i < random.length; i++) {
+      picked.add(pool.removeAt(random[i] % pool.length));
+    }
+    return picked.join('-');
   }
 
   /// Небольшой словарь коротких слов без похожих написаний.

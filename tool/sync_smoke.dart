@@ -79,6 +79,13 @@ Future<void> main() async {
           (await other.extractBytes()).toString());
   _check('сгенерированная фраза из четырёх слов',
       SyncService.generatePhrase().split('-').length == 4);
+  // Повтор слова путает на слух и режет число сочетаний.
+  var allDistinct = true;
+  for (var i = 0; i < 50; i++) {
+    final words = SyncService.generatePhrase().split('-');
+    if (words.toSet().length != 4) allDistinct = false;
+  }
+  _check('слова во фразе не повторяются', allDistinct);
 
   print('\n— Первый обмен —');
   final e1 = Entry.create(

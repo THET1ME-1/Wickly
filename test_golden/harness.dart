@@ -1,3 +1,7 @@
+// Каталог лежит вне `test/`, поэтому анализатор не считает его тестовым и
+// ругается на @visibleForTesting. Вынесено сюда намеренно: снимки экранов не
+// должны попадать в обычный прогон `flutter test`.
+// ignore_for_file: invalid_use_of_visible_for_testing_member
 import 'dart:io';
 
 import 'package:flutter/material.dart';

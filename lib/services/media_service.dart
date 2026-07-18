@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -8,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import '../data/media_repository.dart';
 import '../data/media_store.dart';
 import '../models/media.dart';
+import 'ocr_service.dart';
 
 /// Кладёт фото, видео и рисунки в запись.
 ///
@@ -134,6 +136,8 @@ class MediaService {
       height: decoded?.height,
     );
     await MediaRepository.instance.insert(media);
+    // Текст на фото распознаём в фоне: карточка не должна ждать распознавание.
+    unawaited(OcrService.recognize(media));
     return media;
   }
 

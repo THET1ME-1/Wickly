@@ -85,15 +85,19 @@ class _MoreTile extends StatelessWidget {
                       size: 20, color: scheme.onPrimaryContainer),
                 ),
                 const Spacer(),
-                Text(
-                  item.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: AppTheme.displayFont,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    color: scheme.onSurface,
+                // Длинный заголовок ужимаем: «Эмоции и де…» читается как сбой.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    item.title,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontFamily: AppTheme.displayFont,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: scheme.onSurface,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 2),

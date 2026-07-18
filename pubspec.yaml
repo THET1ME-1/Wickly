@@ -67,6 +67,7 @@ dependencies:
   intl: ^0.20.2                # даты и числа по локали
   meta: ^1.17.0               # @visibleForTesting в чистом Dart (без Flutter)
   crypto: ^3.0.7              # хэши медиа-файлов
+  google_mlkit_text_recognition: ^0.16.0
 
 dev_dependencies:
   flutter_test:

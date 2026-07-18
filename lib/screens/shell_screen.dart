@@ -193,7 +193,7 @@ class _ShellScreenState extends State<ShellScreen> {
         MoreItem(
           icon: Icons.search_rounded,
           title: tr('search'),
-          subtitle: tr('search_section_photos'),
+          subtitle: tr('search_start_sub'),
           onTap: _openSearch,
         ),
         MoreItem(
