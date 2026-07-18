@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:home_widget/home_widget.dart';
 
 import '../data/app_prefs.dart';
 import '../data/entry_repository.dart';
@@ -9,6 +12,7 @@ import '../models/media.dart';
 import '../services/feed_service.dart';
 import '../services/search_service.dart';
 import '../services/stats_service.dart';
+import '../services/widget_service.dart';
 import '../utils/dates.dart';
 import '../widgets/entry_card.dart';
 import 'calendar_screen.dart';
@@ -48,6 +52,37 @@ class _ShellScreenState extends State<ShellScreen> {
   /// Показываемый месяц календаря.
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
 
+  StreamSubscription<Uri?>? _widgetTaps;
+
+  @override
+  void initState() {
+    super.initState();
+    _listenToWidget();
+  }
+
+  @override
+  void dispose() {
+    _widgetTaps?.cancel();
+    super.dispose();
+  }
+
+  /// Тап по виджету открывает редактор — сразу и с нужным настроением.
+  Future<void> _listenToWidget() async {
+    try {
+      final launched = await HomeWidget.initiallyLaunchedFromHomeWidget();
+      if (launched != null) _handleWidgetUri(launched);
+      _widgetTaps = HomeWidget.widgetClicked.listen(_handleWidgetUri);
+    } catch (_) {
+      // Виджеты есть не на всякой платформе — это не повод падать.
+    }
+  }
+
+  void _handleWidgetUri(Uri? uri) {
+    if (uri == null || uri.host != 'write') return;
+    final mood = int.tryParse(uri.queryParameters['mood'] ?? '');
+    WidgetsBinding.instance.addPostFrameCallback((_) => _write(mood: mood));
+  }
+
   static ShellTab get _startTab {
     final name = AppPrefs.instance.startScreen;
     return ShellTab.values.firstWhere(
@@ -58,10 +93,14 @@ class _ShellScreenState extends State<ShellScreen> {
 
   // ----------------------------- Переходы -----------------------------
 
-  Future<void> _write({String? promptKey, DateTime? at}) async {
+  Future<void> _write({String? promptKey, int? mood}) async {
     final journalId = AppPrefs.instance.lastJournalId ?? 'default';
     await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => EditorScreen(journalId: journalId, promptKey: promptKey),
+      builder: (_) => EditorScreen(
+        journalId: journalId,
+        promptKey: promptKey,
+        initialMood: mood,
+      ),
     ));
     if (mounted) setState(() {});
   }
@@ -172,6 +211,8 @@ class _ShellScreenState extends State<ShellScreen> {
         stream: EntryRepository.instance.watchEntries(),
         builder: (context, snapshot) {
           final entries = snapshot.data ?? const <Entry>[];
+          // Виджет на домашнем экране живёт теми же данными, что и лента.
+          if (snapshot.hasData) WidgetService.refresh(entries);
           return _Body(
             tab: _tab,
             entries: entries,

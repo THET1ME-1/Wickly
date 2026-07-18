@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Цвета виджета. Тёмный вариант лежит в values-night: виджет должен
+     подстраиваться под тему системы так же, как само приложение. -->
+<resources>
+    <color name="widget_bg">#FBF8F4</color>
+    <color name="widget_card">#F1EAE1</color>
+    <color name="widget_text">#211B13</color>
+    <color name="widget_text_dim">#4E463B</color>
+    <color name="widget_accent">#7C5800</color>
+    <color name="widget_on_accent">#FFFFFF</color>
+    <color name="widget_mood_1">#C7584C</color>
+    <color name="widget_mood_2">#D98A46</color>
+    <color name="widget_mood_3">#D8B544</color>
+    <color name="widget_mood_4">#82B464</color>
+    <color name="widget_mood_5">#4A9E86</color>
+    <dimen name="widget_radius">24dp</dimen>
+</resources>

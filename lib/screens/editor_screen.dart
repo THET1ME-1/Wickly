@@ -40,11 +40,16 @@ class EditorScreen extends StatefulWidget {
   /// Подсказка дня, с которой начали.
   final String? promptKey;
 
+  /// Настроение, отмеченное ещё до открытия редактора — тап по кружку в
+  /// виджете на домашнем экране.
+  final int? initialMood;
+
   const EditorScreen({
     super.key,
     this.entry,
     required this.journalId,
     this.promptKey,
+    this.initialMood,
   });
 
   @override
@@ -73,6 +78,7 @@ class _EditorScreenState extends State<EditorScreen> {
         Entry.create(
           journalId: widget.journalId,
           promptKey: widget.promptKey,
+          mood: widget.initialMood,
           draft: true,
         );
     _title = TextEditingController(text: _entry.title ?? '');

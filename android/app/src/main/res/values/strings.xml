@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_name">Wickly</string>
+    <string name="widget_question">Как прошёл день?</string>
+    <string name="widget_write">Записать</string>
+    <string name="widget_mood_1">Плохо</string>
+    <string name="widget_mood_2">Так себе</string>
+    <string name="widget_mood_3">Норм</string>
+    <string name="widget_mood_4">Хорошо</string>
+    <string name="widget_mood_5">Отлично</string>
+</resources>

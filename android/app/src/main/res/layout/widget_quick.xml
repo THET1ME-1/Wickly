@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Виджет быстрой записи: вопрос, шкала настроения и кнопка.
+     Тап по кружку открывает редактор с уже отмеченным настроением — это и есть
+     «запись в один тап». -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="14dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/widget_text"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="@string/widget_question"/>
+
+        <TextView
+            android:id="@+id/widget_streak"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/widget_text_dim"
+            android:textSize="12sp"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="12dp"
+        android:weightSum="5">
+
+        <ImageView android:id="@+id/mood_1" android:layout_width="0dp"
+            android:layout_height="32dp" android:layout_weight="1"
+            android:layout_marginEnd="6dp" android:src="@drawable/widget_mood_1"
+            android:contentDescription="@string/widget_mood_1"/>
+        <ImageView android:id="@+id/mood_2" android:layout_width="0dp"
+            android:layout_height="32dp" android:layout_weight="1"
+            android:layout_marginEnd="6dp" android:src="@drawable/widget_mood_2"
+            android:contentDescription="@string/widget_mood_2"/>
+        <ImageView android:id="@+id/mood_3" android:layout_width="0dp"
+            android:layout_height="32dp" android:layout_weight="1"
+            android:layout_marginEnd="6dp" android:src="@drawable/widget_mood_3"
+            android:contentDescription="@string/widget_mood_3"/>
+        <ImageView android:id="@+id/mood_4" android:layout_width="0dp"
+            android:layout_height="32dp" android:layout_weight="1"
+            android:layout_marginEnd="6dp" android:src="@drawable/widget_mood_4"
+            android:contentDescription="@string/widget_mood_4"/>
+        <ImageView android:id="@+id/mood_5" android:layout_width="0dp"
+            android:layout_height="32dp" android:layout_weight="1"
+            android:src="@drawable/widget_mood_5"
+            android:contentDescription="@string/widget_mood_5"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_write"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/widget_button"
+        android:gravity="center"
+        android:textColor="@color/widget_on_accent"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:text="@string/widget_write"/>
+
+    <TextView
+        android:id="@+id/widget_memory"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:textColor="@color/widget_text_dim"
+        android:textSize="12sp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:visibility="gone"/>
+</LinearLayout>

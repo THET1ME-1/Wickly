@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_question">How was your day?</string>
+    <string name="widget_write">Write</string>
+    <string name="widget_mood_1">Rough</string>
+    <string name="widget_mood_2">Meh</string>
+    <string name="widget_mood_3">Okay</string>
+    <string name="widget_mood_4">Good</string>
+    <string name="widget_mood_5">Great</string>
+</resources>
