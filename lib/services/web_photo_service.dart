@@ -47,6 +47,11 @@ class WebPhotoService {
 
   static const _endpoint = 'https://api.openverse.org/v1/images/';
 
+  /// Openverse просит представляться. Только ASCII: не-ASCII в значении
+  /// заголовка Dart роняет `FormatException` ещё до отправки запроса, а
+  /// `catch` ниже глотает её — поиск молча возвращал бы пустоту всегда.
+  static const userAgent = 'Wickly/1.0 (personal journal)';
+
   /// Ищет снимки по теме. Пустой запрос вернёт пустой список, а не случайное.
   static Future<List<WebPhoto>> search(String topic, {int limit = 12}) async {
     final query = topic.trim();
@@ -62,7 +67,7 @@ class WebPhotoService {
       });
       final response = await http.get(
         uri,
-        headers: const {'User-Agent': 'Wickly/1.0 (личный дневник)'},
+        headers: const {'User-Agent': userAgent},
       ).timeout(const Duration(seconds: 12));
       if (response.statusCode != 200) return const [];
 
