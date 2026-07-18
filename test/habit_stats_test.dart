@@ -3,6 +3,7 @@ import 'package:wickly/models/catalog.dart';
 import 'package:wickly/services/habit_stats.dart';
 
 void main() {
+  _scheduleTests();
   final now = DateTime(2026, 7, 18);
 
   /// Карта «день → отмечено» по смещению назад от [now].
@@ -67,6 +68,72 @@ void main() {
       final h = HabitMath.history(const {}, days: 5, now: now);
       expect(h, everyElement(isFalse));
       expect(h, hasLength(5));
+    });
+  });
+}
+
+void _scheduleTests() {
+  final now = DateTime(2026, 7, 18); // суббота
+  Map<int, double> onDays(List<int> offsets) => {
+        for (final o in offsets)
+          TrackerLog.dayKey(now.subtract(Duration(days: o))): 1,
+      };
+
+  // Привычка «по будням»: пн–пт.
+  bool weekdaysOnly(DateTime d) => d.weekday <= 5;
+
+  group('Расписание привычки', () {
+    test('Выходные по расписанию не рвут серию', () {
+      // 18 июля 2026 — суббота, её не ждём. Отмечены пять будней подряд:
+      // пт, чт, ср, вт, пн.
+      final s = HabitMath.of(
+        onDays([1, 2, 3, 4, 5]),
+        now: now,
+        expectedOn: weekdaysOnly,
+      );
+      expect(s.streak, 5, reason: 'суббота не должна обрывать будни');
+    });
+
+    test('Пропущенный ожидаемый день серию рвёт', () {
+      // Пятница и среда отмечены, четверг пропущен.
+      final s = HabitMath.of(
+        onDays([1, 3, 4]),
+        now: now,
+        expectedOn: weekdaysOnly,
+      );
+      expect(s.streak, 1);
+    });
+
+    test('Доля считается от ожидаемых дней, а не от календарных', () {
+      // Все будни за 30 дней отмечены — это сто процентов, а не 71.
+      final marked = <int>[];
+      for (var i = 0; i < 30; i++) {
+        if (weekdaysOnly(now.subtract(Duration(days: i)))) marked.add(i);
+      }
+      final s = HabitMath.of(
+        onDays(marked),
+        now: now,
+        expectedOn: weekdaysOnly,
+      );
+      expect(s.rate30, 1.0);
+      expect(s.expected30, lessThan(30));
+    });
+
+    test('Без расписания считаются все дни', () {
+      final s = HabitMath.of(onDays([0, 1]), now: now);
+      expect(s.expected30, 30);
+    });
+
+    test('Пустое расписание не зацикливает подсчёт', () {
+      // Привычка не ожидается никогда — серия ноль, но и зависнуть нельзя.
+      final s = HabitMath.of(
+        onDays([0, 1, 2]),
+        now: now,
+        expectedOn: (_) => false,
+      );
+      expect(s.streak, 0);
+      expect(s.expected30, 0);
+      expect(s.rate30, 0);
     });
   });
 }

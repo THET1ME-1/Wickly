@@ -223,7 +223,10 @@ class _HabitRow extends StatelessWidget {
                     Text(
                       streak > 0
                           ? trf('habit_streak_days', {'n': streak})
-                          : trf('habit_rate_short', {'n': state.habit.last30}),
+                          : trf('habit_rate_short', {
+                              'n': state.habit.last30,
+                              'of': state.habit.expected30,
+                            }),
                       style: TextStyle(
                         fontFamily: AppTheme.bodyFont,
                         fontSize: 11.5,

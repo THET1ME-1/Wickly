@@ -254,6 +254,13 @@ class Tracker with CatalogItem {
   /// Дневная цель. Для привычки — всегда 1.
   final double? goal;
 
+  /// В какие дни недели привычка ожидается: биты 0..6, где 0 — понедельник.
+  ///
+  /// Ноль означает «каждый день» — так же читаются и старые привычки, у
+  /// которых поля ещё не было. Пропуск в неожидаемый день не рвёт серию:
+  /// «спорт трижды в неделю» не должен выглядеть вечным провалом.
+  final int weekdays;
+
   const Tracker({
     required this.id,
     required this.name,
@@ -264,6 +271,7 @@ class Tracker with CatalogItem {
     this.icon,
     this.color,
     this.sort = 0,
+    this.weekdays = 0,
   });
 
   factory Tracker.create({
@@ -274,6 +282,7 @@ class Tracker with CatalogItem {
     String? icon,
     int? color,
     int sort = 0,
+    int weekdays = 0,
   }) =>
       Tracker(
         id: _uuid.v4(),
@@ -284,6 +293,7 @@ class Tracker with CatalogItem {
         icon: icon,
         color: color,
         sort: sort,
+        weekdays: weekdays,
       );
 
   Map<String, Object?> toRowColumns() => {
@@ -297,7 +307,9 @@ class Tracker with CatalogItem {
         'builtin': builtin,
       };
 
-  Map<String, Object?> toPayload() => {'name': name};
+  // Расписание уезжает в шифрованный payload, а не в колонку: добавлять
+  // колонку значило бы менять схему у всех, кто уже синхронизируется.
+  Map<String, Object?> toPayload() => {'name': name, 'weekdays': weekdays};
 
   factory Tracker.fromStorage(
     Map<String, Object?> row,
@@ -313,7 +325,22 @@ class Tracker with CatalogItem {
         icon: row['icon'] as String?,
         color: row['color'] as int?,
         sort: (row['sort'] as int?) ?? 0,
+        weekdays: (payload['weekdays'] as num?)?.toInt() ?? 0,
       );
+
+  /// Ожидается ли привычка в этот день.
+  bool expectedOn(DateTime day) =>
+      weekdays == 0 || (weekdays & (1 << (day.weekday - 1))) != 0;
+
+  /// Сколько дней в неделю ожидается.
+  int get daysPerWeek {
+    if (weekdays == 0) return 7;
+    var count = 0;
+    for (var i = 0; i < 7; i++) {
+      if ((weekdays & (1 << i)) != 0) count++;
+    }
+    return count;
+  }
 
   Tracker copyWith({
     String? name,
@@ -323,6 +350,7 @@ class Tracker with CatalogItem {
     String? icon,
     int? color,
     int? sort,
+    int? weekdays,
   }) =>
       Tracker(
         id: id,
@@ -334,6 +362,7 @@ class Tracker with CatalogItem {
         icon: icon ?? this.icon,
         color: color ?? this.color,
         sort: sort ?? this.sort,
+        weekdays: weekdays ?? this.weekdays,
       );
 }
 

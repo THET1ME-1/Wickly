@@ -47,7 +47,9 @@ class _TrackersContainerState extends State<TrackersContainer> {
           for (var i = 6; i >= 0; i--)
             (range[TrackerLog.dayKey(now.subtract(Duration(days: i)))] ?? 0) > 0,
         ],
-        habit: habit ? HabitMath.of(range, now: now) : HabitStats.empty,
+        habit: habit
+            ? HabitMath.of(range, now: now, expectedOn: t.expectedOn)
+            : HabitStats.empty,
       ));
     }
 

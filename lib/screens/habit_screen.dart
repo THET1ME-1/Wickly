@@ -51,7 +51,7 @@ class _HabitScreenState extends State<HabitScreen> {
     if (!mounted) return;
     setState(() {
       _byDay = byDay;
-      _stats = HabitMath.of(byDay, now: now);
+      _stats = HabitMath.of(byDay, now: now, expectedOn: _tracker.expectedOn);
       _loading = false;
     });
   }
@@ -121,6 +121,7 @@ class _HabitScreenState extends State<HabitScreen> {
                         HabitHeatmap(
                           days: HabitMath.history(_byDay, days: _historyDays),
                           color: tint,
+                          expectedOn: _tracker.expectedOn,
                           onToggle: _toggle,
                         ),
                         const SizedBox(height: 10),
@@ -292,7 +293,10 @@ class _HabitScreenState extends State<HabitScreen> {
             children: [
               Expanded(
                 child: Text(
-                  tr('habit_rate_30'),
+                  _tracker.weekdays == 0
+                      ? tr('habit_rate_30')
+                      : trf('habit_rate_schedule',
+                          {'n': _tracker.daysPerWeek}),
                   style: TextStyle(
                     fontFamily: AppTheme.bodyFont,
                     fontSize: 12.5,
@@ -301,7 +305,7 @@ class _HabitScreenState extends State<HabitScreen> {
                 ),
               ),
               Text(
-                '${_stats.last30} / 30',
+                '${_stats.last30} / ${_stats.expected30}',
                 style: TextStyle(
                   fontFamily: AppTheme.bodyFont,
                   fontSize: 12.5,

@@ -8,9 +8,39 @@ library;
 
 const Map<String, Map<String, String>> catalogStrings = {
   'habit_rate_short': {
-    'ru': '{n} из 30 дней', 'en': '{n} of 30 days', 'de': '{n} von 30 Tagen',
-    'fr': '{n} jours sur 30', 'es': '{n} de 30 días', 'it': '{n} su 30 giorni',
-    'pt': '{n} de 30 dias',
+    'ru': '{n} из {of} дней', 'en': '{n} of {of} days',
+    'de': '{n} von {of} Tagen', 'fr': '{n} jours sur {of}',
+    'es': '{n} de {of} días', 'it': '{n} su {of} giorni',
+    'pt': '{n} de {of} dias',
+  },
+  'habit_rate_schedule': {
+    'ru': 'За 30 дней · {n} раза в неделю',
+    'en': 'Over 30 days · {n} a week',
+    'de': 'In 30 Tagen · {n} pro Woche',
+    'fr': 'Sur 30 jours · {n} par semaine',
+    'es': 'En 30 días · {n} por semana',
+    'it': 'In 30 giorni · {n} a settimana',
+    'pt': 'Em 30 dias · {n} por semana',
+  },
+  'habit_schedule': {
+    'ru': 'Когда ожидать', 'en': 'When to expect it',
+    'de': 'Wann erwarten', 'fr': 'Quand l’attendre',
+    'es': 'Cuándo esperarla', 'it': 'Quando aspettarla',
+    'pt': 'Quando esperar',
+  },
+  'habit_schedule_daily': {
+    'ru': 'Каждый день', 'en': 'Every day', 'de': 'Jeden Tag',
+    'fr': 'Chaque jour', 'es': 'Cada día', 'it': 'Ogni giorno',
+    'pt': 'Todos os dias',
+  },
+  'habit_schedule_hint': {
+    'ru': 'В остальные дни привычка не ждёт отметки и серию не рвёт.',
+    'en': 'On other days it expects nothing and the streak holds.',
+    'de': 'An anderen Tagen erwartet sie nichts, die Serie hält.',
+    'fr': 'Les autres jours, rien n’est attendu et la série tient.',
+    'es': 'Los demás días no espera nada y la racha se mantiene.',
+    'it': 'Negli altri giorni non aspetta nulla e la serie regge.',
+    'pt': 'Nos outros dias não espera nada e a sequência aguenta.',
   },
   'habit_history': {
     'ru': 'Как шло', 'en': 'How it went', 'de': 'Verlauf',

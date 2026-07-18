@@ -17,11 +17,16 @@ class HabitHeatmap extends StatelessWidget {
   /// Тап по клетке: смещение дня назад от сегодня.
   final void Function(int daysAgo)? onToggle;
 
+  /// Ожидается ли привычка в этот день. Дни вне расписания рисуются едва
+  /// заметно: это не пропуск, там ничего и не обещали.
+  final bool Function(DateTime day)? expectedOn;
+
   const HabitHeatmap({
     super.key,
     required this.days,
     this.color,
     this.onToggle,
+    this.expectedOn,
   });
 
   @override
@@ -54,14 +59,20 @@ class HabitHeatmap extends StatelessWidget {
                 Column(
                   children: [
                     for (var d = 0; d < 7; d++) ...[
-                      _cell(
-                        context,
-                        value: padded[w * 7 + d],
-                        // Сколько дней назад эта клетка.
-                        daysAgo: padded.length - lead - (w * 7 + d) - 1,
-                        size: cell,
-                        tint: tint,
-                      ),
+                      Builder(builder: (context) {
+                        final ago = padded.length - lead - (w * 7 + d) - 1;
+                        return _cell(
+                          context,
+                          value: padded[w * 7 + d],
+                          daysAgo: ago,
+                          size: cell,
+                          tint: tint,
+                          offDay: expectedOn != null &&
+                              ago >= 0 &&
+                              !expectedOn!(
+                                  today.subtract(Duration(days: ago))),
+                        );
+                      }),
                       if (d < 6) const SizedBox(height: 3),
                     ],
                   ],
@@ -81,6 +92,7 @@ class HabitHeatmap extends StatelessWidget {
     required int daysAgo,
     required double size,
     required Color tint,
+    bool offDay = false,
   }) {
     final scheme = Theme.of(context).colorScheme;
     // Пустая клетка — день за пределами истории: он не был пропущен, его
@@ -107,7 +119,10 @@ class HabitHeatmap extends StatelessWidget {
               ? tint
               : (future
                   ? Colors.transparent
-                  : scheme.surfaceContainerHighest),
+                  : scheme.surfaceContainerHighest
+                      // Вне расписания клетка почти прозрачна: в этот день
+                      // ничего не обещали, и пустота там не провал.
+                      .withValues(alpha: offDay ? 0.35 : 1)),
           borderRadius: BorderRadius.circular(size * 0.28),
         ),
       ),

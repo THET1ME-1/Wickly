@@ -4,6 +4,8 @@ import '../data/tracker_repository.dart';
 import '../l10n/strings.dart';
 import '../models/catalog.dart';
 import '../theme/app_theme.dart';
+import '../utils/dates.dart';
+import '../theme/feedback.dart';
 import '../theme/icon_keys.dart';
 import '../utils/catalog_names.dart';
 import 'sheet_scaffold.dart';
@@ -40,6 +42,9 @@ class _TrackerEditorState extends State<_TrackerEditor> {
           : _short(widget.tracker!.goal!));
 
   late TrackerKind _kind = widget.tracker?.kind ?? TrackerKind.number;
+
+  /// Маска дней недели: бит 0 — понедельник. Ноль значит «каждый день».
+  late int _weekdays = widget.tracker?.weekdays ?? 0;
   late String _icon = widget.tracker?.icon ?? 'star';
 
   static String _unitLabel(Tracker? t) {
@@ -76,6 +81,7 @@ class _TrackerEditorState extends State<_TrackerEditor> {
             goal: goal,
             icon: _icon,
             sort: widget.sort,
+            weekdays: _kind == TrackerKind.habit ? _weekdays : 0,
           )
         : widget.tracker!.copyWith(
             name: name,
@@ -83,6 +89,7 @@ class _TrackerEditorState extends State<_TrackerEditor> {
             unit: _unit.text.trim().isEmpty ? null : _unit.text.trim(),
             goal: goal,
             icon: _icon,
+            weekdays: _kind == TrackerKind.habit ? _weekdays : 0,
           );
     if (widget.tracker == null) {
       await repo.insert(saved);
@@ -156,6 +163,48 @@ class _TrackerEditorState extends State<_TrackerEditor> {
                   ),
               ],
             ),
+            // Расписание — только у привычки: у счётчика «сколько сегодня»
+            // спрашивают каждый день.
+            if (_kind == TrackerKind.habit) ...[
+              const SizedBox(height: 16),
+              Text(tr('habit_schedule'), style: label()),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  for (var i = 0; i < 7; i++) ...[
+                    Expanded(
+                      child: _DayToggle(
+                        label: Dates.weekdayHeaders()[i],
+                        // Ноль в модели означает «каждый день», поэтому в
+                        // интерфейсе показываем все дни выбранными.
+                        selected:
+                            _weekdays == 0 || (_weekdays & (1 << i)) != 0,
+                        onTap: () => setState(() {
+                          var mask = _weekdays == 0 ? 127 : _weekdays;
+                          mask ^= 1 << i;
+                          // Сняли всё — это снова «каждый день», иначе
+                          // привычка перестала бы существовать.
+                          _weekdays = (mask & 127) == 0 ? 0 : mask;
+                        }),
+                      ),
+                    ),
+                    if (i < 6) const SizedBox(width: 6),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _weekdays == 0
+                    ? tr('habit_schedule_daily')
+                    : tr('habit_schedule_hint'),
+                style: TextStyle(
+                  fontFamily: AppTheme.bodyFont,
+                  fontSize: 11.5,
+                  height: 1.35,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
             if (_kind != TrackerKind.habit) ...[
               const SizedBox(height: 16),
               Row(
@@ -210,6 +259,53 @@ class _TrackerEditorState extends State<_TrackerEditor> {
             ),
             const SizedBox(height: 8),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Кружок дня недели в расписании привычки.
+class _DayToggle extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _DayToggle({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: () {
+        Haptics.tap();
+        onTap();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: AppTheme.emphasized,
+        height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected
+              ? scheme.primaryContainer
+              : scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: AppTheme.bodyFont,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: selected
+                ? scheme.onPrimaryContainer
+                : scheme.onSurfaceVariant,
+          ),
         ),
       ),
     );
