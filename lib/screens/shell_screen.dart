@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../theme/app_theme.dart';
 import '../theme/feedback.dart';
 import '../data/app_prefs.dart';
 import '../data/entry_repository.dart';
@@ -264,7 +265,24 @@ class _ShellScreenState extends State<ShellScreen> {
           final entries = snapshot.data ?? const <Entry>[];
           // Виджет на домашнем экране живёт теми же данными, что и лента.
           if (snapshot.hasData) WidgetService.refresh(entries);
-          return _Body(
+          // Вкладка не «рождается», она сменяет предыдущую: проявление с
+          // коротким подъёмом, без сдвига вбок — вкладки не соседние экраны,
+          // а разные взгляды на одно и то же.
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: AppTheme.emphasizedDecelerate,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.015),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            ),
+            child: _Body(
+            key: ValueKey(_tab),
             tab: _tab,
             entries: entries,
             month: _month,
@@ -277,6 +295,7 @@ class _ShellScreenState extends State<ShellScreen> {
             onMemories: _openMemories,
             onStats: () => _openScreen(const MoodStatsContainer()),
             onSettings: () => _openScreen(const SettingsScreen()),
+            ),
           );
         },
       ),
@@ -336,6 +355,7 @@ class _Body extends StatelessWidget {
   final VoidCallback onSettings;
 
   const _Body({
+    super.key,
     required this.tab,
     required this.entries,
     required this.month,

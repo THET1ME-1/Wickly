@@ -7,6 +7,7 @@ import '../models/entry.dart';
 import '../services/feed_service.dart';
 import '../theme/wickly_design.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/reveal.dart';
 import '../widgets/entry_card.dart';
 import 'lock_screen.dart';
 import 'editor_screen.dart';
@@ -26,6 +27,9 @@ class HiddenEntriesScreen extends StatefulWidget {
 
 class _HiddenEntriesScreenState extends State<HiddenEntriesScreen> {
   late bool _unlocked = !AppPrefs.instance.hasPin;
+
+  /// Что уже показывали — каскад не должен повторяться при прокрутке.
+  final Set<Object> _shown = <Object>{};
   List<EntryCardItem> _items = const [];
 
   @override
@@ -66,9 +70,14 @@ class _HiddenEntriesScreenState extends State<HiddenEntriesScreen> {
               itemCount: _items.length,
               separatorBuilder: (_, _) =>
                   const SizedBox(height: WicklyDesign.gapCards),
-              itemBuilder: (context, i) => EntryCard(
-                item: _items[i],
-                onTap: () => _open(_items[i].entry),
+              itemBuilder: (context, i) => Reveal(
+                group: _shown,
+                id: _items[i].entry.id,
+                delay: WicklyDesign.revealDelay(i),
+                child: EntryCard(
+                  item: _items[i],
+                  onTap: () => _open(_items[i].entry),
+                ),
               ),
             ),
     );

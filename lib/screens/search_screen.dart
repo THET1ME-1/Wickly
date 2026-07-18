@@ -6,6 +6,7 @@ import '../services/search_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/mood_palette_ext.dart';
 import '../theme/wickly_design.dart';
+import '../widgets/reveal.dart';
 import '../utils/dates.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/media_thumb.dart';
@@ -37,6 +38,9 @@ class SearchView extends StatefulWidget {
 
 class _SearchViewState extends State<SearchView> {
   final _controller = TextEditingController();
+
+  /// Что уже показывали — чтобы каскад не перезапускался при прокрутке.
+  final Set<Object> _shown = <Object>{};
   SearchFilters _filters = const SearchFilters();
   SearchResult _result = const SearchResult();
   bool _searched = false;
@@ -150,8 +154,17 @@ class _SearchViewState extends State<SearchView> {
             label: tr('search_section_entries'),
             count: _result.entries.length,
           ),
-          for (final hit in _result.entries)
-            _EntryHitRow(hit: hit, onTap: () => widget.onOpen?.call(hit.entry)),
+          // Результаты появляются каскадом, а не подменяются рывком: список
+          // меняется на каждую букву, и без этого он моргал.
+          for (final (i, hit) in _result.entries.indexed)
+            Reveal(
+              // Ключ включает запрос: новый запрос — новое появление.
+              group: _shown,
+              id: '${_controller.text}/${hit.entry.id}',
+              delay: WicklyDesign.revealDelay(i),
+              child: _EntryHitRow(
+                  hit: hit, onTap: () => widget.onOpen?.call(hit.entry)),
+            ),
         ],
         if (_result.photos.isNotEmpty) ...[
           _SectionHeader(
@@ -159,8 +172,14 @@ class _SearchViewState extends State<SearchView> {
             count: _result.photos.length,
             icon: Icons.document_scanner_rounded,
           ),
-          for (final hit in _result.photos)
-            _PhotoHitRow(hit: hit, onTap: () => widget.onOpen?.call(hit.entry)),
+          for (final (i, hit) in _result.photos.indexed)
+            Reveal(
+              group: _shown,
+              id: '${_controller.text}/photo/${hit.media.id}',
+              delay: WicklyDesign.revealDelay(i),
+              child: _PhotoHitRow(
+                  hit: hit, onTap: () => widget.onOpen?.call(hit.entry)),
+            ),
         ],
       ],
     );

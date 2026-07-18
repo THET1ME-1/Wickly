@@ -117,7 +117,30 @@ class CalendarView extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 6),
-            _MonthGrid(data: data, onOpenDay: onOpenDay),
+            // Месяц не появляется заново, а сменяется: сетка уезжает в ту
+            // сторону, куда листаешь. Ключ по месяцу — иначе переключатель
+            // не поймёт, что содержимое другое.
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              switchInCurve: AppTheme.emphasizedDecelerate,
+              switchOutCurve: AppTheme.emphasized,
+              transitionBuilder: (child, animation) {
+                final forward =
+                    child.key == ValueKey(data.month.millisecondsSinceEpoch);
+                return SlideTransition(
+                  position: Tween<Offset>(
+                    begin: Offset(forward ? 0.06 : -0.06, 0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: FadeTransition(opacity: animation, child: child),
+                );
+              },
+              child: _MonthGrid(
+                key: ValueKey(data.month.millisecondsSinceEpoch),
+                data: data,
+                onOpenDay: onOpenDay,
+              ),
+            ),
             const SizedBox(height: 18),
             Reveal(child: _SummaryCard(data: data)),
           ],
@@ -178,7 +201,7 @@ class _MonthGrid extends StatelessWidget {
   final CalendarData data;
   final ValueChanged<DateTime>? onOpenDay;
 
-  const _MonthGrid({required this.data, this.onOpenDay});
+  const _MonthGrid({super.key, required this.data, this.onOpenDay});
 
   @override
   Widget build(BuildContext context) {

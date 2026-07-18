@@ -7,6 +7,7 @@ import '../theme/mood_palette_ext.dart';
 import '../theme/wickly_design.dart';
 import '../utils/dates.dart';
 import 'entry_card.dart';
+import 'reveal.dart';
 import 'sheet_scaffold.dart';
 
 /// Лист дня из календаря: что было в этот день и кнопка написать.
@@ -98,9 +99,12 @@ class _DaySheet extends StatelessWidget {
                   itemCount: items.length,
                   separatorBuilder: (_, _) =>
                       const SizedBox(height: WicklyDesign.gapCards),
-                  itemBuilder: (context, i) => EntryCard(
-                    item: items[i],
-                    onTap: () => Navigator.of(context).pop(items[i].entry),
+                  itemBuilder: (context, i) => Reveal(
+                    delay: WicklyDesign.revealDelay(i),
+                    child: EntryCard(
+                      item: items[i],
+                      onTap: () => Navigator.of(context).pop(items[i].entry),
+                    ),
                   ),
                 ),
               ),
