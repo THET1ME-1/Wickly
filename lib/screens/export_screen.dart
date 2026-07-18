@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../data/app_database.dart';
@@ -63,6 +64,16 @@ class _ExportScreenState extends State<ExportScreen> {
         );
         final file = await ExportService.writeTemp('wickly-book.pdf', bytes);
         await _shareFile(file, tr('pdf_book'));
+      });
+
+  /// Печать книги. Системный диалог сам предложит и принтер, и «в PDF».
+  Future<void> _print() => _run(() async {
+        final entries = await EntryRepository.instance.allEntries();
+        final bytes = await ExportService.toPdfBook(
+          entries.reversed.toList(),
+          title: tr('pdf_book_title'),
+        );
+        await Printing.layoutPdf(onLayout: (_) async => bytes);
       });
 
   Future<void> _markdown() => _run(() async {
@@ -135,6 +146,10 @@ class _ExportScreenState extends State<ExportScreen> {
     );
   }
 
+  /// Копия считается устаревшей через две недели — или её нет вовсе.
+  static bool _backupStale(DateTime? last) =>
+      last == null || DateTime.now().difference(last).inDays >= 14;
+
   Future<void> _backup() async {
     final phrase = await _askPassphrase(creating: true);
     if (phrase == null || phrase.length < 4) return;
@@ -183,7 +198,8 @@ class _ExportScreenState extends State<ExportScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final lastBackup = AppPrefs.instance.autoBackupAt;
+    final prefs = AppPrefs.instance;
+    final lastBackup = prefs.autoBackupAt;
 
     return Scaffold(
       appBar: AppBar(title: Text(tr('export_and_backup'))),
@@ -220,15 +236,44 @@ class _ExportScreenState extends State<ExportScreen> {
                   trailing: const Icon(Icons.download_rounded),
                   onTap: _busy ? null : _text,
                 ),
+                const SettingsDivider(),
+                SettingsRow(
+                  icon: Icons.print_rounded,
+                  title: tr('print'),
+                  subtitle: tr('print_sub'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: _busy ? null : _print,
+                ),
               ]),
               const SizedBox(height: 18),
               SettingsSection(tr('backup')),
+              // Напоминание, а не автоматика: бэкап шифруется фразой, которую
+              // знает только человек. Хранить её ради «авто» — значит выдать
+              // ключ вместе с замком.
+              if (prefs.autoBackup && _backupStale(lastBackup))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _StaleBackupBanner(last: lastBackup),
+                ),
               SettingsGroup([
+                SettingsRow(
+                  icon: Icons.event_repeat_rounded,
+                  title: tr('backup_remind'),
+                  subtitle: tr('backup_remind_sub'),
+                  trailing: Switch(
+                    value: prefs.autoBackup,
+                    onChanged: (v) async {
+                      await prefs.setAutoBackup(v);
+                      if (mounted) setState(() {});
+                    },
+                  ),
+                ),
+                const SettingsDivider(),
                 SettingsRow(
                   icon: Icons.shield_rounded,
                   title: tr('backup_create'),
                   subtitle: lastBackup == null
-                      ? tr('backup_never')
+                      ? tr('backup_none_yet')
                       : trf('backup_last',
                           {'when': Dates.relativeDay(lastBackup)}),
                   trailing:
@@ -340,6 +385,46 @@ class _BookCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Напоминание, что резервной копии давно не было.
+class _StaleBackupBanner extends StatelessWidget {
+  final DateTime? last;
+
+  const _StaleBackupBanner({this.last});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final days = last == null ? null : DateTime.now().difference(last!).inDays;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: scheme.errorContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.shield_outlined, size: 20, color: scheme.error),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              days == null
+                  ? tr('backup_none_yet')
+                  : trf('backup_stale', {'n': days}),
+              style: TextStyle(
+                fontFamily: AppTheme.bodyFont,
+                fontSize: 12.5,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+                color: scheme.error,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

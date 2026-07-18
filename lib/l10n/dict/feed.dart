@@ -253,6 +253,10 @@ const Map<String, Map<String, String>> feedStrings = {
     'es': 'reconocido en una foto', 'it': 'riconosciuto su una foto',
     'pt': 'reconhecido numa foto',
   },
+  'filter_favorite': {
+    'ru': 'Избранное', 'en': 'Favorites', 'de': 'Favoriten', 'fr': 'Favoris',
+    'es': 'Favoritos', 'it': 'Preferiti', 'pt': 'Favoritos',
+  },
   'filter_with_photo': {
     'ru': 'С фото', 'en': 'With photo', 'de': 'Mit Foto', 'fr': 'Avec photo',
     'es': 'Con foto', 'it': 'Con foto', 'pt': 'Com foto',

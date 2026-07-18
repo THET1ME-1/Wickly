@@ -13,6 +13,10 @@ class SearchFilters {
   final String? tagId;
   final String? journalId;
 
+  /// Только избранные. Флаг у записи был, а добраться до отмеченного было
+  /// нечем: ни экрана, ни фильтра.
+  final bool favorite;
+
   const SearchFilters({
     this.mood,
     this.place,
@@ -20,6 +24,7 @@ class SearchFilters {
     this.year,
     this.tagId,
     this.journalId,
+    this.favorite = false,
   });
 
   bool get isEmpty =>
@@ -28,7 +33,8 @@ class SearchFilters {
       !withPhoto &&
       year == null &&
       tagId == null &&
-      journalId == null;
+      journalId == null &&
+      !favorite;
 
   SearchFilters copyWith({
     int? mood,
@@ -37,6 +43,7 @@ class SearchFilters {
     int? year,
     String? tagId,
     String? journalId,
+    bool? favorite,
     bool clearMood = false,
     bool clearPlace = false,
     bool clearYear = false,
@@ -49,6 +56,7 @@ class SearchFilters {
         year: clearYear ? null : (year ?? this.year),
         tagId: clearTag ? null : (tagId ?? this.tagId),
         journalId: journalId ?? this.journalId,
+        favorite: favorite ?? this.favorite,
       );
 }
 
@@ -174,6 +182,7 @@ class SearchService {
     List<Media>? media,
     List<String>? tags,
   ) {
+    if (f.favorite && !e.favorite) return false;
     if (f.mood != null && e.mood != f.mood) return false;
     if (f.place != null &&
         (e.place ?? '').toLowerCase() != f.place!.toLowerCase()) {

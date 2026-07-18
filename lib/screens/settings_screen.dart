@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -49,10 +50,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _version = '';
   bool _checkingUpdate = false;
 
+  /// Есть ли на телефоне отпечаток или лицо. Пока не спросили — прячем
+  /// тумблер: обещать защиту, которой нет, хуже, чем не предлагать её.
+  bool _biometricsAvailable = false;
+
   @override
   void initState() {
     super.initState();
     _loadVersion();
+    _checkBiometrics();
+  }
+
+  Future<void> _checkBiometrics() async {
+    try {
+      final auth = LocalAuthentication();
+      final can = await auth.canCheckBiometrics || await auth.isDeviceSupported();
+      final list = can ? await auth.getAvailableBiometrics() : const [];
+      if (mounted) setState(() => _biometricsAvailable = list.isNotEmpty);
+    } catch (_) {
+      if (mounted) setState(() => _biometricsAvailable = false);
+    }
+  }
+
+  /// Через сколько запирать: сразу, через минуту, через пять или пятнадцать.
+  static const _timeouts = <int>[0, 60, 300, 900];
+
+  String _timeoutLabel(int sec) => switch (sec) {
+        0 => tr('lock_timeout_now'),
+        60 => trf('lock_timeout_min', {'n': 1}),
+        300 => trf('lock_timeout_min', {'n': 5}),
+        _ => trf('lock_timeout_min', {'n': 15}),
+      };
+
+  Future<void> _pickLockTimeout() async {
+    final scheme = Theme.of(context).colorScheme;
+    final picked = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: scheme.surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 14),
+            Text(
+              tr('lock_timeout'),
+              style: TextStyle(
+                fontFamily: AppTheme.displayFont,
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+                color: scheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (final sec in _timeouts)
+              ListTile(
+                title: Text(_timeoutLabel(sec)),
+                trailing: AppPrefs.instance.lockTimeoutSec == sec
+                    ? Icon(Icons.check_rounded, color: scheme.primary)
+                    : null,
+                onTap: () => Navigator.pop(ctx, sec),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (picked == null) return;
+    await AppPrefs.instance.setLockTimeout(picked);
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadVersion() async {
@@ -220,7 +288,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               trailing: Switch(value: prefs.hasPin, onChanged: _toggleLock),
               onTap: () => _toggleLock(!prefs.hasPin),
             ),
-            if (prefs.hasPin) ...[
+            // Тумблер биометрии показываем, только если телефону есть что
+            // проверять: раньше он предлагался и там, где сенсора нет вовсе,
+            // и включённая «биометрия» просто ничего не делала.
+            if (prefs.hasPin && _biometricsAvailable) ...[
               const SettingsDivider(),
               SettingsRow(
                 icon: Icons.fingerprint_rounded,
@@ -232,6 +303,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (mounted) setState(() {});
                   },
                 ),
+              ),
+            ],
+            // Через сколько запирать после ухода в фон. Настройка была в
+            // хранилище, но выставить её было негде.
+            if (prefs.hasPin) ...[
+              const SettingsDivider(),
+              SettingsRow(
+                icon: Icons.timer_outlined,
+                title: tr('lock_timeout'),
+                subtitle: _timeoutLabel(prefs.lockTimeoutSec),
+                onTap: _pickLockTimeout,
+                trailing: chevron(),
               ),
             ],
             const SettingsDivider(),

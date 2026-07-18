@@ -443,6 +443,13 @@ class _FilterBar extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           _Chip(
+            icon: Icons.star_rounded,
+            label: tr('filter_favorite'),
+            selected: filters.favorite,
+            onTap: () => onChange(filters.copyWith(favorite: !filters.favorite)),
+          ),
+          const SizedBox(width: 8),
+          _Chip(
             icon: Icons.image_rounded,
             label: tr('filter_with_photo'),
             selected: filters.withPhoto,

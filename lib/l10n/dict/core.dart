@@ -147,6 +147,73 @@ const Map<String, Map<String, String>> coreStrings = {
     'ru': 'Палитры', 'en': 'Presets', 'de': 'Paletten', 'fr': 'Palettes',
     'es': 'Paletas', 'it': 'Palette', 'pt': 'Paletas',
   },
+  'backup_remind': {
+    'ru': 'Напоминать о копии', 'en': 'Remind about backups',
+    'de': 'An Sicherungen erinnern', 'fr': 'Rappeler les sauvegardes',
+    'es': 'Recordar las copias', 'it': 'Ricorda i backup',
+    'pt': 'Lembrar das cópias',
+  },
+  'backup_remind_sub': {
+    'ru': 'Копия шифруется твоей фразой, поэтому сделать её автоматически '
+        'нельзя — но можно не забыть.',
+    'en': 'A backup is sealed with your own phrase, so it cannot be made '
+        'automatically — but you can be reminded.',
+    'de': 'Die Sicherung wird mit deiner Phrase verschlüsselt und kann daher '
+        'nicht automatisch entstehen — aber du wirst erinnert.',
+    'fr': 'La sauvegarde est scellée par ta phrase : impossible de la faire '
+        'automatiquement, mais on peut te le rappeler.',
+    'es': 'La copia se cifra con tu frase, así que no puede hacerse sola — '
+        'pero podemos recordártelo.',
+    'it': 'Il backup è cifrato con la tua frase, quindi non può essere '
+        'automatico — ma possiamo ricordartelo.',
+    'pt': 'A cópia é cifrada com a tua frase, por isso não pode ser feita '
+        'sozinha — mas dá para lembrar.',
+  },
+  'backup_none_yet': {
+    'ru': 'Резервной копии ещё не было',
+    'en': 'You have never made a backup',
+    'de': 'Es gibt noch keine Sicherung',
+    'fr': 'Aucune sauvegarde pour l’instant',
+    'es': 'Todavía no hay ninguna copia',
+    'it': 'Non c’è ancora nessun backup',
+    'pt': 'Ainda não há nenhuma cópia',
+  },
+  'backup_stale': {
+    'ru': 'Последней копии {n} дней. Дневник живёт на одном устройстве.',
+    'en': 'The last backup is {n} days old. The journal lives on one device.',
+    'de': 'Die letzte Sicherung ist {n} Tage alt. Das Tagebuch liegt auf einem Gerät.',
+    'fr': 'La dernière sauvegarde date de {n} jours. Le journal tient sur un seul appareil.',
+    'es': 'La última copia tiene {n} días. El diario vive en un solo dispositivo.',
+    'it': 'L’ultimo backup ha {n} giorni. Il diario vive su un solo dispositivo.',
+    'pt': 'A última cópia tem {n} dias. O diário vive num só aparelho.',
+  },
+  'print': {
+    'ru': 'Печать', 'en': 'Print', 'de': 'Drucken', 'fr': 'Imprimer',
+    'es': 'Imprimir', 'it': 'Stampa', 'pt': 'Imprimir',
+  },
+  'print_sub': {
+    'ru': 'Книга на принтер или в PDF через систему',
+    'en': 'Send the book to a printer or system PDF',
+    'de': 'Das Buch an den Drucker oder als System-PDF',
+    'fr': 'Le livre vers l’imprimante ou en PDF système',
+    'es': 'El libro a la impresora o a PDF del sistema',
+    'it': 'Il libro in stampa o in PDF di sistema',
+    'pt': 'O livro para a impressora ou PDF do sistema',
+  },
+  'lock_timeout': {
+    'ru': 'Запирать', 'en': 'Lock after', 'de': 'Sperren nach',
+    'fr': 'Verrouiller après', 'es': 'Bloquear tras',
+    'it': 'Blocca dopo', 'pt': 'Bloquear após',
+  },
+  'lock_timeout_now': {
+    'ru': 'Сразу', 'en': 'Immediately', 'de': 'Sofort', 'fr': 'Aussitôt',
+    'es': 'Al instante', 'it': 'Subito', 'pt': 'De imediato',
+  },
+  'lock_timeout_min': {
+    'ru': 'Через {n} мин', 'en': 'After {n} min', 'de': 'Nach {n} Min',
+    'fr': 'Après {n} min', 'es': 'Tras {n} min', 'it': 'Dopo {n} min',
+    'pt': 'Após {n} min',
+  },
   'theme_intensity': {
     'ru': 'Насыщенность', 'en': 'Intensity', 'de': 'Intensität',
     'fr': 'Intensité', 'es': 'Intensidad', 'it': 'Intensità',
