@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import '../theme/feedback.dart';
 import '../data/app_prefs.dart';
 import '../data/catalog_repository.dart';
 import '../data/entry_repository.dart';
@@ -288,6 +288,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   /// Убирает вложение из текста и из записи.
   Future<void> _removeMedia(Media m) async {
+    Haptics.warn();
     setState(() {
       for (final block in _blocks.whereType<MediaBlock>()) {
         block.mediaIds.remove(m.id);
@@ -387,6 +388,8 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> _done() async {
+    // Финал усилия: запись состоялась.
+    Haptics.celebrate();
     _autosave?.cancel();
     await _save(finish: true);
     if (mounted) Navigator.of(context).pop(_entry);
@@ -1143,7 +1146,7 @@ class _Btn extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: () {
-              HapticFeedback.selectionClick();
+              Haptics.tap();
               onTap();
             },
             child: SizedBox(

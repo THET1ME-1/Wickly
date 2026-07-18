@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/feedback.dart';
 import '../data/catalog_repository.dart';
 import '../data/entry_repository.dart';
 import '../data/media_repository.dart';
@@ -65,6 +66,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   Future<void> _toggleFavorite() async {
+    Haptics.commit();
     final e = _entry;
     if (e == null) return;
     final updated = e.copyWith(favorite: !e.favorite);
@@ -74,6 +76,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   /// Отметка пункта чеклиста прямо в читалке.
   Future<void> _toggleTodo(String newBody) async {
+    Haptics.tap();
     final e = _entry;
     if (e == null) return;
     final updated = e.copyWith(body: newBody);
@@ -142,14 +145,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
         await widget.onEdit?.call(e);
         await _load();
       case 'pin':
+        Haptics.commit();
         final updated = e.copyWith(pinned: !e.pinned);
         await EntryRepository.instance.update(updated);
         setState(() => _entry = updated);
       case 'hide':
+        Haptics.commit();
         final updated = e.copyWith(hidden: !e.hidden);
         await EntryRepository.instance.update(updated);
         setState(() => _entry = updated);
       case 'delete':
+        Haptics.warn();
         await EntryRepository.instance.delete(e.id);
         if (mounted) Navigator.of(context).pop(true);
     }

@@ -27,6 +27,7 @@ class AppPrefs extends ChangeNotifier {
   static const _kPromptPack = 'prompt_pack';
   static const _kMemories = 'memories_enabled';
   static const _kAutoBackup = 'autobackup_enabled';
+  static const _kHaptics = 'haptics';
   static const _kAutoBackupAt = 'autobackup_last';
   static const _kLastSyncAt = 'last_sync_at';
   static const _kLastJournal = 'last_journal_id';
@@ -53,6 +54,7 @@ class AppPrefs extends ChangeNotifier {
   List<int> _reminderDays = const [1, 2, 3, 4, 5, 6, 7];
   String _promptPack = 'gratitude';
   bool _memories = true;
+  bool _haptics = true;
   bool _autoBackup = false;
   int _autoBackupAt = 0;
   int _lastSyncAt = 0;
@@ -82,6 +84,10 @@ class AppPrefs extends ChangeNotifier {
   List<int> get reminderDays => _reminderDays;
   String get promptPack => _promptPack;
   bool get memories => _memories;
+  /// Отвечает ли телефон вибрацией на действия. Нравится не всем, а дневник
+  /// читают в тишине — поэтому выключается целиком.
+  bool get haptics => _haptics;
+
   bool get autoBackup => _autoBackup;
 
   /// Когда последний раз обменивались с другим устройством. Раньше на экране
@@ -126,6 +132,7 @@ class AppPrefs extends ChangeNotifier {
     if (_reminderDays.isEmpty) _reminderDays = const [1, 2, 3, 4, 5, 6, 7];
     _promptPack = p.getString(_kPromptPack) ?? 'gratitude';
     _memories = p.getBool(_kMemories) ?? true;
+    _haptics = p.getBool(_kHaptics) ?? true;
     _autoBackup = p.getBool(_kAutoBackup) ?? false;
     _autoBackupAt = p.getInt(_kAutoBackupAt) ?? 0;
     _lastSyncAt = p.getInt(_kLastSyncAt) ?? 0;
@@ -238,6 +245,12 @@ class AppPrefs extends ChangeNotifier {
     _autoBackup = v;
     await _p?.setBool(_kAutoBackup, v);
     notifyListeners();
+  }
+
+  Future<void> setHaptics(bool v) async {
+    _haptics = v;
+    notifyListeners();
+    (await SharedPreferences.getInstance()).setBool(_kHaptics, v);
   }
 
   Future<void> markSynced(DateTime at) async {

@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../theme/feedback.dart';
 import '../data/app_prefs.dart';
 import '../data/db.dart';
 import '../l10n/strings.dart';
@@ -69,11 +70,15 @@ class _SyncScreenState extends State<SyncScreen> {
       setState(() => _host = host);
       final report = await host.exchange();
       if (!mounted) return;
+      Haptics.celebrate();
       await AppPrefs.instance.markSynced(DateTime.now());
       if (!mounted) return;
       setState(() => _status = trf('sync_done', {'n': report.rows}));
     } catch (e) {
-      if (mounted) setState(() => _status = tr('sync_failed'));
+      if (mounted) {
+        Haptics.warn();
+        setState(() => _status = tr('sync_failed'));
+      }
     } finally {
       await _host?.close();
       if (mounted) {
@@ -111,12 +116,16 @@ class _SyncScreenState extends State<SyncScreen> {
       await SyncFolder.writePacket(folder, sealed, Db.crdt.nodeId);
 
       if (mounted) {
-        await AppPrefs.instance.markSynced(DateTime.now());
+        Haptics.celebrate();
+      await AppPrefs.instance.markSynced(DateTime.now());
         if (!mounted) return;
         setState(() => _status = trf('sync_done', {'n': merged}));
       }
     } catch (_) {
-      if (mounted) setState(() => _status = tr('sync_failed'));
+      if (mounted) {
+        Haptics.warn();
+        setState(() => _status = tr('sync_failed'));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

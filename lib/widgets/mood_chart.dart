@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../theme/feedback.dart';
 import '../theme/app_theme.dart';
 
 /// Тренд настроения: мягкая линия с заливкой под ней.
@@ -268,8 +269,16 @@ class HabitWeek extends StatelessWidget {
       children: [
         for (var i = 0; i < days.length; i++)
           GestureDetector(
-            onTap: onToggle == null ? null : () => onToggle!(i),
-            child: Container(
+            onTap: onToggle == null
+                ? null
+                : () {
+                    // Отметка привычки — жест «сделал»: подтверждаем телом.
+                    days[i] ? Haptics.tap() : Haptics.commit();
+                    onToggle!(i);
+                  },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: AppTheme.emphasized,
               width: 14,
               height: 14,
               margin: const EdgeInsets.only(left: 6),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/feedback.dart';
 import '../l10n/strings.dart';
 import '../services/stats_service.dart';
 import '../theme/app_theme.dart';
@@ -85,10 +86,16 @@ class CalendarView extends StatelessWidget {
           children: [
             _MonthHeader(
               month: data.month,
-              onPrev: () => onChangeMonth?.call(
-                  DateTime(data.month.year, data.month.month - 1)),
-              onNext: () => onChangeMonth?.call(
-                  DateTime(data.month.year, data.month.month + 1)),
+              onPrev: () {
+                Haptics.tap();
+                onChangeMonth
+                    ?.call(DateTime(data.month.year, data.month.month - 1));
+              },
+              onNext: () {
+                Haptics.tap();
+                onChangeMonth
+                    ?.call(DateTime(data.month.year, data.month.month + 1));
+              },
             ),
             const SizedBox(height: 10),
             Row(

@@ -215,6 +215,19 @@ const Map<String, Map<String, String>> coreStrings = {
     'it': 'Il libro in stampa o in PDF di sistema',
     'pt': 'O livro para a impressora ou PDF do sistema',
   },
+  'haptics': {
+    'ru': 'Отклик', 'en': 'Haptics', 'de': 'Haptik', 'fr': 'Retour haptique',
+    'es': 'Vibración', 'it': 'Feedback aptico', 'pt': 'Vibração',
+  },
+  'haptics_sub': {
+    'ru': 'Короткая вибрация на действия',
+    'en': 'A short buzz on your actions',
+    'de': 'Kurze Vibration bei Aktionen',
+    'fr': 'Une brève vibration sur tes gestes',
+    'es': 'Una vibración breve al actuar',
+    'it': 'Una breve vibrazione sulle azioni',
+    'pt': 'Uma vibração curta nas ações',
+  },
   'lock_timeout': {
     'ru': 'Запирать', 'en': 'Lock after', 'de': 'Sperren nach',
     'fr': 'Verrouiller après', 'es': 'Bloquear tras',

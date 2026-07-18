@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/feedback.dart';
 import '../l10n/strings.dart';
 import '../models/catalog.dart';
 import '../theme/app_theme.dart';
@@ -211,7 +212,18 @@ class _CounterTile extends StatelessWidget {
           // стакану нужно каждый день, а менять цель — раз в полгода.
           onTap: onSetValue == null
               ? null
-              : () => onSetValue!(t, state.today + _step(t)),
+              : () {
+                  final next = state.today + _step(t);
+                  // Цель взята прямо сейчас — это стоит почувствовать.
+                  // Цели может не быть вовсе: тогда просто шаг.
+                  final goal = t.goal;
+                  final reached = goal != null &&
+                      goal > 0 &&
+                      state.today < goal &&
+                      next >= goal;
+                  reached ? Haptics.celebrate() : Haptics.tap();
+                  onSetValue!(t, next);
+                },
           onLongPress: onEdit == null ? null : () => onEdit!(t),
           child: Padding(
             padding: const EdgeInsets.all(14),

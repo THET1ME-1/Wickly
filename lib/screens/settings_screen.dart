@@ -7,6 +7,7 @@ import '../data/app_prefs.dart';
 import '../l10n/locale_controller.dart';
 import '../l10n/strings.dart';
 import '../theme/app_theme.dart';
+import '../theme/feedback.dart';
 import '../services/update_service.dart';
 import '../widgets/settings_scaffold.dart';
 import '../widgets/update_sheet.dart';
@@ -317,6 +318,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: chevron(),
               ),
             ],
+            const SettingsDivider(),
+            SettingsRow(
+              icon: Icons.vibration_rounded,
+              title: tr('haptics'),
+              subtitle: tr('haptics_sub'),
+              trailing: Switch(
+                value: prefs.haptics,
+                onChanged: (v) async {
+                  await prefs.setHaptics(v);
+                  // Отклик на включение — самим откликом.
+                  if (v) Haptics.commit();
+                  if (mounted) setState(() {});
+                },
+              ),
+            ),
             const SettingsDivider(),
             SettingsRow(
               icon: Icons.visibility_off_rounded,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/feedback.dart';
 import '../data/catalog_repository.dart';
 import '../l10n/strings.dart';
 import '../models/catalog.dart';
@@ -252,7 +253,10 @@ class _Scale extends StatelessWidget {
           Expanded(
             child: PressableScale(
               child: GestureDetector(
-                onTap: () => onPick(m),
+                onTap: () {
+                Haptics.tap();
+                onPick(m);
+              },
                 behavior: HitTestBehavior.opaque,
                 child: Column(
                   children: [

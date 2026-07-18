@@ -399,12 +399,23 @@ class MarkdownBody extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  b.checked
-                      ? Icons.check_box_rounded
-                      : Icons.check_box_outline_blank_rounded,
-                  size: 21,
-                  color: b.checked ? scheme.primary : scheme.outline,
+                // Галочка не прыгает, а проявляется: отметить пункт — самое
+                // приятное движение в чеклисте, и оно должно ощущаться.
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  switchInCurve: AppTheme.emphasized,
+                  transitionBuilder: (child, animation) => ScaleTransition(
+                    scale: animation,
+                    child: FadeTransition(opacity: animation, child: child),
+                  ),
+                  child: Icon(
+                    b.checked
+                        ? Icons.check_box_rounded
+                        : Icons.check_box_outline_blank_rounded,
+                    key: ValueKey(b.checked),
+                    size: 21,
+                    color: b.checked ? scheme.primary : scheme.outline,
+                  ),
                 ),
                 const SizedBox(width: 9),
                 Expanded(

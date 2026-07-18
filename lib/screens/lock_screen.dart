@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 
+import '../theme/feedback.dart';
 import '../data/app_prefs.dart';
 import '../l10n/strings.dart';
 import '../theme/app_theme.dart';
@@ -148,7 +149,8 @@ class _LockScreenState extends State<LockScreen>
   }
 
   void _reject(String message) {
-    _shake.forward(from: 0);
+    Haptics.warn();
+      _shake.forward(from: 0);
     setState(() {
       _entered = '';
       _error = message;

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../theme/feedback.dart';
 import '../data/app_prefs.dart';
 import '../data/entry_repository.dart';
 import '../data/media_repository.dart';
@@ -281,8 +282,10 @@ class _ShellScreenState extends State<ShellScreen> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab.index,
-        onDestinationSelected: (i) =>
-            setState(() => _tab = ShellTab.values[i]),
+        onDestinationSelected: (i) {
+          Haptics.tap();
+          setState(() => _tab = ShellTab.values[i]);
+        },
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.view_agenda_outlined),
