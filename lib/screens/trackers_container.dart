@@ -4,6 +4,8 @@ import '../data/entry_repository.dart';
 import '../data/tracker_repository.dart';
 import '../models/catalog.dart';
 import '../services/stats_service.dart';
+import '../services/habit_stats.dart';
+import 'habit_screen.dart';
 import '../widgets/tracker_editor_sheet.dart';
 import 'trackers_screen.dart';
 
@@ -33,8 +35,11 @@ class _TrackersContainerState extends State<TrackersContainer> {
 
     final states = <TrackerState>[];
     for (final t in trackers) {
-      final range =
-          await TrackerRepository.instance.range(t.id, weekStart, now);
+      // Привычке нужна вся история: по ней считаются серии и доля месяца.
+      // Счётчику хватает недели — он про «сколько сегодня».
+      final habit = t.kind == TrackerKind.habit;
+      final from = habit ? now.subtract(const Duration(days: 400)) : weekStart;
+      final range = await TrackerRepository.instance.range(t.id, from, now);
       states.add(TrackerState(
         tracker: t,
         today: today[t.id] ?? 0,
@@ -42,6 +47,7 @@ class _TrackersContainerState extends State<TrackersContainer> {
           for (var i = 6; i >= 0; i--)
             (range[TrackerLog.dayKey(now.subtract(Duration(days: i)))] ?? 0) > 0,
         ],
+        habit: habit ? HabitMath.of(range, now: now) : HabitStats.empty,
       ));
     }
 
@@ -83,6 +89,12 @@ class _TrackersContainerState extends State<TrackersContainer> {
         },
         onEdit: (t) async {
           await showTrackerEditor(context, tracker: t);
+          await _load();
+        },
+        onOpenHabit: (t) async {
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => HabitScreen(tracker: t)),
+          );
           await _load();
         },
       );

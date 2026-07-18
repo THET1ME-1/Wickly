@@ -7,6 +7,73 @@
 library;
 
 const Map<String, Map<String, String>> catalogStrings = {
+  'habit_rate_short': {
+    'ru': '{n} из 30 дней', 'en': '{n} of 30 days', 'de': '{n} von 30 Tagen',
+    'fr': '{n} jours sur 30', 'es': '{n} de 30 días', 'it': '{n} su 30 giorni',
+    'pt': '{n} de 30 dias',
+  },
+  'habit_history': {
+    'ru': 'Как шло', 'en': 'How it went', 'de': 'Verlauf',
+    'fr': 'Historique', 'es': 'Cómo ha ido', 'it': 'Andamento',
+    'pt': 'Como foi',
+  },
+  'habit_history_hint': {
+    'ru': 'Тап по клетке отмечает прошлый день — забыл вечером, поставь утром.',
+    'en': 'Tap a square to mark a past day — forgot at night, fix it in the morning.',
+    'de': 'Tippe ein Kästchen, um einen vergangenen Tag zu markieren.',
+    'fr': 'Touche une case pour marquer un jour passé.',
+    'es': 'Toca un cuadro para marcar un día pasado.',
+    'it': 'Tocca un quadratino per segnare un giorno passato.',
+    'pt': 'Toca num quadrado para marcar um dia passado.',
+  },
+  'habit_stats': {
+    'ru': 'Статистика', 'en': 'Stats', 'de': 'Statistik',
+    'fr': 'Statistiques', 'es': 'Estadísticas', 'it': 'Statistiche',
+    'pt': 'Estatísticas',
+  },
+  'habit_streak': {
+    'ru': 'сейчас подряд', 'en': 'current streak', 'de': 'aktuelle Serie',
+    'fr': 'série en cours', 'es': 'racha actual', 'it': 'serie attuale',
+    'pt': 'sequência atual',
+  },
+  'habit_best': {
+    'ru': 'лучшая серия', 'en': 'best streak', 'de': 'beste Serie',
+    'fr': 'meilleure série', 'es': 'mejor racha', 'it': 'serie migliore',
+    'pt': 'melhor sequência',
+  },
+  'habit_total': {
+    'ru': 'всего раз', 'en': 'times total', 'de': 'insgesamt',
+    'fr': 'fois au total', 'es': 'veces en total', 'it': 'volte in totale',
+    'pt': 'vezes no total',
+  },
+  'habit_rate_30': {
+    'ru': 'За последние 30 дней', 'en': 'Over the last 30 days',
+    'de': 'In den letzten 30 Tagen', 'fr': 'Sur les 30 derniers jours',
+    'es': 'En los últimos 30 días', 'it': 'Negli ultimi 30 giorni',
+    'pt': 'Nos últimos 30 dias',
+  },
+  'habit_done_today': {
+    'ru': 'Сегодня сделано', 'en': 'Done today', 'de': 'Heute erledigt',
+    'fr': 'Fait aujourd’hui', 'es': 'Hecho hoy', 'it': 'Fatto oggi',
+    'pt': 'Feito hoje',
+  },
+  'habit_mark_today': {
+    'ru': 'Отметить сегодня', 'en': 'Mark today', 'de': 'Heute markieren',
+    'fr': 'Marquer aujourd’hui', 'es': 'Marcar hoy', 'it': 'Segna oggi',
+    'pt': 'Marcar hoje',
+  },
+  'habit_streak_days': {
+    'ru': '{n} дней подряд', 'en': '{n} days in a row', 'de': '{n} Tage in Folge',
+    'fr': '{n} jours d’affilée', 'es': '{n} días seguidos',
+    'it': '{n} giorni di fila', 'pt': '{n} dias seguidos',
+  },
+  'habit_no_streak': {
+    'ru': 'Серия начнётся сегодня', 'en': 'The streak starts today',
+    'de': 'Die Serie beginnt heute', 'fr': 'La série commence aujourd’hui',
+    'es': 'La racha empieza hoy', 'it': 'La serie inizia oggi',
+    'pt': 'A sequência começa hoje',
+  },
+
   // --------------------------- Общие подписи ---------------------------
   'own': {
     'ru': 'своё', 'en': 'own', 'de': 'eigenes', 'fr': 'perso',

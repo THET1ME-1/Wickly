@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/feedback.dart';
 import '../l10n/strings.dart';
 import '../models/catalog.dart';
+import '../services/habit_stats.dart';
 import '../theme/app_theme.dart';
 import '../theme/icon_keys.dart';
 import '../theme/mood_palette_ext.dart';
@@ -21,10 +22,14 @@ class TrackerState {
   /// Семь дней, свежий — последний. Для привычки: сделал или нет.
   final List<bool> week;
 
+  /// Серия и доля выполнения — только у привычек.
+  final HabitStats habit;
+
   const TrackerState({
     required this.tracker,
     required this.today,
     this.week = const [],
+    this.habit = HabitStats.empty,
   });
 
   double get progress {
@@ -50,6 +55,9 @@ class TrackersView extends StatelessWidget {
   final VoidCallback? onAdd;
   final void Function(Tracker tracker)? onEdit;
 
+  /// Открыть привычку целиком: история, серии, статистика.
+  final void Function(Tracker tracker)? onOpenHabit;
+
   const TrackersView({
     super.key,
     required this.trackers,
@@ -58,6 +66,7 @@ class TrackersView extends StatelessWidget {
     this.onToggleHabit,
     this.onAdd,
     this.onEdit,
+    this.onOpenHabit,
   });
 
   @override
@@ -140,39 +149,13 @@ class TrackersView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  for (final h in habits)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        children: [
-                          Icon(AppIcons.resolve(h.tracker.icon),
-                              size: 18, color: scheme.onSurfaceVariant),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              CatalogNames.of(h.tracker),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: AppTheme.bodyFont,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: scheme.onSurface,
-                              ),
-                            ),
-                          ),
-                          HabitWeek(
-                            days: h.week.length == 7
-                                ? h.week
-                                : List.filled(7, false),
-                            color: h.tracker.color == null
-                                ? null
-                                : Color(h.tracker.color!),
-                            onToggle: onToggleHabit == null
-                                ? null
-                                : (i) => onToggleHabit!(h.tracker, i),
-                          ),
-                        ],
+                  for (final (i, h) in habits.indexed)
+                    Reveal(
+                      delay: WicklyDesign.revealDelay(i),
+                      child: _HabitRow(
+                        state: h,
+                        onToggle: onToggleHabit,
+                        onOpen: onOpenHabit,
                       ),
                     ),
                 ],
@@ -180,6 +163,89 @@ class TrackersView extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Строка привычки: серия, неделя и переход к её истории.
+///
+/// Раньше здесь была одна строка с семью кружками — по ней не видно ни серии,
+/// ни того, как шёл месяц. Теперь строка отвечает на «часто ли вообще» и
+/// открывает привычку целиком.
+class _HabitRow extends StatelessWidget {
+  final TrackerState state;
+  final void Function(Tracker tracker, int dayIndex)? onToggle;
+  final void Function(Tracker tracker)? onOpen;
+
+  const _HabitRow({required this.state, this.onToggle, this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final t = state.tracker;
+    final tint = t.color == null ? scheme.primary : Color(t.color!);
+    final streak = state.habit.streak;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GestureDetector(
+        onTap: onOpen == null
+            ? null
+            : () {
+                Haptics.tap();
+                onOpen!(t);
+              },
+        behavior: HitTestBehavior.opaque,
+        child: PressableScale(
+          child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Icon(AppIcons.resolve(t.icon), size: 18, color: tint),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      CatalogNames.of(t),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTheme.bodyFont,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      streak > 0
+                          ? trf('habit_streak_days', {'n': streak})
+                          : trf('habit_rate_short', {'n': state.habit.last30}),
+                      style: TextStyle(
+                        fontFamily: AppTheme.bodyFont,
+                        fontSize: 11.5,
+                        color: streak > 0 ? tint : scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              HabitWeek(
+                days: state.week.length == 7
+                    ? state.week
+                    : List.filled(7, false),
+                color: t.color == null ? null : Color(t.color!),
+                onToggle:
+                    onToggle == null ? null : (i) => onToggle!(t, i),
+              ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
