@@ -2,6 +2,23 @@ import 'package:uuid/uuid.dart';
 
 const _uuid = Uuid();
 
+/// Чем накрыта шапка записи.
+enum CoverMode {
+  /// Без баннера: сразу заголовок, дата и текст.
+  none,
+
+  /// Первое наглядное вложение записи.
+  auto,
+
+  /// Снимок, подобранный по теме записи.
+  web;
+
+  static CoverMode parse(String? raw) => CoverMode.values.firstWhere(
+        (m) => m.name == raw,
+        orElse: () => CoverMode.auto,
+      );
+}
+
 /// Дневник (журнал): у пользователя их может быть несколько — «Личное»,
 /// «Путешествия» и т.д. Хранится в таблице `journals`.
 ///
@@ -132,6 +149,13 @@ class Entry {
   /// Обложка — id медиа из этой же записи.
   final String? coverMediaId;
 
+  /// Что показывать шапкой записи: ничего, первое фото или подобранный снимок.
+  ///
+  /// Отдельно от [coverMediaId], потому что «выключить обложку» и «обложки ещё
+  /// нет» — разные вещи: без этого поля выключенный баннер возвращался бы сам,
+  /// стоило добавить в запись фотографию.
+  final CoverMode coverMode;
+
   final int wordCount;
 
   /// Сколько времени человек писал запись (мс) — «время на запись».
@@ -162,6 +186,7 @@ class Entry {
     this.steps,
     this.nowPlaying,
     this.coverMediaId,
+    this.coverMode = CoverMode.auto,
     this.wordCount = 0,
     this.writeMs = 0,
     this.promptKey,
@@ -225,6 +250,7 @@ class Entry {
         'steps': steps,
         'nowPlaying': nowPlaying,
         'coverMediaId': coverMediaId,
+        'coverMode': coverMode.name,
         'wordCount': wordCount,
         'writeMs': writeMs,
         'promptKey': promptKey,
@@ -258,6 +284,7 @@ class Entry {
         steps: payload['steps'] as int?,
         nowPlaying: payload['nowPlaying'] as String?,
         coverMediaId: payload['coverMediaId'] as String?,
+        coverMode: CoverMode.parse(payload['coverMode'] as String?),
         wordCount: (payload['wordCount'] as int?) ?? 0,
         writeMs: (payload['writeMs'] as int?) ?? 0,
         promptKey: payload['promptKey'] as String?,
@@ -280,6 +307,7 @@ class Entry {
     int? steps,
     String? nowPlaying,
     String? coverMediaId,
+    CoverMode? coverMode,
     int? wordCount,
     int? writeMs,
     String? promptKey,
@@ -308,6 +336,7 @@ class Entry {
         steps: steps ?? this.steps,
         nowPlaying: nowPlaying ?? this.nowPlaying,
         coverMediaId: clearCover ? null : (coverMediaId ?? this.coverMediaId),
+        coverMode: coverMode ?? this.coverMode,
         wordCount: wordCount ?? this.wordCount,
         writeMs: writeMs ?? this.writeMs,
         promptKey: promptKey ?? this.promptKey,

@@ -26,7 +26,11 @@ enum SyncMode { direct, folder }
 /// общая папка, которую доставляет Syncthing. Наружу уходят только пакеты
 /// изменений — файл базы не пересылается никогда.
 class SyncScreen extends StatefulWidget {
-  const SyncScreen({super.key});
+  /// Готовая фраза сопряжения вместо случайной. Нужна снимкам экрана: со
+  /// случайной фразой такой снимок не совпал бы сам с собой.
+  final String? phrase;
+
+  const SyncScreen({super.key, this.phrase});
 
   @override
   State<SyncScreen> createState() => _SyncScreenState();
@@ -43,7 +47,7 @@ class _SyncScreenState extends State<SyncScreen> {
   @override
   void initState() {
     super.initState();
-    _phrase = SyncService.generatePhrase();
+    _phrase = widget.phrase ?? SyncService.generatePhrase();
   }
 
   @override

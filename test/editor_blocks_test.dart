@@ -64,4 +64,88 @@ void main() {
     expect(blocks.single.kind, MdBlockKind.media);
     expect(blocks.single.mediaId, 'xyz');
   });
+
+  test('Пустой абзац между фото не разрывает сетку', () {
+    // Так выглядит текст после двух вставок подряд: между вложениями остаётся
+    // пустая строка. Сетка при этом должна остаться одна.
+    final source = '${MarkdownLite.mediaToken('a')}\n\n'
+        '${MarkdownLite.mediaToken('b')}';
+    final blocks = EditorDocument.parse(source);
+    final media = blocks.whereType<MediaBlock>().toList();
+    expect(media.length, 1);
+    expect(media.first.mediaIds, ['a', 'b']);
+  });
+
+  test('Настоящий текст между фото сетку разделяет', () {
+    final source = '${MarkdownLite.mediaToken('a')}\n'
+        'Между ними\n'
+        '${MarkdownLite.mediaToken('b')}';
+    final blocks = EditorDocument.parse(source);
+    expect(blocks.whereType<MediaBlock>().length, 2);
+  });
+
+  test('Заголовок блока начинает новую тему', () {
+    final blocks = EditorDocument.parse(
+        '## Продуктивный сегодня\nВыписал теорию.\n## Вечер\nИграл с Саней.');
+    final text = blocks.whereType<TextBlock>().toList();
+    expect(text.length, 2);
+    expect(text[0].title.text, 'Продуктивный сегодня');
+    expect(text[0].controller.text, 'Выписал теорию.');
+    expect(text[1].title.text, 'Вечер');
+  });
+
+  test('Темы переживают круг разбора и сборки', () {
+    const source = '## Утро\nКофе и планы.\n## Вечер\nДошли до моста.';
+    expect(EditorDocument.serialize(EditorDocument.parse(source)), source);
+  });
+
+  test('Блок без заголовка остаётся обычным абзацем', () {
+    const source = 'Просто текст без темы.';
+    final blocks = EditorDocument.parse(source);
+    expect(blocks.whereType<TextBlock>().single.title.text, '');
+    expect(EditorDocument.serialize(blocks), source);
+  });
+
+  test('Тема без текста не теряется', () {
+    const source = '## Только заголовок';
+    expect(EditorDocument.serialize(EditorDocument.parse(source)), source);
+  });
+
+  test('Фото старой записи всплывают в редакторе', () {
+    // Записи до «фото внутри текста» держат вложения отдельно: в тексте про
+    // них ни слова. Редактор обязан их показать, а не потерять.
+    final blocks = EditorDocument.parse('Ходили на речку.');
+    EditorDocument.adopt(blocks, ['a', 'b'], newBlock: TextBlock.new);
+
+    final media = blocks.whereType<MediaBlock>().single;
+    expect(media.mediaIds, ['a', 'b']);
+    expect(EditorDocument.serialize(blocks),
+        'Ходили на речку.\n${MarkdownLite.mediaToken('a')}\n'
+        '${MarkdownLite.mediaToken('b')}');
+  });
+
+  test('Вложение из текста второй раз не подбирается', () {
+    final blocks = EditorDocument.parse(
+        'Смотри.\n${MarkdownLite.mediaToken('a')}');
+    EditorDocument.adopt(blocks, ['a', 'b'], newBlock: TextBlock.new);
+
+    final ids = blocks.whereType<MediaBlock>().expand((b) => b.mediaIds);
+    expect(ids.toList(), ['a', 'b']);
+  });
+
+  test('Подобранная сетка встаёт перед пустым хвостом', () {
+    // После вложения в конце разбор оставляет пустой абзац — в него пишут
+    // дальше, поэтому он должен остаться последним.
+    final blocks = EditorDocument.parse(MarkdownLite.mediaToken('a'));
+    EditorDocument.adopt(blocks, ['b'], newBlock: TextBlock.new);
+
+    expect(blocks.last, isA<TextBlock>());
+    expect(blocks.whereType<TextBlock>().last.isEmpty, isTrue);
+  });
+
+  test('Без потерянных вложений запись не трогается', () {
+    final blocks = EditorDocument.parse('Просто текст.');
+    EditorDocument.adopt(blocks, const [], newBlock: TextBlock.new);
+    expect(blocks.length, 1);
+  });
 }

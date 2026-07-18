@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../data/app_prefs.dart';
 import '../data/entry_repository.dart';
@@ -12,7 +13,9 @@ import '../models/media.dart';
 import '../services/feed_service.dart';
 import '../services/search_service.dart';
 import '../services/stats_service.dart';
+import '../services/update_service.dart';
 import '../services/widget_service.dart';
+import '../widgets/update_sheet.dart';
 import '../utils/dates.dart';
 import '../widgets/entry_card.dart';
 import 'calendar_screen.dart';
@@ -58,6 +61,34 @@ class _ShellScreenState extends State<ShellScreen> {
   void initState() {
     super.initState();
     _listenToWidget();
+    _checkForUpdate();
+  }
+
+  /// Тихая проверка обновления при запуске: приложение раздаётся мимо магазина,
+  /// поэтому о новой версии должно сообщать само. Молчит, если сети нет или
+  /// версия последняя.
+  ///
+  /// Раз в сутки и не про ту версию, от которой уже отмахнулись. Замок запирает
+  /// дневник при каждом уходе в фон, и оболочка после разблокировки собирается
+  /// заново — без этих двух условий попап встречал бы человека на каждом входе.
+  /// Ручная проверка в настройках выдержки не знает: там ответа ждут.
+  Future<void> _checkForUpdate() async {
+    final prefs = AppPrefs.instance;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - prefs.updateCheckedAt < const Duration(hours: 24).inMilliseconds) {
+      return;
+    }
+
+    try {
+      final current = (await PackageInfo.fromPlatform()).version;
+      final info = await UpdateService.checkForUpdate(current);
+      await prefs.setUpdateCheckedAt(now);
+      if (!mounted || info == null) return;
+      if (info.version == prefs.skippedUpdate) return;
+      await UpdateSheet.show(context, info, current);
+    } catch (_) {
+      // Обновление — не то, ради чего стоит показывать ошибку на старте.
+    }
   }
 
   @override

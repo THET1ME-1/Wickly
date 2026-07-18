@@ -9,7 +9,9 @@ import 'harness.dart';
 
 void main() {
   testWidgets('Синхронизация', (tester) async {
-    await Harness.shoot(tester, 'sync', () => const SyncScreen());
+    // Фраза задана: случайная меняла бы снимок при каждом прогоне.
+    await Harness.shoot(
+        tester, 'sync', () => const SyncScreen(phrase: 'кедр-туман-варенье'));
   });
 
   testWidgets('Экспорт и бэкап', (tester) async {

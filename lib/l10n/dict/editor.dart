@@ -218,4 +218,125 @@ const Map<String, Map<String, String>> editorStrings = {
     'ru': 'гроза', 'en': 'storm', 'de': 'Gewitter', 'fr': 'orage',
     'es': 'tormenta', 'it': 'temporale', 'pt': 'tempestade',
   },
+
+  // ------------------------------ Обложка ------------------------------
+  'cover_none': {
+    'ru': 'Без обложки', 'en': 'No cover', 'de': 'Ohne Cover',
+    'fr': 'Sans couverture', 'es': 'Sin portada', 'it': 'Senza copertina',
+    'pt': 'Sem capa',
+  },
+  'cover_none_sub': {
+    'ru': 'сразу заголовок и текст',
+    'en': 'straight to the title and text',
+    'de': 'direkt Titel und Text',
+    'fr': 'directement le titre et le texte',
+    'es': 'directo al título y al texto',
+    'it': 'subito titolo e testo',
+    'pt': 'direto ao título e ao texto',
+  },
+  'cover_own': {
+    'ru': 'Фото из записи', 'en': 'A photo from the entry',
+    'de': 'Foto aus dem Eintrag', 'fr': 'Une photo de l’entrée',
+    'es': 'Una foto de la entrada', 'it': 'Una foto della voce',
+    'pt': 'Uma foto da anotação',
+  },
+  'cover_own_sub': {
+    'ru': 'первое наглядное вложение', 'en': 'the first visual attachment',
+    'de': 'der erste sichtbare Anhang', 'fr': 'la première pièce visuelle',
+    'es': 'el primer adjunto visual', 'it': 'il primo allegato visivo',
+    'pt': 'o primeiro anexo visual',
+  },
+  'cover_own_empty': {
+    'ru': 'в записи пока нет фотографий',
+    'en': 'no photos in this entry yet',
+    'de': 'noch keine Fotos in diesem Eintrag',
+    'fr': 'pas encore de photos dans cette entrée',
+    'es': 'aún no hay fotos en esta entrada',
+    'it': 'ancora nessuna foto in questa voce',
+    'pt': 'ainda sem fotos nesta anotação',
+  },
+  'cover_by_topic': {
+    'ru': 'Подобрать по теме', 'en': 'Pick one by topic',
+    'de': 'Nach Thema aussuchen', 'fr': 'Choisir par thème',
+    'es': 'Elegir por tema', 'it': 'Scegli per tema',
+    'pt': 'Escolher por tema',
+  },
+  'cover_topic_hint': {
+    'ru': 'море, вечер, кофе…', 'en': 'sea, evening, coffee…',
+    'de': 'Meer, Abend, Kaffee…', 'fr': 'mer, soir, café…',
+    'es': 'mar, tarde, café…', 'it': 'mare, sera, caffè…',
+    'pt': 'mar, noite, café…',
+  },
+  'cover_source_note': {
+    'ru': 'Снимки из Openverse — свободные лицензии, автор указывается под '
+        'обложкой. Выбранный скачивается в дневник и открывается без сети.',
+    'en': 'Photos come from Openverse under free licences; the author is '
+        'credited under the cover. The chosen one is downloaded into the '
+        'journal and opens offline.',
+    'de': 'Fotos stammen aus Openverse unter freien Lizenzen; der Autor steht '
+        'unter dem Cover. Das gewählte Bild landet im Tagebuch und öffnet '
+        'auch offline.',
+    'fr': 'Les photos viennent d’Openverse sous licences libres ; l’auteur est '
+        'crédité sous la couverture. Celle choisie est téléchargée dans le '
+        'journal et s’ouvre hors ligne.',
+    'es': 'Las fotos vienen de Openverse con licencias libres; el autor se '
+        'acredita bajo la portada. La elegida se descarga al diario y abre '
+        'sin conexión.',
+    'it': 'Le foto vengono da Openverse con licenze libere; l’autore è citato '
+        'sotto la copertina. Quella scelta viene scaricata nel diario e si '
+        'apre anche offline.',
+    'pt': 'As fotos vêm do Openverse com licenças livres; o autor é creditado '
+        'sob a capa. A escolhida é baixada para o diário e abre sem internet.',
+  },
+  'cover_nothing_found': {
+    'ru': 'Ничего не нашлось. Попробуй другое слово.',
+    'en': 'Nothing found. Try another word.',
+    'de': 'Nichts gefunden. Versuch ein anderes Wort.',
+    'fr': 'Rien trouvé. Essaie un autre mot.',
+    'es': 'No se encontró nada. Prueba otra palabra.',
+    'it': 'Niente trovato. Prova un’altra parola.',
+    'pt': 'Nada encontrado. Tente outra palavra.',
+  },
+  'cover_download_failed': {
+    'ru': 'Не получилось скачать снимок',
+    'en': 'Could not download the photo',
+    'de': 'Foto konnte nicht geladen werden',
+    'fr': 'Impossible de télécharger la photo',
+    'es': 'No se pudo descargar la foto',
+    'it': 'Non è stato possibile scaricare la foto',
+    'pt': 'Não foi possível baixar a foto',
+  },
+  'cover_unknown_author': {
+    'ru': 'Автор не указан', 'en': 'Author unknown', 'de': 'Autor unbekannt',
+    'fr': 'Auteur inconnu', 'es': 'Autor desconocido', 'it': 'Autore ignoto',
+    'pt': 'Autor desconhecido',
+  },
+  'cover_banner': {
+    'ru': 'Обложка записи', 'en': 'Entry cover', 'de': 'Eintrags-Cover',
+    'fr': 'Couverture d’entrée', 'es': 'Portada de la entrada',
+    'it': 'Copertina della voce', 'pt': 'Capa da anotação',
+  },
+  'cover_banner_sub': {
+    'ru': 'шапка с картинкой у новых записей',
+    'en': 'a picture header for new entries',
+    'de': 'Bildkopf für neue Einträge',
+    'fr': 'un en-tête image pour les nouvelles entrées',
+    'es': 'una cabecera con imagen en las entradas nuevas',
+    'it': 'un’intestazione con immagine nelle nuove voci',
+    'pt': 'um cabeçalho com imagem nas anotações novas',
+  },
+
+  'block_title_hint': {
+    'ru': 'Тема…', 'en': 'Topic…', 'de': 'Thema…', 'fr': 'Sujet…',
+    'es': 'Tema…', 'it': 'Tema…', 'pt': 'Tema…',
+  },
+  'block_add': {
+    'ru': 'Ещё тема', 'en': 'Another topic', 'de': 'Noch ein Thema',
+    'fr': 'Autre sujet', 'es': 'Otro tema', 'it': 'Un altro tema',
+    'pt': 'Outro tema',
+  },
+  'block_remove': {
+    'ru': 'Убрать', 'en': 'Remove', 'de': 'Entfernen', 'fr': 'Retirer',
+    'es': 'Quitar', 'it': 'Rimuovi', 'pt': 'Remover',
+  },
 };

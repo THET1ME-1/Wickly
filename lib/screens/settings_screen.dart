@@ -6,7 +6,9 @@ import '../data/app_prefs.dart';
 import '../l10n/locale_controller.dart';
 import '../l10n/strings.dart';
 import '../theme/app_theme.dart';
+import '../services/update_service.dart';
 import '../widgets/settings_scaffold.dart';
+import '../widgets/update_sheet.dart';
 import 'appearance_screen.dart';
 import 'catalog_manager_screen.dart';
 import 'export_screen.dart';
@@ -45,6 +47,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   String _version = '';
+  bool _checkingUpdate = false;
 
   @override
   void initState() {
@@ -138,6 +141,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Ручная проверка обновления. В отличие от тихой проверки на старте здесь
+  /// человек ждёт ответа, поэтому отвечаем всегда — даже «последняя версия».
+  Future<void> _checkUpdate() async {
+    setState(() => _checkingUpdate = true);
+    try {
+      final info = await UpdateService.checkForUpdate(_version);
+      if (!mounted) return;
+      if (info == null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(tr('update_latest'))));
+      } else {
+        await UpdateSheet.show(context, info, _version);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(tr('update_check_failed'))));
+      }
+    } finally {
+      if (mounted) setState(() => _checkingUpdate = false);
+    }
+  }
+
   Future<void> _openSource() async {
     await launchUrl(Uri.parse(kSourceUrl), mode: LaunchMode.externalApplication);
   }
@@ -218,6 +244,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SettingsDivider(),
             SettingsRow(
+              icon: Icons.wallpaper_rounded,
+              title: tr('cover_banner'),
+              subtitle: tr('cover_banner_sub'),
+              trailing: Switch(
+                value: prefs.coverBanner,
+                onChanged: (v) async {
+                  await prefs.setCoverBanner(v);
+                  if (mounted) setState(() {});
+                },
+              ),
+            ),
+            const SettingsDivider(),
+            SettingsRow(
               icon: Icons.my_location_rounded,
               title: tr('auto_context'),
               subtitle: tr('auto_context_sub'),
@@ -276,6 +315,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: _version.isEmpty
                   ? tr('open_source')
                   : trf('about_sub', {'v': _version}),
+            ),
+            const SettingsDivider(),
+            SettingsRow(
+              icon: Icons.system_update_rounded,
+              title: tr('update_check'),
+              subtitle: _version.isEmpty ? null : 'Wickly $_version',
+              onTap: _checkingUpdate ? null : _checkUpdate,
+              trailing: _checkingUpdate
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    )
+                  : chevron(),
             ),
             const SettingsDivider(),
             SettingsRow(

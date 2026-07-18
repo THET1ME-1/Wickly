@@ -13,17 +13,30 @@ sealed class EditorBlock {
   const EditorBlock();
 }
 
-/// Абзац текста со своим полем ввода.
+/// Кусок записи со своим заголовком и текстом.
+///
+/// Заголовок необязателен: без него блок — обычный абзац. С ним запись
+/// превращается в страницу из тем, где каждая мысль стоит отдельно и не
+/// сливается с соседней в сплошную стену.
 class TextBlock extends EditorBlock {
+  final TextEditingController title;
   final MarkdownEditingController controller;
+  final FocusNode titleFocus;
   final FocusNode focus;
 
-  TextBlock({String text = ''})
-      : controller = MarkdownEditingController(text: text),
+  TextBlock({String text = '', String heading = ''})
+      : title = TextEditingController(text: heading),
+        controller = MarkdownEditingController(text: text),
+        titleFocus = FocusNode(),
         focus = FocusNode();
 
+  bool get isEmpty =>
+      title.text.trim().isEmpty && controller.text.trim().isEmpty;
+
   void dispose() {
+    title.dispose();
     controller.dispose();
+    titleFocus.dispose();
     focus.dispose();
   }
 }
@@ -48,18 +61,32 @@ class EditorDocument {
     final lines = (source ?? '').split('\n');
 
     final buffer = <String>[];
+    var heading = '';
     void flushText() {
-      if (buffer.isEmpty) return;
-      blocks.add(TextBlock(text: buffer.join('\n')));
+      if (buffer.isEmpty && heading.isEmpty) return;
+      blocks.add(TextBlock(text: buffer.join('\n').trim(), heading: heading));
       buffer.clear();
+      heading = '';
     }
 
     for (final line in lines) {
+      // Заголовок второго уровня начинает новый блок — так запись и хранится
+      // обычным markdown, и раскладывается на темы.
+      final head = _heading(line);
+      if (head != null) {
+        flushText();
+        heading = head;
+        continue;
+      }
+
       final media = _mediaId(line);
       if (media == null) {
         buffer.add(line);
         continue;
       }
+      // Пустые строки перед вложением — не абзац, а разделитель. Иначе между
+      // двумя сетками появлялся пустой блок и рвал их на две.
+      if (buffer.every((l) => l.trim().isEmpty)) buffer.clear();
       flushText();
       final last = blocks.isEmpty ? null : blocks.last;
       if (last is MediaBlock) {
@@ -68,6 +95,7 @@ class EditorDocument {
         blocks.add(MediaBlock([media]));
       }
     }
+    if (buffer.every((l) => l.trim().isEmpty)) buffer.clear();
     flushText();
 
     // Пустая запись — это всё-таки одно поле ввода, а не пустота.
@@ -77,19 +105,53 @@ class EditorDocument {
     return blocks;
   }
 
+  /// Дописывает сеткой вложения, которых нет в тексте.
+  ///
+  /// Записи из старых версий и из синка держат фотографии отдельно от текста:
+  /// без этого редактор их не показывал, и человек видел голый текст там, где
+  /// в читалке была галерея. Новый текстовый блок берём снаружи — редактор
+  /// подписывается на каждый свой.
+  static void adopt(
+    List<EditorBlock> blocks,
+    Iterable<String> mediaIds, {
+    required TextBlock Function() newBlock,
+  }) {
+    final referenced = {
+      for (final b in blocks.whereType<MediaBlock>()) ...b.mediaIds,
+    };
+    final orphans = [
+      for (final id in mediaIds)
+        if (!referenced.contains(id)) id,
+    ];
+    if (orphans.isEmpty) return;
+
+    // Пустой хвостовой абзац остаётся последним: в него пишут дальше.
+    final last = blocks.isEmpty ? null : blocks.last;
+    final at =
+        last is TextBlock && last.isEmpty ? blocks.length - 1 : blocks.length;
+    blocks.insert(at, MediaBlock(orphans));
+    if (at == blocks.length - 1) blocks.add(newBlock());
+  }
+
   /// Собирает блоки обратно в текст записи.
   static String serialize(List<EditorBlock> blocks) {
     final parts = <String>[];
     for (final block in blocks) {
       switch (block) {
-        case TextBlock(:final controller):
-          parts.add(controller.text);
+        case TextBlock(:final title, :final controller):
+          final heading = title.text.trim();
+          if (heading.isNotEmpty) parts.add('## $heading');
+          if (controller.text.trim().isNotEmpty) parts.add(controller.text);
         case MediaBlock(:final mediaIds):
           parts.addAll(mediaIds.map(MarkdownLite.mediaToken));
       }
     }
     return parts.join('\n').trim();
   }
+
+  /// «## Заголовок» → «Заголовок».
+  static String? _heading(String line) =>
+      RegExp(r'^##\s+(.*)$').firstMatch(line.trim())?.group(1)?.trim();
 
   static String? _mediaId(String line) {
     final match =

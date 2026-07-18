@@ -163,7 +163,15 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
 
     final scheme = Theme.of(context).colorScheme;
-    final cover = _media.where((m) => m.isVisual).firstOrNull;
+    // Обложка: выключена, своё фото или подобранный снимок.
+    final chosen = e.coverMediaId == null
+        ? null
+        : _media.where((m) => m.id == e.coverMediaId).firstOrNull;
+    final cover = switch (e.coverMode) {
+      CoverMode.none => null,
+      CoverMode.web => chosen,
+      CoverMode.auto => chosen ?? _media.where((m) => m.isVisual).firstOrNull,
+    };
     final byId = {for (final m in _media) m.id: m};
     // Вложения, которых нет в тексте (пришли из старых записей или из синка),
     // показываем в конце — молча терять их нельзя.
@@ -171,14 +179,25 @@ class _ReaderScreenState extends State<ReaderScreen> {
         .where((b) => b.kind == MdBlockKind.media)
         .map((b) => b.mediaId)
         .toSet();
-    final loose = _media.where((m) => !referenced.contains(m.id)).toList();
+    // Обложку из сети в галерею не пускаем: она шапка, а не вложение записи.
+    final loose = _media
+        .where((m) => !referenced.contains(m.id) && m.id != e.coverMediaId)
+        .toList();
     final looseVisual = loose.where((m) => m.kind != MediaKind.audio).toList();
     final looseAudio = loose.where((m) => m.kind == MediaKind.audio).toList();
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          _CoverBar(entry: e, cover: cover, onMenu: _menu),
+          _CoverBar(
+            entry: e,
+            cover: cover,
+            onMenu: _menu,
+            onEdit: () async {
+              await widget.onEdit?.call(e);
+              await _load();
+            },
+          ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 16,
@@ -186,6 +205,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (cover == null) ...[
+                    Text(
+                      '${Dates.dayLong(e.entryDate)} · '
+                      '${Dates.time(e.entryDate)}',
+                      style: TextStyle(
+                        fontFamily: AppTheme.bodyFont,
+                        fontSize: 13,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -209,6 +240,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   if ((e.body ?? '').trim().isNotEmpty)
                     MarkdownBody(
                       source: e.body!,
+                      cards: true,
                       onToggleTodo: _toggleTodo,
                       media: byId,
                       onOpenMedia: (group, index) =>
@@ -306,13 +338,54 @@ class _CoverBar extends StatelessWidget {
   final Entry entry;
   final Media? cover;
   final VoidCallback onMenu;
+  final VoidCallback onEdit;
 
-  const _CoverBar({required this.entry, this.cover, required this.onMenu});
+  const _CoverBar({
+    required this.entry,
+    this.cover,
+    required this.onMenu,
+    required this.onEdit,
+  });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final title = entry.title?.trim();
+    final credit = cover?.caption;
+
+    // Без обложки шапка обычная: заголовок и дата уезжают в текст, а сверху
+    // остаются только кнопки.
+    if (cover == null) {
+      return SliverAppBar(
+        pinned: true,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
+        title: Text(
+          title == null || title.isEmpty ? tr('entry_untitled') : title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontFamily: AppTheme.displayFont,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            letterSpacing: -0.3,
+            color: scheme.onSurface,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_rounded),
+            tooltip: tr('edit'),
+            onPressed: onEdit,
+          ),
+          IconButton(
+            icon: const Icon(Icons.more_vert_rounded),
+            onPressed: onMenu,
+          ),
+          const SizedBox(width: 4),
+        ],
+      );
+    }
 
     return SliverAppBar(
       pinned: true,
@@ -321,6 +394,9 @@ class _CoverBar extends StatelessWidget {
       foregroundColor: Colors.white,
       leading: const _RoundIconButton(icon: Icons.arrow_back_rounded),
       actions: [
+        // Правка левее меню: за ней тянутся чаще, чем за тремя точками.
+        _RoundIconButton(icon: Icons.edit_rounded, onTap: onEdit),
+        const SizedBox(width: 6),
         _RoundIconButton(icon: Icons.more_vert_rounded, onTap: onMenu),
         const SizedBox(width: 8),
       ],
@@ -375,6 +451,24 @@ class _CoverBar extends StatelessWidget {
                       color: Color(0xE6FFFFFF),
                     ),
                   ),
+                  // Имя автора под подобранным снимком: чужая работа должна
+                  // быть подписана, этого требуют и лицензии, и приличия.
+                  if (entry.coverMode == CoverMode.web &&
+                      credit != null &&
+                      credit.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        credit,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: AppTheme.bodyFont,
+                          fontSize: 11,
+                          color: Color(0x99FFFFFF),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

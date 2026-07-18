@@ -209,15 +209,37 @@ class MarkdownBody extends StatelessWidget {
     this.fontSize = 15,
     this.media = const {},
     this.onOpenMedia,
+    this.cards = false,
   });
+
+  /// Показывать ли темы карточками. В читалке — да: запись из нескольких тем
+  /// иначе сливается в стену текста.
+  final bool cards;
 
   @override
   Widget build(BuildContext context) {
     final blocks = MarkdownLite.parse(source);
     final children = <Widget>[];
+    // Накопитель текущей темы: собирается до следующего заголовка второго
+    // уровня или до вложений.
+    var section = <Widget>[];
+    String? sectionTitle;
+
+    void flushSection() {
+      if (section.isEmpty && sectionTitle == null) return;
+      children.add(_section(context, sectionTitle, section));
+      section = [];
+      sectionTitle = null;
+    }
 
     for (var i = 0; i < blocks.length; i++) {
       final b = blocks[i];
+
+      if (cards && b.kind == MdBlockKind.heading && b.level == 2) {
+        flushSection();
+        sectionTitle = b.text;
+        continue;
+      }
 
       // Идущие подряд вложения собираем в одну сетку: человек вставил их в
       // одно место, значит и смотреть их надо вместе.
@@ -230,6 +252,9 @@ class MarkdownBody extends StatelessWidget {
         }
         i--;
         if (group.isEmpty) continue;
+        // Фотографии показываем во всю ширину, а не внутри карточки темы:
+        // рамка вокруг снимка только мешает смотреть.
+        flushSection();
         children.add(Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: _mediaGroup(context, group),
@@ -237,16 +262,58 @@ class MarkdownBody extends StatelessWidget {
         continue;
       }
 
-      children.add(Padding(
+      final widget = Padding(
         padding:
             EdgeInsets.only(bottom: b.kind == MdBlockKind.divider ? 14 : 8),
         child: _block(context, b),
-      ));
+      );
+      if (cards) {
+        section.add(widget);
+      } else {
+        children.add(widget);
+      }
     }
+    flushSection();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: children,
+    );
+  }
+
+  /// Одна тема: заголовок и текст в скруглённой карточке.
+  Widget _section(BuildContext context, String? title, List<Widget> body) {
+    final scheme = Theme.of(context).colorScheme;
+    if (title == null && body.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title != null && title.isNotEmpty) ...[
+            Text(
+              title,
+              style: TextStyle(
+                fontFamily: AppTheme.displayFont,
+                fontWeight: FontWeight.w600,
+                fontSize: fontSize + 2,
+                letterSpacing: -0.2,
+                color: scheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          ...body,
+        ],
+      ),
     );
   }
 

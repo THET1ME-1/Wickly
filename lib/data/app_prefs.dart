@@ -31,6 +31,9 @@ class AppPrefs extends ChangeNotifier {
   static const _kLastJournal = 'last_journal_id';
   static const _kDeviceName = 'device_name';
   static const _kAutoContext = 'auto_context';
+  static const _kCoverBanner = 'cover_banner';
+  static const _kUpdateCheckedAt = 'update_checked_at';
+  static const _kSkippedUpdate = 'update_skipped';
 
   SharedPreferences? _p;
 
@@ -51,6 +54,9 @@ class AppPrefs extends ChangeNotifier {
   String? _lastJournalId;
   String _deviceName = '';
   bool _autoContext = true;
+  bool _coverBanner = true;
+  int _updateCheckedAt = 0;
+  String _skippedUpdate = '';
 
   bool get onboarded => _onboarded;
   bool get hasPin => _pinHash != null && _pinHash!.isNotEmpty;
@@ -81,6 +87,16 @@ class AppPrefs extends ChangeNotifier {
   /// Подставлять ли место и погоду в новую запись.
   bool get autoContext => _autoContext;
 
+  /// Показывать ли новым записям обложку-шапку. У каждой записи есть свой
+  /// выбор — это лишь то, с чего она начинает.
+  bool get coverBanner => _coverBanner;
+
+  /// Когда в последний раз сами ходили на GitHub за обновлением.
+  int get updateCheckedAt => _updateCheckedAt;
+
+  /// Версия, от которой человек отмахнулся кнопкой «Позже».
+  String get skippedUpdate => _skippedUpdate;
+
   Future<void> load() async {
     final p = _p = await SharedPreferences.getInstance();
     _onboarded = p.getBool(_kOnboarded) ?? false;
@@ -104,6 +120,9 @@ class AppPrefs extends ChangeNotifier {
     _lastJournalId = p.getString(_kLastJournal);
     _deviceName = p.getString(_kDeviceName) ?? '';
     _autoContext = p.getBool(_kAutoContext) ?? true;
+    _coverBanner = p.getBool(_kCoverBanner) ?? true;
+    _updateCheckedAt = p.getInt(_kUpdateCheckedAt) ?? 0;
+    _skippedUpdate = p.getString(_kSkippedUpdate) ?? '';
     notifyListeners();
   }
 
@@ -231,5 +250,21 @@ class AppPrefs extends ChangeNotifier {
     _autoContext = v;
     await _p?.setBool(_kAutoContext, v);
     notifyListeners();
+  }
+
+  Future<void> setCoverBanner(bool v) async {
+    _coverBanner = v;
+    await _p?.setBool(_kCoverBanner, v);
+    notifyListeners();
+  }
+
+  Future<void> setUpdateCheckedAt(int msSinceEpoch) async {
+    _updateCheckedAt = msSinceEpoch;
+    await _p?.setInt(_kUpdateCheckedAt, msSinceEpoch);
+  }
+
+  Future<void> setSkippedUpdate(String version) async {
+    _skippedUpdate = version;
+    await _p?.setString(_kSkippedUpdate, version);
   }
 }

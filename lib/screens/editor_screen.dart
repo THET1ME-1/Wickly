@@ -19,6 +19,7 @@ import '../theme/wickly_design.dart';
 import '../utils/dates.dart';
 import '../utils/markdown_edit.dart';
 import '../widgets/context_chip.dart';
+import '../widgets/cover_sheet.dart';
 import '../widgets/markdown_controller.dart';
 import '../widgets/media_grid.dart';
 import '../widgets/media_viewer.dart';
@@ -89,6 +90,10 @@ class _EditorScreenState extends State<EditorScreen> {
           promptKey: widget.promptKey,
           mood: widget.initialMood,
           draft: true,
+        ).copyWith(
+          coverMode: AppPrefs.instance.coverBanner
+              ? CoverMode.auto
+              : CoverMode.none,
         );
     _title = TextEditingController(text: _entry.title ?? '');
     _title.addListener(_onChanged);
@@ -102,7 +107,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (widget.entry == null) {
       _captureContext();
     } else {
-      _loadMedia();
+      _loadMedia(adopt: true);
     }
   }
 
@@ -170,6 +175,7 @@ class _EditorScreenState extends State<EditorScreen> {
   /// Каждый текстовый блок сам сообщает о правках и о том, что он в фокусе.
   void _watch(TextBlock block) {
     block.controller.addListener(_onChanged);
+    block.title.addListener(_onChanged);
     block.focus.addListener(() {
       if (block.focus.hasFocus) _active = block;
     });
@@ -184,14 +190,31 @@ class _EditorScreenState extends State<EditorScreen> {
     return block;
   }
 
-  Future<void> _loadMedia() async {
+  Future<void> _loadMedia({bool adopt = false}) async {
     final media = await MediaRepository.instance.forEntry(_entry.id);
     if (!mounted) return;
     setState(() {
       _media = media;
       _mediaById = {for (final m in media) m.id: m};
+      if (adopt) _adoptOrphans();
     });
   }
+
+  /// Дописывает сеткой вложения, которых нет в тексте записи.
+  ///
+  /// Записи из старых версий и из синка держат фотографии отдельно от текста —
+  /// без этого редактор их не показывал, и человек видел голый текст там, где
+  /// в читалке была галерея. Зовём только при открытии: у свежих вложений своё
+  /// место есть, их ставит [_insertMedia] по курсору.
+  void _adoptOrphans() => EditorDocument.adopt(
+        _blocks,
+        // Обложка из сети — шапка записи, а не вложение: её сюда не тянем.
+        [
+          for (final m in _media)
+            if (m.id != _entry.coverMediaId) m.id,
+        ],
+        newBlock: _newTextBlock,
+      );
 
   /// Ставит вложения туда, где стоит курсор: текстовый блок разрезается, а
   /// между половинами появляется сетка.
@@ -215,6 +238,15 @@ class _EditorScreenState extends State<EditorScreen> {
       final before = text.substring(0, at);
       final after = text.substring(at);
 
+      // Добавляем в соседнюю сетку, если курсор стоит в пустом абзаце рядом с
+      // ней: иначе каждое следующее фото становилось отдельным блоком во всю
+      // ширину, хотя при чтении они склеивались в одну сетку.
+      final neighbour = _adjacentMediaBlock(index, before, after);
+      if (neighbour != null) {
+        neighbour.mediaIds.addAll(ids);
+        return;
+      }
+
       active.controller.text = before;
       final tail = _newTextBlock(after);
       _blocks
@@ -226,6 +258,20 @@ class _EditorScreenState extends State<EditorScreen> {
     });
     _dirty = true;
     _scheduleSave();
+  }
+
+  /// Сетка, к которой примыкает пустой абзац с курсором.
+  ///
+  /// Пустой абзац между двумя сетками — это не «текст между фотографиями», а
+  /// след от предыдущей вставки: показывать его как разрыв неправильно.
+  MediaBlock? _adjacentMediaBlock(int index, String before, String after) {
+    if (before.trim().isNotEmpty || after.trim().isNotEmpty) return null;
+    for (final at in [index - 1, index + 1]) {
+      if (at < 0 || at >= _blocks.length) continue;
+      final block = _blocks[at];
+      if (block is MediaBlock) return block;
+    }
+    return null;
   }
 
   /// Убирает вложение из текста и из записи.
@@ -368,6 +414,47 @@ class _EditorScreenState extends State<EditorScreen> {
       );
       _dirty = true;
     });
+    _scheduleSave();
+  }
+
+  /// Выбор обложки: выключить, взять фото из записи или подобрать по теме.
+  Future<void> _pickCover() async {
+    await _save();
+    if (!mounted) return;
+    final hasPhoto = _media.any((m) => m.isVisual);
+    final topic = [
+      _title.text.trim(),
+      ...MarkdownLite.hashtags(_bodyText),
+    ].where((s) => s.isNotEmpty).join(' ');
+
+    final choice = await showCoverSheet(
+      context,
+      entryId: _entry.id,
+      current: _entry.coverMode,
+      topic: topic,
+      hasOwnPhoto: hasPhoto,
+    );
+    if (choice == null || !mounted) return;
+
+    // Скачанный снимок живёт, только пока он обложка. Сменили или выключили —
+    // удаляем: иначе он остаётся вложением и всплывает в галерее записи как
+    // чужая фотография, которую человек туда не клал.
+    final stale = _entry.coverMode == CoverMode.web ? _entry.coverMediaId : null;
+
+    setState(() {
+      _entry = _entry.copyWith(
+        coverMode: choice.mode,
+        coverMediaId: choice.mediaId,
+        clearCover: choice.mode != CoverMode.web && choice.mediaId == null,
+      );
+      _dirty = true;
+    });
+
+    if (stale != null && stale != choice.mediaId) {
+      final old = _media.where((m) => m.id == stale).firstOrNull;
+      if (old != null) await MediaRepository.instance.delete(old);
+    }
+    await _loadMedia();
     _scheduleSave();
   }
 
@@ -530,6 +617,20 @@ class _EditorScreenState extends State<EditorScreen> {
                   // Лента блоков: абзацы и сетки вложений между ними.
                   for (var i = 0; i < _blocks.length; i++)
                     _buildBlock(context, _blocks[i], i),
+                  const SizedBox(height: 4),
+                  Center(
+                    child: OutlinedButton.icon(
+                      onPressed: _addBlock,
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 44),
+                        shape: const StadiumBorder(),
+                        side: BorderSide(color: scheme.outlineVariant),
+                        foregroundColor: scheme.onSurfaceVariant,
+                      ),
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: Text(tr('block_add')),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     '${Dates.wordCount(words)} · '
@@ -563,33 +664,81 @@ class _EditorScreenState extends State<EditorScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     switch (block) {
-      case TextBlock(:final controller, :final focus):
-        return TextField(
-          controller: controller,
-          focusNode: focus,
-          maxLines: null,
-          // Высоту держит только пустая запись — чтобы было куда нажать.
-          // Как только в записи что-то есть, блоки растут по содержимому:
-          // иначе перед фотографией зияет пустая полоса.
-          minLines: index == 0 && _blocks.length == 1 ? 5 : 1,
-          textCapitalization: TextCapitalization.sentences,
-          keyboardType: TextInputType.multiline,
-          style: TextStyle(
-            fontFamily: AppTheme.bodyFont,
-            fontSize: 15,
-            height: 1.5,
-            color: scheme.onSurface,
+      case TextBlock():
+        // Каждая тема — своя карточка: так запись читается как страница из
+        // блоков, а не как сплошная стена текста на тёмном фоне.
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(WicklyDesign.radiusCard),
+              border: Border.all(color: scheme.outlineVariant),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: block.title,
+                  focusNode: block.titleFocus,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: TextStyle(
+                    fontFamily: AppTheme.displayFont,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    letterSpacing: -0.2,
+                    color: scheme.onSurface,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: tr('block_title_hint'),
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onSubmitted: (_) => block.focus.requestFocus(),
+                ),
+                const SizedBox(height: 2),
+                TextField(
+                  controller: block.controller,
+                  focusNode: block.focus,
+                  maxLines: null,
+                  minLines: index == 0 && _blocks.length == 1 ? 4 : 1,
+                  textCapitalization: TextCapitalization.sentences,
+                  keyboardType: TextInputType.multiline,
+                  style: TextStyle(
+                    fontFamily: AppTheme.bodyFont,
+                    fontSize: 15,
+                    height: 1.5,
+                    color: scheme.onSurface,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: index == 0 ? tr('entry_body_hint') : null,
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                  ),
+                  onChanged: (value) => _continueList(block.controller, value),
+                ),
+                // Пустой лишний блок должен уметь исчезнуть.
+                if (_blocks.length > 1 && block.isEmpty)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () => _removeBlock(block),
+                      icon: const Icon(Icons.close_rounded, size: 16),
+                      label: Text(tr('block_remove')),
+                    ),
+                  ),
+              ],
+            ),
           ),
-          decoration: InputDecoration(
-            hintText: index == 0 ? tr('entry_body_hint') : null,
-            filled: false,
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 4),
-          ),
-          onChanged: (value) => _continueList(controller, value),
         );
 
       case MediaBlock(:final mediaIds):
@@ -599,7 +748,7 @@ class _EditorScreenState extends State<EditorScreen> {
         ];
         if (items.isEmpty) return const SizedBox.shrink();
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.only(bottom: 10),
           child: MediaGrid(
             media: items,
             onOpen: (i) => showMediaViewer(context, items, i),
@@ -607,6 +756,30 @@ class _EditorScreenState extends State<EditorScreen> {
           ),
         );
     }
+  }
+
+  /// Добавляет новую тему в конец записи.
+  void _addBlock() {
+    final block = _newTextBlock();
+    setState(() {
+      _blocks.add(block);
+      _active = block;
+    });
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => block.titleFocus.requestFocus());
+    _dirty = true;
+    _scheduleSave();
+  }
+
+  void _removeBlock(TextBlock block) {
+    setState(() {
+      _blocks.remove(block);
+      if (_blocks.isEmpty) _blocks.add(_newTextBlock());
+      _active = _blocks.whereType<TextBlock>().lastOrNull;
+    });
+    block.dispose();
+    _dirty = true;
+    _scheduleSave();
   }
 
   /// Enter внутри списка продолжает список.
@@ -643,6 +816,15 @@ class _EditorScreenState extends State<EditorScreen> {
           icon: Icons.schedule_rounded,
           label: '${Dates.relativeDay(e.entryDate)}, ${Dates.time(e.entryDate)}',
           onTap: _pickDate,
+        ),
+        ContextChip(
+          icon: switch (e.coverMode) {
+            CoverMode.none => Icons.crop_din_rounded,
+            CoverMode.auto => Icons.photo_rounded,
+            CoverMode.web => Icons.image_search_rounded,
+          },
+          label: tr('cover'),
+          onTap: _pickCover,
         ),
         ContextChip(
           dotColor: e.mood == null ? null : MoodPaletteX.of(context, e.mood),
