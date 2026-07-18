@@ -19,12 +19,21 @@ class CountUpNumber extends StatefulWidget {
   /// Сколько знаков после запятой. 0 — целое число.
   final int fractionDigits;
 
+  /// Сокращать ли тысячи: 8200 → «8,2к». Нужно там, где число живёт в плитке
+  /// и не может расти в ширину.
+  final bool compact;
+
+  /// Как называется «тысяча» на языке интерфейса (к / k).
+  final String thousandSuffix;
+
   const CountUpNumber({
     super.key,
     required this.value,
     required this.style,
     this.duration = const Duration(milliseconds: 480),
     this.fractionDigits = 0,
+    this.compact = false,
+    this.thousandSuffix = 'k',
   });
 
   /// Удобный конструктор для целых.
@@ -74,13 +83,21 @@ class _CountUpNumberState extends State<CountUpNumber>
   }
 
   String _format(double v) {
+    if (widget.compact && v.abs() >= 1000) {
+      final k = v / 1000;
+      final text = k % 1 == 0
+          ? '${k.toInt()}'
+          : k.toStringAsFixed(1).replaceAll('.', _separator);
+      return '$text${widget.thousandSuffix}';
+    }
     final text = v.toStringAsFixed(widget.fractionDigits);
     if (widget.fractionDigits == 0) return text;
-    // Запятая как разделитель там, где так принято (ru/de/fr/es/it/pt).
-    final separator =
-        Localizations.localeOf(context).languageCode == 'en' ? '.' : ',';
-    return text.replaceAll('.', separator);
+    return text.replaceAll('.', _separator);
   }
+
+  /// Запятая как разделитель там, где так принято (ru/de/fr/es/it/pt).
+  String get _separator =>
+      Localizations.localeOf(context).languageCode == 'en' ? '.' : ',';
 
   @override
   Widget build(BuildContext context) {

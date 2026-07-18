@@ -187,4 +187,92 @@ const Map<String, Map<String, String>> feedStrings = {
     'fr': 'Lieu sans nom', 'es': 'Lugar sin nombre', 'it': 'Luogo senza nome',
     'pt': 'Lugar sem nome',
   },
+
+  // ------------------------- Дневники и поиск -------------------------
+  'journals': {
+    'ru': 'Дневники', 'en': 'Journals', 'de': 'Tagebücher', 'fr': 'Journaux',
+    'es': 'Diarios', 'it': 'Diari', 'pt': 'Diários',
+  },
+  'new_journal': {
+    'ru': 'Новый дневник', 'en': 'New journal', 'de': 'Neues Tagebuch',
+    'fr': 'Nouveau journal', 'es': 'Nuevo diario', 'it': 'Nuovo diario',
+    'pt': 'Novo diário',
+  },
+  'journal_locked': {
+    'ru': 'под паролем', 'en': 'password protected', 'de': 'mit Passwort',
+    'fr': 'protégé par mot de passe', 'es': 'con contraseña',
+    'it': 'protetto da password', 'pt': 'com senha',
+  },
+  'search_hint': {
+    'ru': 'Искать по дневнику', 'en': 'Search your journal',
+    'de': 'Im Tagebuch suchen', 'fr': 'Chercher dans le journal',
+    'es': 'Buscar en el diario', 'it': 'Cerca nel diario',
+    'pt': 'Buscar no diário',
+  },
+  'search_start_title': {
+    'ru': 'Что вспоминаем?', 'en': 'What are we looking for?',
+    'de': 'Woran erinnern wir uns?', 'fr': 'Qu’est-ce qu’on cherche ?',
+    'es': '¿Qué recordamos?', 'it': 'Cosa cerchiamo?',
+    'pt': 'O que vamos lembrar?',
+  },
+  'search_start_sub': {
+    'ru': 'Слово из записи, место или надпись с фотографии',
+    'en': 'A word from an entry, a place, or text on a photo',
+    'de': 'Ein Wort aus einem Eintrag, ein Ort oder Text auf einem Foto',
+    'fr': 'Un mot d’une entrée, un lieu ou du texte sur une photo',
+    'es': 'Una palabra de una entrada, un lugar o texto en una foto',
+    'it': 'Una parola da una voce, un luogo o testo su una foto',
+    'pt': 'Uma palavra de uma anotação, um lugar ou texto numa foto',
+  },
+  'search_nothing_title': {
+    'ru': 'Ничего не нашлось', 'en': 'Nothing found', 'de': 'Nichts gefunden',
+    'fr': 'Rien trouvé', 'es': 'No se encontró nada', 'it': 'Niente trovato',
+    'pt': 'Nada encontrado',
+  },
+  'search_nothing_sub': {
+    'ru': 'Попробуй другое слово или сними фильтр',
+    'en': 'Try another word or drop a filter',
+    'de': 'Versuch ein anderes Wort oder nimm einen Filter weg',
+    'fr': 'Essaie un autre mot ou enlève un filtre',
+    'es': 'Prueba otra palabra o quita un filtro',
+    'it': 'Prova un’altra parola o togli un filtro',
+    'pt': 'Tente outra palavra ou tire um filtro',
+  },
+  'search_section_entries': {
+    'ru': 'Записи', 'en': 'Entries', 'de': 'Einträge', 'fr': 'Entrées',
+    'es': 'Entradas', 'it': 'Voci', 'pt': 'Anotações',
+  },
+  'search_section_photos': {
+    'ru': 'На фото · OCR', 'en': 'On photos · OCR', 'de': 'Auf Fotos · OCR',
+    'fr': 'Sur photos · OCR', 'es': 'En fotos · OCR', 'it': 'Su foto · OCR',
+    'pt': 'Em fotos · OCR',
+  },
+  'found_on_photo': {
+    'ru': 'распознано на фото', 'en': 'recognised on a photo',
+    'de': 'auf einem Foto erkannt', 'fr': 'reconnu sur une photo',
+    'es': 'reconocido en una foto', 'it': 'riconosciuto su una foto',
+    'pt': 'reconhecido numa foto',
+  },
+  'filter_with_photo': {
+    'ru': 'С фото', 'en': 'With photo', 'de': 'Mit Foto', 'fr': 'Avec photo',
+    'es': 'Con foto', 'it': 'Con foto', 'pt': 'Com foto',
+  },
+  'memories_empty_title': {
+    'ru': 'В этот день пока пусто',
+    'en': 'Nothing on this day yet',
+    'de': 'An diesem Tag noch nichts',
+    'fr': 'Rien pour ce jour',
+    'es': 'Aún nada en este día',
+    'it': 'Ancora niente in questo giorno',
+    'pt': 'Ainda nada neste dia',
+  },
+  'memories_empty_sub': {
+    'ru': 'Через год эта дата будет с записями',
+    'en': 'In a year this date will have entries',
+    'de': 'In einem Jahr hat dieses Datum Einträge',
+    'fr': 'Dans un an, cette date aura des entrées',
+    'es': 'En un año esta fecha tendrá entradas',
+    'it': 'Tra un anno questa data avrà delle voci',
+    'pt': 'Em um ano esta data terá anotações',
+  },
 };

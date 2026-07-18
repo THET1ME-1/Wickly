@@ -289,4 +289,61 @@ const Map<String, Map<String, String>> catalogStrings = {
     'ru': 'шагов', 'en': 'steps', 'de': 'Schritte', 'fr': 'pas',
     'es': 'pasos', 'it': 'passi', 'pt': 'passos',
   },
+
+  'thousand_short': {
+    'ru': 'к', 'en': 'k', 'de': 'k', 'fr': 'k', 'es': 'k', 'it': 'k', 'pt': 'k',
+  },
+  'stats_empty_title': {
+    'ru': 'Пока нечего показать',
+    'en': 'Nothing to show yet',
+    'de': 'Noch nichts zu zeigen',
+    'fr': 'Rien à montrer pour l’instant',
+    'es': 'Aún no hay nada que mostrar',
+    'it': 'Ancora niente da mostrare',
+    'pt': 'Ainda não há o que mostrar',
+  },
+  'stats_empty_sub': {
+    'ru': 'Отметь настроение в паре записей — появится тренд',
+    'en': 'Mark your mood in a few entries and a trend will appear',
+    'de': 'Markiere die Stimmung in ein paar Einträgen, dann kommt der Trend',
+    'fr': 'Note ton humeur dans quelques entrées et la tendance apparaîtra',
+    'es': 'Marca tu ánimo en unas entradas y aparecerá la tendencia',
+    'it': 'Segna l’umore in qualche voce e comparirà l’andamento',
+    'pt': 'Marque o humor em algumas anotações e a tendência aparecerá',
+  },
+  'stats_average_for': {
+    'ru': 'среднее за {period}', 'en': 'average for the {period}',
+    'de': 'Durchschnitt für {period}', 'fr': 'moyenne sur {period}',
+    'es': 'promedio de {period}', 'it': 'media per {period}',
+    'pt': 'média de {period}',
+  },
+  'range_week': {
+    'ru': 'Неделя', 'en': 'Week', 'de': 'Woche', 'fr': 'Semaine',
+    'es': 'Semana', 'it': 'Settimana', 'pt': 'Semana',
+  },
+  'range_month': {
+    'ru': 'Месяц', 'en': 'Month', 'de': 'Monat', 'fr': 'Mois',
+    'es': 'Mes', 'it': 'Mese', 'pt': 'Mês',
+  },
+  'range_year': {
+    'ru': 'Год', 'en': 'Year', 'de': 'Jahr', 'fr': 'Année',
+    'es': 'Año', 'it': 'Anno', 'pt': 'Ano',
+  },
+  'mood_x_weather': {
+    'ru': 'Настроение × погода', 'en': 'Mood × weather',
+    'de': 'Stimmung × Wetter', 'fr': 'Humeur × météo',
+    'es': 'Ánimo × clima', 'it': 'Umore × meteo', 'pt': 'Humor × clima',
+  },
+  'mood_x_activity': {
+    'ru': 'Настроение × занятия', 'en': 'Mood × activities',
+    'de': 'Stimmung × Aktivitäten', 'fr': 'Humeur × activités',
+    'es': 'Ánimo × actividades', 'it': 'Umore × attività',
+    'pt': 'Humor × atividades',
+  },
+  'streak_best': {
+    'ru': 'лучшая серия: {n}', 'en': 'best streak: {n}',
+    'de': 'beste Serie: {n}', 'fr': 'meilleure série : {n}',
+    'es': 'mejor racha: {n}', 'it': 'serie migliore: {n}',
+    'pt': 'melhor sequência: {n}',
+  },
 };

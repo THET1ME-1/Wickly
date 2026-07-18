@@ -110,6 +110,7 @@ class _AudioPlayerBarState extends State<AudioPlayerBar> {
                 minHeight: 6,
                 backgroundColor: scheme.surfaceContainerHighest,
                 color: scheme.primary,
+                stopIndicatorColor: Colors.transparent,
               ),
             ),
           ),

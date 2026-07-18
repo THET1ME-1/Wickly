@@ -75,6 +75,17 @@ class Dates {
         _ => '$years ${years == 1 ? 'year' : 'years'} ago',
       };
 
+  /// «4 года воспоминаний» — сколько лет назад есть записи этой даты.
+  static String memoryYears(int years) => switch (_loc) {
+        'ru' => '$years ${_ruPlural(years, 'год', 'года', 'лет')} воспоминаний',
+        'de' => '$years ${years == 1 ? 'Jahr' : 'Jahre'} Erinnerungen',
+        'fr' => '$years ${years == 1 ? 'an' : 'ans'} de souvenirs',
+        'es' => '$years ${years == 1 ? 'año' : 'años'} de recuerdos',
+        'it' => '$years ${years == 1 ? 'anno' : 'anni'} di ricordi',
+        'pt' => '$years ${years == 1 ? 'ano' : 'anos'} de lembranças',
+        _ => '$years ${years == 1 ? 'year' : 'years'} of memories',
+      };
+
   /// «12 дней подряд» — серия.
   static String daysStreak(int days) => switch (_loc) {
         'ru' => '$days ${_ruPlural(days, 'день', 'дня', 'дней')} подряд',
