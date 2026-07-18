@@ -22,4 +22,13 @@ class DbKey {
     await _storage.write(key: _k, value: hex);
     return hex;
   }
+
+  /// Ставит ключ из поднятого бэкапа.
+  ///
+  /// Без этого база встанет на место, а вложения останутся нечитаемым шумом:
+  /// они зашифрованы ключом того устройства, где были сняты.
+  static Future<void> replace(String keyHex) async {
+    if (keyHex.length != 64) return;
+    await _storage.write(key: _k, value: keyHex);
+  }
 }

@@ -1,4 +1,32 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Погода (Open-Meteo) и прямая синхронизация по домашней сети.
+         Дневник работает и без сети: это единственные два случая, когда она
+         вообще нужна. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <!-- Место записи. По желанию: без разрешения запись просто остаётся без
+         места, ничего не блокируется. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+
+    <!-- Голосовые заметки и диктовка. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
+    <!-- Камера для снимка прямо в запись. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+
+    <!-- Напоминания писать. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+    <!-- Отпечаток и лицо для замка дневника. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+
+    <!-- Ни камера, ни GPS не обязательны: приложение ставится и на устройства
+         без них. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.location" android:required="false"/>
     <application
         android:label="Wickly"
         android:name="${applicationName}"

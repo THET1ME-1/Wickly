@@ -7,14 +7,25 @@ import '../l10n/strings.dart';
 import '../models/entry.dart';
 import '../models/media.dart';
 import '../services/feed_service.dart';
+import '../services/search_service.dart';
 import '../services/stats_service.dart';
 import '../utils/dates.dart';
 import '../widgets/entry_card.dart';
 import 'calendar_screen.dart';
+import 'catalog_manager_screen.dart';
+import 'editor_screen.dart';
 import 'feed_screen.dart';
+import 'journals_container.dart';
 import 'map_screen.dart';
 import 'media_screen.dart';
+import 'memories_screen.dart';
+import 'mood_stats_container.dart';
 import 'more_screen.dart';
+import 'reader_screen.dart';
+import 'reminders_screen.dart';
+import 'search_screen.dart';
+import 'settings_screen.dart';
+import 'trackers_container.dart';
 
 /// Вкладки нижней навигации.
 enum ShellTab { feed, calendar, map, media, more }
@@ -45,6 +56,115 @@ class _ShellScreenState extends State<ShellScreen> {
     );
   }
 
+  // ----------------------------- Переходы -----------------------------
+
+  Future<void> _write({String? promptKey, DateTime? at}) async {
+    final journalId = AppPrefs.instance.lastJournalId ?? 'default';
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => EditorScreen(journalId: journalId, promptKey: promptKey),
+    ));
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openEntry(Entry entry) async {
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ReaderScreen(
+        entryId: entry.id,
+        onEdit: (e) => Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => EditorScreen(entry: e, journalId: e.journalId),
+        )),
+      ),
+    ));
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openSearch() async {
+    final entries = await EntryRepository.instance.allEntries();
+    final years = entries.map((e) => e.entryDate.year).toSet().toList()
+      ..sort((a, b) => b.compareTo(a));
+    if (!mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => SearchView(
+        years: years.take(4).toList(),
+        onSearch: (q, f) => SearchService.search(entries, q, filters: f),
+        onOpen: _openEntry,
+      ),
+    ));
+  }
+
+  Future<void> _openMemories() async {
+    final now = DateTime.now();
+    final memories = await EntryRepository.instance.onThisDay(now);
+    final items = await FeedService.decorate(memories);
+    if (!mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => MemoriesView(
+        day: now,
+        memories: items,
+        onOpen: _openEntry,
+      ),
+    ));
+  }
+
+  Future<void> _openScreen(Widget screen) async {
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => screen));
+    if (mounted) setState(() {});
+  }
+
+  /// Пункты вкладки «Ещё».
+  List<MoreItem> get _moreItems => [
+        MoreItem(
+          icon: Icons.menu_book_rounded,
+          title: tr('journals'),
+          subtitle: tr('journals_and_covers'),
+          onTap: () => _openScreen(const JournalsContainer()),
+        ),
+        MoreItem(
+          icon: Icons.insights_rounded,
+          title: tr('set_mood'),
+          subtitle: tr('mood_x_weather'),
+          onTap: () => _openScreen(const MoodStatsContainer()),
+        ),
+        MoreItem(
+          icon: Icons.water_drop_rounded,
+          title: tr('trackers'),
+          subtitle: tr('habits'),
+          onTap: () => _openScreen(const TrackersContainer()),
+        ),
+        MoreItem(
+          icon: Icons.history_rounded,
+          title: tr('on_this_day'),
+          subtitle: tr('memories_morning'),
+          onTap: _openMemories,
+        ),
+        MoreItem(
+          icon: Icons.mood_rounded,
+          title: tr('emotions_and_activities'),
+          subtitle: tr('mood_behind'),
+          onTap: () => _openScreen(const CatalogManagerScreen()),
+        ),
+        MoreItem(
+          icon: Icons.notifications_rounded,
+          title: tr('reminders'),
+          subtitle: tr('prompt_of_day'),
+          onTap: () => _openScreen(
+              RemindersScreen(onAnswer: (key) => _write(promptKey: key))),
+        ),
+        MoreItem(
+          icon: Icons.search_rounded,
+          title: tr('search'),
+          subtitle: tr('search_section_photos'),
+          onTap: _openSearch,
+        ),
+        MoreItem(
+          icon: Icons.settings_rounded,
+          title: tr('settings'),
+          subtitle: tr('appearance_sub'),
+          onTap: () => _openScreen(const SettingsScreen()),
+        ),
+      ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,7 +176,14 @@ class _ShellScreenState extends State<ShellScreen> {
             tab: _tab,
             entries: entries,
             month: _month,
+            moreItems: _moreItems,
             onChangeMonth: (m) => setState(() => _month = m),
+            onWrite: _write,
+            onOpenEntry: _openEntry,
+            onSearch: _openSearch,
+            onMemories: _openMemories,
+            onStats: () => _openScreen(const MoodStatsContainer()),
+            onSettings: () => _openScreen(const SettingsScreen()),
           );
         },
       ),
@@ -101,13 +228,27 @@ class _Body extends StatelessWidget {
   final ShellTab tab;
   final List<Entry> entries;
   final DateTime month;
+  final List<MoreItem> moreItems;
   final ValueChanged<DateTime> onChangeMonth;
+  final VoidCallback onWrite;
+  final void Function(Entry) onOpenEntry;
+  final VoidCallback onSearch;
+  final VoidCallback onMemories;
+  final VoidCallback onStats;
+  final VoidCallback onSettings;
 
   const _Body({
     required this.tab,
     required this.entries,
     required this.month,
+    required this.moreItems,
     required this.onChangeMonth,
+    required this.onWrite,
+    required this.onOpenEntry,
+    required this.onSearch,
+    required this.onMemories,
+    required this.onStats,
+    required this.onSettings,
   });
 
   @override
@@ -135,6 +276,12 @@ class _Body extends StatelessWidget {
                 lastWeek: FeedService.lastWeek(entries, now),
                 now: now,
               ),
+              onWrite: onWrite,
+              onOpenEntry: onOpenEntry,
+              onSearch: onSearch,
+              onMenu: onSettings,
+              onOpenMemories: onMemories,
+              onOpenStreak: onStats,
             );
           },
         );
@@ -155,20 +302,44 @@ class _Body extends StatelessWidget {
             now: now,
           ),
           onChangeMonth: onChangeMonth,
+          onWrite: onWrite,
+          onOpenDay: (day) {
+            final ofDay = entries
+                .where((e) =>
+                    e.entryDate.year == day.year &&
+                    e.entryDate.month == day.month &&
+                    e.entryDate.day == day.day)
+                .toList();
+            if (ofDay.isNotEmpty) onOpenEntry(ofDay.first);
+          },
         );
 
       case ShellTab.map:
-        return MapView(places: groupIntoPlaces(entries));
+        return MapView(
+          places: groupIntoPlaces(entries),
+          onSearch: onSearch,
+          onOpenPlace: (place) => onOpenEntry(place.latest),
+        );
 
       case ShellTab.media:
         return StreamBuilder<List<Media>>(
           stream: MediaRepository.instance.watchAll(),
-          builder: (context, snapshot) =>
-              MediaView(media: snapshot.data ?? const <Media>[]),
+          builder: (context, snapshot) {
+            final media = snapshot.data ?? const <Media>[];
+            return MediaView(
+              media: media,
+              onSearch: onSearch,
+              onOpen: (m) {
+                final entry =
+                    entries.where((e) => e.id == m.entryId).firstOrNull;
+                if (entry != null) onOpenEntry(entry);
+              },
+            );
+          },
         );
 
       case ShellTab.more:
-        return const MoreScreen();
+        return MoreScreen(items: moreItems);
     }
   }
 }

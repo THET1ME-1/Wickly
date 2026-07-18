@@ -2,11 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../data/app_prefs.dart';
 import '../l10n/locale_controller.dart';
 import '../l10n/strings.dart';
 import '../theme/app_theme.dart';
-import '../widgets/appearance_settings.dart';
 import '../widgets/settings_scaffold.dart';
+import 'appearance_screen.dart';
+import 'catalog_manager_screen.dart';
+import 'export_screen.dart';
+import 'hidden_entries_screen.dart';
+import 'journals_container.dart';
+import 'lock_screen.dart';
+import 'reminders_screen.dart';
+import 'sync_screen.dart';
+import 'trackers_container.dart';
 
 /// Палитры «бесконечных тем» Wickly. Первая — фирменная амбра
 /// ([AppTheme.defaultSeed]); из каждого seed строится вся схема через
@@ -25,6 +34,8 @@ const List<Color> kWicklyPresets = [
 /// Ссылка на исходники (публичный репозиторий).
 const String kSourceUrl = 'https://github.com/THET1ME-1/Wickly';
 
+/// Настройки: каркас из ДНК — секции-заголовки, скруглённые группы, строки с
+/// чип-иконкой. Порядок секций от «каждый день» к «раз в полгода».
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -50,6 +61,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
       .firstWhere((l) => l.code == LocaleController.instance.code,
           orElse: () => LocaleController.languages.first)
       .nativeName;
+
+  Future<void> _open(Widget screen) async {
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => screen));
+    if (mounted) setState(() {});
+  }
+
+  /// Включение замка ведёт на экран «придумай код», выключение просит его.
+  Future<void> _toggleLock(bool value) async {
+    if (value) {
+      await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => LockScreen(
+          mode: LockMode.setPin,
+          onUnlocked: () => Navigator.of(context).pop(),
+        ),
+      ));
+    } else {
+      final ok = await Navigator.of(context).push<bool>(MaterialPageRoute(
+        builder: (context) => LockScreen(
+          onUnlocked: () => Navigator.of(context).pop(true),
+        ),
+      ));
+      if (ok == true) await AppPrefs.instance.clearPin();
+    }
+    if (mounted) setState(() {});
+  }
 
   Future<void> _pickLanguage() async {
     final scheme = Theme.of(context).colorScheme;
@@ -98,53 +135,139 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
     if (picked != null) await LocaleController.instance.setCode(picked);
+    if (mounted) setState(() {});
   }
 
   Future<void> _openSource() async {
-    final uri = Uri.parse(kSourceUrl);
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    await launchUrl(Uri.parse(kSourceUrl), mode: LaunchMode.externalApplication);
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final prefs = AppPrefs.instance;
+    Widget chevron() =>
+        Icon(Icons.chevron_right_rounded, color: scheme.outline);
+
     return Scaffold(
       appBar: AppBar(title: Text(tr('settings'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
-          // Оформление + бесконечные темы (блок «ДНК»).
-          AppearanceSettings(
-            presets: kWicklyPresets,
-            labels: AppearanceLabels(
-              section: tr('appearance'),
-              themeMode: tr('theme'),
-              themeModeSheetTitle: tr('theme_sheet_title'),
-              light: tr('theme_light'),
-              dark: tr('theme_dark'),
-              system: tr('theme_system'),
-              autoTime: tr('theme_auto'),
-              amoled: tr('amoled'),
-              amoledSub: tr('amoled_sub'),
-              dynamicColor: tr('material_you'),
-              dynamicColorSub: tr('material_you_sub'),
-              themeColor: tr('theme_color'),
-              themeColorDefault: tr('theme_color_default'),
-              presets: tr('presets'),
+          SettingsSection(tr('section_journal')),
+          SettingsGroup([
+            SettingsRow(
+              icon: Icons.menu_book_rounded,
+              title: tr('journals_and_covers'),
+              onTap: () => _open(const JournalsContainer()),
+              trailing: chevron(),
             ),
-            extraRows: [
+            const SettingsDivider(),
+            SettingsRow(
+              icon: Icons.mood_rounded,
+              title: tr('emotions_and_activities'),
+              onTap: () => _open(const CatalogManagerScreen()),
+              trailing: chevron(),
+            ),
+            const SettingsDivider(),
+            SettingsRow(
+              icon: Icons.water_drop_rounded,
+              title: tr('trackers'),
+              onTap: () => _open(const TrackersContainer()),
+              trailing: chevron(),
+            ),
+            const SettingsDivider(),
+            SettingsRow(
+              icon: Icons.notifications_rounded,
+              title: tr('reminders_and_prompts'),
+              onTap: () => _open(const RemindersScreen()),
+              trailing: chevron(),
+            ),
+          ]),
+
+          SettingsSection(tr('section_privacy')),
+          SettingsGroup([
+            SettingsRow(
+              icon: Icons.lock_rounded,
+              title: tr('lock'),
+              subtitle: tr('lock_sub'),
+              trailing: Switch(value: prefs.hasPin, onChanged: _toggleLock),
+              onTap: () => _toggleLock(!prefs.hasPin),
+            ),
+            if (prefs.hasPin) ...[
+              const SettingsDivider(),
               SettingsRow(
-                icon: Icons.translate_rounded,
-                title: tr('language'),
-                subtitle: _currentLanguageName,
-                onTap: _pickLanguage,
-                trailing:
-                    Icon(Icons.chevron_right_rounded, color: scheme.outline),
+                icon: Icons.fingerprint_rounded,
+                title: tr('lock_use_biometrics'),
+                trailing: Switch(
+                  value: prefs.biometrics,
+                  onChanged: (v) async {
+                    await prefs.setBiometrics(v);
+                    if (mounted) setState(() {});
+                  },
+                ),
               ),
             ],
-          ),
+            const SettingsDivider(),
+            SettingsRow(
+              icon: Icons.visibility_off_rounded,
+              title: tr('hidden_entries'),
+              subtitle: tr('hidden_entries_sub'),
+              onTap: () => _open(const HiddenEntriesScreen()),
+              trailing: chevron(),
+            ),
+            const SettingsDivider(),
+            SettingsRow(
+              icon: Icons.my_location_rounded,
+              title: tr('auto_context'),
+              subtitle: tr('auto_context_sub'),
+              trailing: Switch(
+                value: prefs.autoContext,
+                onChanged: (v) async {
+                  await prefs.setAutoContext(v);
+                  if (mounted) setState(() {});
+                },
+              ),
+            ),
+          ]),
 
-          // О программе.
+          SettingsSection(tr('section_data')),
+          SettingsGroup([
+            SettingsRow(
+              icon: Icons.sync_rounded,
+              title: tr('sync'),
+              subtitle: tr('sync_sub'),
+              onTap: () => _open(const SyncScreen()),
+              trailing: chevron(),
+            ),
+            const SettingsDivider(),
+            SettingsRow(
+              icon: Icons.download_rounded,
+              title: tr('export_and_backup'),
+              onTap: () => _open(const ExportScreen()),
+              trailing: chevron(),
+            ),
+          ]),
+
+          SettingsSection(tr('appearance')),
+          SettingsGroup([
+            SettingsRow(
+              icon: Icons.palette_rounded,
+              title: tr('appearance'),
+              subtitle: tr('appearance_sub'),
+              onTap: () => _open(const AppearanceScreen()),
+              trailing: chevron(),
+            ),
+            const SettingsDivider(),
+            SettingsRow(
+              icon: Icons.translate_rounded,
+              title: tr('language'),
+              subtitle: _currentLanguageName,
+              onTap: _pickLanguage,
+              trailing: chevron(),
+            ),
+          ]),
+
           SettingsSection(tr('about')),
           SettingsGroup([
             SettingsRow(
@@ -160,8 +283,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: tr('source_code'),
               subtitle: 'github.com/THET1ME-1/Wickly',
               onTap: _openSource,
-              trailing:
-                  Icon(Icons.open_in_new_rounded, color: scheme.outline),
+              trailing: Icon(Icons.open_in_new_rounded, color: scheme.outline),
             ),
           ]),
         ],

@@ -65,7 +65,7 @@ dependencies:
   mobile_scanner: ^7.3.0      # чтение QR со второго устройства
 
   intl: ^0.20.2                # даты и числа по локали
-  meta: ^1.19.0               # @visibleForTesting в чистом Dart (без Flutter)
+  meta: ^1.17.0               # @visibleForTesting в чистом Dart (без Flutter)
   crypto: ^3.0.7              # хэши медиа-файлов
 
 dev_dependencies:

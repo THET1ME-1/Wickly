@@ -362,4 +362,282 @@ const Map<String, Map<String, String>> promptStrings = {
     'it': 'Lun,Mar,Mer,Gio,Ven,Sab,Dom',
     'pt': 'Seg,Ter,Qua,Qui,Sex,Sáb,Dom',
   },
+
+  // ------------------- Синхронизация и экспорт -------------------
+  'sync': {
+    'ru': 'Синхронизация', 'en': 'Sync', 'de': 'Synchronisierung',
+    'fr': 'Synchronisation', 'es': 'Sincronización', 'it': 'Sincronizzazione',
+    'pt': 'Sincronização',
+  },
+  'sync_mode_direct': {
+    'ru': 'Прямо · P2P', 'en': 'Direct · P2P', 'de': 'Direkt · P2P',
+    'fr': 'Direct · P2P', 'es': 'Directo · P2P', 'it': 'Diretto · P2P',
+    'pt': 'Direto · P2P',
+  },
+  'sync_mode_folder': {
+    'ru': 'Папка · Syncthing', 'en': 'Folder · Syncthing',
+    'de': 'Ordner · Syncthing', 'fr': 'Dossier · Syncthing',
+    'es': 'Carpeta · Syncthing', 'it': 'Cartella · Syncthing',
+    'pt': 'Pasta · Syncthing',
+  },
+  'sync_ready': {
+    'ru': 'Готов к синхронизации', 'en': 'Ready to sync',
+    'de': 'Bereit zum Synchronisieren', 'fr': 'Prêt à synchroniser',
+    'es': 'Listo para sincronizar', 'it': 'Pronto a sincronizzare',
+    'pt': 'Pronto para sincronizar',
+  },
+  'sync_waiting': {
+    'ru': 'Жду второе устройство…', 'en': 'Waiting for the other device…',
+    'de': 'Warte auf das andere Gerät…', 'fr': 'En attente de l’autre appareil…',
+    'es': 'Esperando el otro dispositivo…', 'it': 'Aspetto l’altro dispositivo…',
+    'pt': 'Aguardando o outro aparelho…',
+  },
+  'sync_done': {
+    'ru': 'Синхронизировано · {n} изменений',
+    'en': 'Synced · {n} changes',
+    'de': 'Synchronisiert · {n} Änderungen',
+    'fr': 'Synchronisé · {n} changements',
+    'es': 'Sincronizado · {n} cambios',
+    'it': 'Sincronizzato · {n} modifiche',
+    'pt': 'Sincronizado · {n} mudanças',
+  },
+  'sync_failed': {
+    'ru': 'Не получилось. Устройства в одной сети?',
+    'en': 'It did not work. Are both devices on the same network?',
+    'de': 'Hat nicht geklappt. Sind beide Geräte im selben Netz?',
+    'fr': 'Échec. Les deux appareils sont-ils sur le même réseau ?',
+    'es': 'No funcionó. ¿Ambos dispositivos en la misma red?',
+    'it': 'Non ha funzionato. I dispositivi sono sulla stessa rete?',
+    'pt': 'Não deu certo. Os aparelhos estão na mesma rede?',
+  },
+  'sync_add_device': {
+    'ru': 'Добавить устройство', 'en': 'Add a device', 'de': 'Gerät hinzufügen',
+    'fr': 'Ajouter un appareil', 'es': 'Añadir dispositivo',
+    'it': 'Aggiungi dispositivo', 'pt': 'Adicionar aparelho',
+  },
+  'sync_or_phrase': {
+    'ru': 'или введи фразу на другом устройстве',
+    'en': 'or type the phrase on the other device',
+    'de': 'oder gib die Phrase auf dem anderen Gerät ein',
+    'fr': 'ou saisis la phrase sur l’autre appareil',
+    'es': 'o escribe la frase en el otro dispositivo',
+    'it': 'oppure scrivi la frase sull’altro dispositivo',
+    'pt': 'ou digite a frase no outro aparelho',
+  },
+  'sync_start': {
+    'ru': 'Ждать устройство', 'en': 'Wait for a device',
+    'de': 'Auf Gerät warten', 'fr': 'Attendre un appareil',
+    'es': 'Esperar dispositivo', 'it': 'Attendi un dispositivo',
+    'pt': 'Aguardar aparelho',
+  },
+  'sync_scan': {
+    'ru': 'Отсканировать QR', 'en': 'Scan the QR', 'de': 'QR scannen',
+    'fr': 'Scanner le QR', 'es': 'Escanear el QR', 'it': 'Scansiona il QR',
+    'pt': 'Escanear o QR',
+  },
+  'sync_scan_sub': {
+    'ru': 'если QR показывает другое устройство',
+    'en': 'if the other device is showing the QR',
+    'de': 'wenn das andere Gerät den QR zeigt',
+    'fr': 'si l’autre appareil affiche le QR',
+    'es': 'si el otro dispositivo muestra el QR',
+    'it': 'se il QR lo mostra l’altro dispositivo',
+    'pt': 'se o outro aparelho está mostrando o QR',
+  },
+  'sync_folder': {
+    'ru': 'Выбрать общую папку', 'en': 'Pick the shared folder',
+    'de': 'Gemeinsamen Ordner wählen', 'fr': 'Choisir le dossier partagé',
+    'es': 'Elegir la carpeta compartida', 'it': 'Scegli la cartella condivisa',
+    'pt': 'Escolher a pasta compartilhada',
+  },
+  'sync_folder_sub': {
+    'ru': 'ту, что уже синхронит Syncthing',
+    'en': 'the one Syncthing already syncs',
+    'de': 'den, den Syncthing schon synchronisiert',
+    'fr': 'celui que Syncthing synchronise déjà',
+    'es': 'la que Syncthing ya sincroniza',
+    'it': 'quella che Syncthing già sincronizza',
+    'pt': 'aquela que o Syncthing já sincroniza',
+  },
+  'sync_note': {
+    'ru': 'Наружу уходят только изменения, зашифрованные фразой сопряжения. '
+        'Сам файл базы не пересылается никогда: через общую папку он бы '
+        'портился на полуслове.',
+    'en': 'Only changes leave the device, encrypted with the pairing phrase. '
+        'The database file itself is never sent: through a shared folder it '
+        'would break mid-write.',
+    'de': 'Nach außen gehen nur Änderungen, verschlüsselt mit der Phrase. '
+        'Die Datenbankdatei selbst wird nie verschickt: über einen '
+        'gemeinsamen Ordner würde sie mitten im Schreiben kaputtgehen.',
+    'fr': 'Seuls les changements sortent, chiffrés par la phrase. Le fichier '
+        'de la base n’est jamais envoyé : via un dossier partagé, il se '
+        'corromprait en pleine écriture.',
+    'es': 'Solo salen los cambios, cifrados con la frase. El archivo de la '
+        'base nunca se envía: por una carpeta compartida se corrompería a '
+        'medio escribir.',
+    'it': 'Escono solo le modifiche, cifrate con la frase. Il file del '
+        'database non viene mai inviato: in una cartella condivisa si '
+        'romperebbe a metà scrittura.',
+    'pt': 'Só as mudanças saem, cifradas com a frase. O arquivo do banco '
+        'nunca é enviado: por uma pasta compartilhada ele quebraria no meio '
+        'da escrita.',
+  },
+
+  'export_and_backup': {
+    'ru': 'Экспорт и бэкап', 'en': 'Export and backup',
+    'de': 'Export und Backup', 'fr': 'Export et sauvegarde',
+    'es': 'Exportar y copia', 'it': 'Esporta e backup',
+    'pt': 'Exportar e backup',
+  },
+  'export': {
+    'ru': 'Экспорт', 'en': 'Export', 'de': 'Export', 'fr': 'Export',
+    'es': 'Exportar', 'it': 'Esporta', 'pt': 'Exportar',
+  },
+  'export_failed': {
+    'ru': 'Не получилось выгрузить', 'en': 'Export failed',
+    'de': 'Export fehlgeschlagen', 'fr': 'L’export a échoué',
+    'es': 'La exportación falló', 'it': 'Esportazione fallita',
+    'pt': 'A exportação falhou',
+  },
+  'export_md_sub': {
+    'ru': '.md — по записи или всё сразу',
+    'en': '.md — one entry or everything',
+    'de': '.md — einzeln oder alles',
+    'fr': '.md — une entrée ou tout',
+    'es': '.md — una entrada o todo',
+    'it': '.md — una voce o tutto',
+    'pt': '.md — uma anotação ou tudo',
+  },
+  'export_json_sub': {
+    'ru': 'полная копия со всеми данными',
+    'en': 'a full copy with every field',
+    'de': 'vollständige Kopie mit allen Daten',
+    'fr': 'copie complète avec toutes les données',
+    'es': 'copia completa con todos los datos',
+    'it': 'copia completa con tutti i dati',
+    'pt': 'cópia completa com todos os dados',
+  },
+  'export_txt': {
+    'ru': 'Обычный текст', 'en': 'Plain text', 'de': 'Reiner Text',
+    'fr': 'Texte brut', 'es': 'Texto plano', 'it': 'Testo semplice',
+    'pt': 'Texto simples',
+  },
+  'export_txt_sub': {
+    'ru': '.txt без форматирования', 'en': '.txt without formatting',
+    'de': '.txt ohne Formatierung', 'fr': '.txt sans mise en forme',
+    'es': '.txt sin formato', 'it': '.txt senza formattazione',
+    'pt': '.txt sem formatação',
+  },
+  'pdf_book': {
+    'ru': 'Книга в PDF', 'en': 'A PDF book', 'de': 'Buch als PDF',
+    'fr': 'Un livre en PDF', 'es': 'Un libro en PDF', 'it': 'Un libro in PDF',
+    'pt': 'Um livro em PDF',
+  },
+  'pdf_book_sub': {
+    'ru': 'Собрать красивый альбом с фото — на печать или в подарок.',
+    'en': 'Make a proper album with photos — to print or to give away.',
+    'de': 'Ein schönes Album mit Fotos — zum Drucken oder Verschenken.',
+    'fr': 'Composer un bel album avec photos — à imprimer ou à offrir.',
+    'es': 'Armar un álbum bonito con fotos — para imprimir o regalar.',
+    'it': 'Comporre un bell’album con foto — da stampare o regalare.',
+    'pt': 'Montar um álbum bonito com fotos — para imprimir ou presentear.',
+  },
+  'pdf_book_action': {
+    'ru': 'Собрать книгу', 'en': 'Make the book', 'de': 'Buch bauen',
+    'fr': 'Composer le livre', 'es': 'Armar el libro', 'it': 'Componi il libro',
+    'pt': 'Montar o livro',
+  },
+  'pdf_book_title': {
+    'ru': 'Мой дневник', 'en': 'My journal', 'de': 'Mein Tagebuch',
+    'fr': 'Mon journal', 'es': 'Mi diario', 'it': 'Il mio diario',
+    'pt': 'Meu diário',
+  },
+  'backup': {
+    'ru': 'Бэкап', 'en': 'Backup', 'de': 'Backup', 'fr': 'Sauvegarde',
+    'es': 'Copia de seguridad', 'it': 'Backup', 'pt': 'Backup',
+  },
+  'backup_create': {
+    'ru': 'Зашифрованный бэкап', 'en': 'Encrypted backup',
+    'de': 'Verschlüsseltes Backup', 'fr': 'Sauvegarde chiffrée',
+    'es': 'Copia cifrada', 'it': 'Backup cifrato', 'pt': 'Backup criptografado',
+  },
+  'backup_restore': {
+    'ru': 'Восстановить из бэкапа', 'en': 'Restore from backup',
+    'de': 'Aus Backup wiederherstellen', 'fr': 'Restaurer depuis une sauvegarde',
+    'es': 'Restaurar desde una copia', 'it': 'Ripristina da backup',
+    'pt': 'Restaurar de um backup',
+  },
+  'backup_restore_sub': {
+    'ru': 'заменит всё, что сейчас в дневнике',
+    'en': 'replaces everything currently in the journal',
+    'de': 'ersetzt alles, was jetzt im Tagebuch ist',
+    'fr': 'remplace tout ce qui est dans le journal',
+    'es': 'reemplaza todo lo que hay ahora en el diario',
+    'it': 'sostituisce tutto quello che c’è ora nel diario',
+    'pt': 'substitui tudo o que está no diário agora',
+  },
+  'backup_never': {
+    'ru': 'ещё ни разу', 'en': 'never yet', 'de': 'noch nie',
+    'fr': 'jamais encore', 'es': 'todavía nunca', 'it': 'ancora mai',
+    'pt': 'ainda nunca',
+  },
+  'backup_last': {
+    'ru': 'последний — {when}', 'en': 'last one — {when}',
+    'de': 'letztes — {when}', 'fr': 'dernière — {when}',
+    'es': 'última — {when}', 'it': 'ultimo — {when}',
+    'pt': 'último — {when}',
+  },
+  'backup_phrase': {
+    'ru': 'Фраза', 'en': 'Phrase', 'de': 'Phrase', 'fr': 'Phrase',
+    'es': 'Frase', 'it': 'Frase', 'pt': 'Frase',
+  },
+  'backup_phrase_hint': {
+    'ru': 'Её спросят при восстановлении. Забудешь — бэкап не открыть.',
+    'en': 'You will be asked for it when restoring. Forget it and the backup '
+        'stays closed.',
+    'de': 'Sie wird beim Wiederherstellen abgefragt. Vergessen heißt: Backup '
+        'bleibt zu.',
+    'fr': 'On te la demandera à la restauration. Oubliée, la sauvegarde reste '
+        'fermée.',
+    'es': 'Te la pedirán al restaurar. Si la olvidas, la copia no se abre.',
+    'it': 'Verrà chiesta al ripristino. Se la dimentichi, il backup resta '
+        'chiuso.',
+    'pt': 'Ela será pedida na restauração. Se esquecer, o backup não abre.',
+  },
+  'backup_phrase_ask': {
+    'ru': 'Фраза, которой был зашифрован бэкап',
+    'en': 'The phrase the backup was encrypted with',
+    'de': 'Die Phrase, mit der das Backup verschlüsselt wurde',
+    'fr': 'La phrase qui a chiffré la sauvegarde',
+    'es': 'La frase con la que se cifró la copia',
+    'it': 'La frase con cui è stato cifrato il backup',
+    'pt': 'A frase com que o backup foi criptografado',
+  },
+  'backup_restored': {
+    'ru': 'Дневник восстановлен. Перезапусти приложение.',
+    'en': 'The journal is restored. Restart the app.',
+    'de': 'Tagebuch wiederhergestellt. Starte die App neu.',
+    'fr': 'Le journal est restauré. Relance l’application.',
+    'es': 'El diario está restaurado. Reinicia la app.',
+    'it': 'Il diario è ripristinato. Riavvia l’app.',
+    'pt': 'O diário foi restaurado. Reinicie o app.',
+  },
+  'backup_note': {
+    'ru': 'Бэкап содержит записи и вложения и шифруется фразой, а не ключом '
+        'телефона — поэтому открывается на новом устройстве.',
+    'en': 'The backup holds entries and attachments and is encrypted with the '
+        'phrase, not the device key — so it opens on a new phone.',
+    'de': 'Das Backup enthält Einträge und Anhänge und wird mit der Phrase '
+        'verschlüsselt, nicht mit dem Geräteschlüssel — so öffnet es sich '
+        'auch auf einem neuen Handy.',
+    'fr': 'La sauvegarde contient les entrées et les pièces jointes et est '
+        'chiffrée par la phrase, pas par la clé de l’appareil — elle s’ouvre '
+        'donc sur un nouveau téléphone.',
+    'es': 'La copia lleva entradas y adjuntos y se cifra con la frase, no con '
+        'la clave del teléfono — por eso se abre en un móvil nuevo.',
+    'it': 'Il backup contiene voci e allegati ed è cifrato con la frase, non '
+        'con la chiave del dispositivo — così si apre su un telefono nuovo.',
+    'pt': 'O backup guarda anotações e anexos e é cifrado com a frase, não '
+        'com a chave do aparelho — por isso abre num telefone novo.',
+  },
 };
