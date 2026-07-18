@@ -11,6 +11,7 @@ import 'data/app_database.dart';
 import 'data/app_prefs.dart';
 import 'data/crypto.dart';
 import 'data/db_key.dart';
+import 'data/journal_lock.dart';
 import 'data/media_store.dart';
 import 'l10n/locale_controller.dart';
 import 'l10n/strings.dart';
@@ -42,6 +43,10 @@ Future<void> main() async {
   // Локальное хранилище (SQLite + CRDT). Язык уже загружен — имя дефолтного
   // дневника берём локализованным.
   await AppDatabase.instance.init(defaultJournalName: tr('journal_default'));
+
+  // Какие дневники заперты — выборкам нужно синхронно и до первого кадра.
+  // Обязательно ПОСЛЕ инициализации базы: раньше спрашивать не у кого.
+  await JournalLock.refresh();
 
   // Напоминания перепланируем на старте: система могла их потерять после
   // перезагрузки телефона или обновления приложения.

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -68,7 +69,10 @@ class _ExportScreenState extends State<ExportScreen> {
         final entries = await EntryRepository.instance.allEntries();
         final file = await ExportService.writeTemp(
           'wickly.md',
-          ExportService.toMarkdown(entries.reversed.toList()).codeUnits,
+          // utf8, а не codeUnits: у кириллицы код больше 255, и запись
+          // байтами резала каждый символ до младшего байта — файл выходил
+          // нечитаемым, причём молча.
+          utf8.encode(ExportService.toMarkdown(entries.reversed.toList())),
         );
         await _shareFile(file, 'Markdown');
       });
@@ -77,7 +81,7 @@ class _ExportScreenState extends State<ExportScreen> {
         final entries = await EntryRepository.instance.allEntries();
         final json = await ExportService.toJson(entries.reversed.toList());
         final file =
-            await ExportService.writeTemp('wickly.json', json.codeUnits);
+            await ExportService.writeTemp('wickly.json', utf8.encode(json));
         await _shareFile(file, 'JSON');
       });
 
@@ -85,7 +89,7 @@ class _ExportScreenState extends State<ExportScreen> {
         final entries = await EntryRepository.instance.allEntries();
         final file = await ExportService.writeTemp(
           'wickly.txt',
-          ExportService.toPlainText(entries.reversed.toList()).codeUnits,
+          utf8.encode(ExportService.toPlainText(entries.reversed.toList())),
         );
         await _shareFile(file, tr('export_txt'));
       });

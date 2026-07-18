@@ -28,6 +28,7 @@ class AppPrefs extends ChangeNotifier {
   static const _kMemories = 'memories_enabled';
   static const _kAutoBackup = 'autobackup_enabled';
   static const _kAutoBackupAt = 'autobackup_last';
+  static const _kLastSyncAt = 'last_sync_at';
   static const _kLastJournal = 'last_journal_id';
   static const _kDeviceName = 'device_name';
   static const _kAutoContext = 'auto_context';
@@ -51,6 +52,7 @@ class AppPrefs extends ChangeNotifier {
   bool _memories = true;
   bool _autoBackup = false;
   int _autoBackupAt = 0;
+  int _lastSyncAt = 0;
   String? _lastJournalId;
   String _deviceName = '';
   bool _autoContext = true;
@@ -78,6 +80,12 @@ class AppPrefs extends ChangeNotifier {
   String get promptPack => _promptPack;
   bool get memories => _memories;
   bool get autoBackup => _autoBackup;
+
+  /// Когда последний раз обменивались с другим устройством. Раньше на экране
+  /// синхронизации показывалось время БЭКАПА — разные события, одна подпись.
+  DateTime? get lastSyncAt => _lastSyncAt == 0
+      ? null
+      : DateTime.fromMillisecondsSinceEpoch(_lastSyncAt);
   DateTime? get autoBackupAt => _autoBackupAt == 0
       ? null
       : DateTime.fromMillisecondsSinceEpoch(_autoBackupAt);
@@ -117,6 +125,7 @@ class AppPrefs extends ChangeNotifier {
     _memories = p.getBool(_kMemories) ?? true;
     _autoBackup = p.getBool(_kAutoBackup) ?? false;
     _autoBackupAt = p.getInt(_kAutoBackupAt) ?? 0;
+    _lastSyncAt = p.getInt(_kLastSyncAt) ?? 0;
     _lastJournalId = p.getString(_kLastJournal);
     _deviceName = p.getString(_kDeviceName) ?? '';
     _autoContext = p.getBool(_kAutoContext) ?? true;
@@ -226,6 +235,12 @@ class AppPrefs extends ChangeNotifier {
     _autoBackup = v;
     await _p?.setBool(_kAutoBackup, v);
     notifyListeners();
+  }
+
+  Future<void> markSynced(DateTime at) async {
+    _lastSyncAt = at.millisecondsSinceEpoch;
+    notifyListeners();
+    (await SharedPreferences.getInstance()).setInt(_kLastSyncAt, _lastSyncAt);
   }
 
   Future<void> markAutoBackup(DateTime at) async {

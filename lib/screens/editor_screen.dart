@@ -78,8 +78,9 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _dirty = false;
   bool _saving = false;
 
-  /// Когда открыли редактор — из этого считается «время на запись».
-  final _openedAt = DateTime.now();
+  /// До какого момента время уже засчитано в `writeMs`. Двигается на каждом
+  /// сохранении, иначе один и тот же промежуток прибавляется многократно.
+  DateTime _countedAt = DateTime.now();
 
   @override
   void initState() {
@@ -327,12 +328,19 @@ class _EditorScreenState extends State<EditorScreen> {
     _saving = true;
 
     final body = _bodyText;
+    // Засчитываем только время с прошлого сохранения. Раньше прибавлялся весь
+    // промежуток от открытия редактора, и при автосохранении каждые две
+    // секунды счётчик разгонялся квадратично: за шесть секунд показывал
+    // двенадцать.
+    final now = DateTime.now();
+    final sinceLastSave = now.difference(_countedAt).inMilliseconds;
+    _countedAt = now;
+
     final entry = _entry.copyWith(
       title: _title.text.trim(),
       body: body,
       wordCount: MarkdownLite.wordCount(body),
-      writeMs: _entry.writeMs +
-          DateTime.now().difference(_openedAt).inMilliseconds,
+      writeMs: _entry.writeMs + sinceLastSave,
       draft: !finish,
     );
 
@@ -634,8 +642,11 @@ class _EditorScreenState extends State<EditorScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
+                    // Показываем засчитанное плюс незасчитанный хвост текущего
+                    // захода — ровно то, что уйдёт в базу на ближайшем
+                    // сохранении.
                     '${Dates.wordCount(words)} · '
-                    '${Dates.minutes(DateTime.now().difference(_openedAt).inMilliseconds + _entry.writeMs)}',
+                    '${Dates.minutes(_entry.writeMs + DateTime.now().difference(_countedAt).inMilliseconds)}',
                     style: TextStyle(
                       fontFamily: AppTheme.bodyFont,
                       fontSize: 12,

@@ -69,6 +69,8 @@ class _SyncScreenState extends State<SyncScreen> {
       setState(() => _host = host);
       final report = await host.exchange();
       if (!mounted) return;
+      await AppPrefs.instance.markSynced(DateTime.now());
+      if (!mounted) return;
       setState(() => _status = trf('sync_done', {'n': report.rows}));
     } catch (e) {
       if (mounted) setState(() => _status = tr('sync_failed'));
@@ -109,6 +111,8 @@ class _SyncScreenState extends State<SyncScreen> {
       await SyncFolder.writePacket(folder, sealed, Db.crdt.nodeId);
 
       if (mounted) {
+        await AppPrefs.instance.markSynced(DateTime.now());
+        if (!mounted) return;
         setState(() => _status = trf('sync_done', {'n': merged}));
       }
     } catch (_) {
@@ -138,7 +142,7 @@ class _SyncScreenState extends State<SyncScreen> {
             child: _StatusCard(
               status: _status,
               busy: _busy,
-              lastSync: AppPrefs.instance.autoBackupAt,
+              lastSync: AppPrefs.instance.lastSyncAt,
             ),
           ),
           const SizedBox(height: 16),

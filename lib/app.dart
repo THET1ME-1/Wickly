@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'data/app_prefs.dart';
+import 'data/journal_lock.dart';
 import 'data/media_store.dart';
 import 'data/system_pause.dart';
 import 'screens/lock_screen.dart';
@@ -65,6 +66,9 @@ class _WicklyGateState extends State<WicklyGate> with WidgetsBindingObserver {
       // к микрофону, камера, выбор файла. Запирать после него — значит убивать
       // лист, ради которого окно и открывали.
       if (!SystemPause.active && away >= prefs.lockTimeoutSec) {
+        // Разблокировки отдельных дневников живут до общего замка, иначе
+        // закрытый дневник остался бы открытым после возврата с чужого экрана.
+        JournalLock.forget();
         setState(() => _gate = _Gate.locked);
       }
       _leftAt = null;

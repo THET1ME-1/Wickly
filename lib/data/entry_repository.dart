@@ -1,9 +1,10 @@
 import 'package:sqlite_crdt/sqlite_crdt.dart';
 
 import '../models/entry.dart';
-import 'db.dart';
 import 'crypto.dart';
+import 'db.dart';
 import 'enc_cache.dart';
+import 'journal_lock.dart';
 
 /// Доступ к записям дневника поверх CRDT-хранилища.
 ///
@@ -43,7 +44,9 @@ class EntryRepository {
     if (!Db.isReady) return Stream.value(const <Entry>[]);
     final sql = 'SELECT $_cols FROM entries WHERE '
         '${_where(journalId: journalId, includeHidden: includeHidden, includeDrafts: includeDrafts)} '
-        'ORDER BY entry_date DESC, created_at DESC';
+        // Закреплённое всплывает внутри своего дня: вырывать запись из
+        // хронологии в дневнике неправильно, а значок раньше не делал ничего.
+        'ORDER BY pinned DESC, entry_date DESC, created_at DESC';
     final stream = journalId == null
         ? _db.watch(sql)
         : _db.watch(sql, () => [journalId]);
@@ -59,8 +62,17 @@ class EntryRepository {
         .asyncMap((rows) async => rows.isEmpty ? null : _decode(rows.first));
   }
 
-  Future<List<Entry>> _decodeRows(List<Map<String, Object?>> rows) =>
-      Future.wait(rows.map(_decode));
+  /// Единая точка выхода списков — здесь же отсекаются записи запертых
+  /// дневников. Так замок действует сразу на ленту, поиск, карту, статистику и
+  /// экспорт, а не только на список дневников, где рисовался значок.
+  ///
+  /// Бэкап это не обедняет: он копирует файл базы целиком, мимо репозитория.
+  Future<List<Entry>> _decodeRows(List<Map<String, Object?>> rows) async {
+    final decoded = await Future.wait(rows.map(_decode));
+    final closed = JournalLock.hiddenJournalIds;
+    if (closed.isEmpty) return decoded;
+    return decoded.where((e) => !closed.contains(e.journalId)).toList();
+  }
 
   Future<Entry> _decode(Map<String, Object?> row) async =>
       Entry.fromStorage(row, await EncCache.decode(row['enc'] as String?));
@@ -73,6 +85,8 @@ class EntryRepository {
     final rows = await _db.query(
       'SELECT $_cols FROM entries WHERE '
       '${_where(includeHidden: includeHidden, includeDrafts: includeDrafts)} '
+      // Строго по дате: на этом порядке держатся экспорт и «в этот день».
+      // Закреплённые поднимает только лента.
       'ORDER BY entry_date DESC, created_at DESC',
     );
     return _decodeRows(rows);

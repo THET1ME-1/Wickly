@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/journal_lock.dart';
 import '../data/journal_repository.dart';
 import '../models/entry.dart';
 import '../widgets/journal_editor_sheet.dart';
@@ -43,7 +44,21 @@ class _JournalsContainerState extends State<JournalsContainer> {
 
   Future<void> _edit(Journal journal) async {
     await showJournalEditor(context, journal: journal);
+    // Замок могли включить или снять прямо сейчас — список запертых обновляем
+    // до перезагрузки, иначе выборки отработают по старому.
+    await JournalLock.refresh();
     await _load();
+  }
+
+  /// Запертый дневник спрашивает PIN. Раньше замок был только значком.
+  Future<void> _open(Journal journal) async {
+    if (!await JournalLock.ensureOpen(context, journal)) return;
+    if (!mounted) return;
+    if (widget.onPick != null) {
+      widget.onPick!(journal);
+    } else {
+      await _edit(journal);
+    }
   }
 
   @override
@@ -51,12 +66,6 @@ class _JournalsContainerState extends State<JournalsContainer> {
         journals: _tiles,
         onCreate: _create,
         onEdit: _edit,
-        onOpen: (j) {
-          if (widget.onPick != null) {
-            widget.onPick!(j);
-          } else {
-            _edit(j);
-          }
-        },
+        onOpen: _open,
       );
 }

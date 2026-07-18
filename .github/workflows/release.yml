@@ -113,6 +113,28 @@ jobs:
           cp build/app/outputs/flutter-apk/app-x86_64-release.apk      "dist/${BASE}-x86_64.apk"
           ls -lh dist/
 
+      - name: Verify release signature
+        run: |
+          # Gradle молча падает на debug-подпись, если key.properties не
+          # подхватился. Такой APK не встанет поверх установленного и разойдётся
+          # с уже выпущенными — ловим здесь, а не на телефоне пользователя.
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          for f in dist/Wickly-*.apk; do
+            echo "── $f"
+            DN=$("$APKSIGNER" verify --print-certs "$f" | grep -m1 'certificate DN')
+            echo "$DN"
+            case "$DN" in
+              *"Android Debug"*)
+                echo "::error::$f подписан ДЕБАГ-ключом. Проверь секреты KEYSTORE_*."
+                exit 1 ;;
+            esac
+            echo "$DN" | grep -q 'CN=Wickly' || {
+              echo "::error::$f подписан незнакомым ключом: $DN"
+              exit 1
+            }
+          done
+          echo "Все APK подписаны релизным ключом."
+
       - name: Generate changelog
         run: |
           {

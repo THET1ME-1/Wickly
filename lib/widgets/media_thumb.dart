@@ -40,6 +40,9 @@ class _MediaThumbState extends State<MediaThumb> {
   /// Файл не открылся: показываем это честно, а не тёплым градиентом.
   bool _broken = false;
 
+  /// Видео без кадра-превью: не ошибка, просто нечего показать.
+  bool _noPreview = false;
+
   @override
   void initState() {
     super.initState();
@@ -55,6 +58,13 @@ class _MediaThumbState extends State<MediaThumb> {
   Future<void> _load() async {
     final m = widget.media;
     if (m == null || m.kind == MediaKind.audio) return;
+    // Видео без готового кадра не отдаём в декодер картинок: раньше туда
+    // уезжал сам mp4, декодер давился и в сетке висела «сломанная картинка».
+    // Лучше честная тёмная плашка со значком воспроизведения.
+    if (m.kind == MediaKind.video && m.thumb == null) {
+      if (mounted) setState(() => _noPreview = true);
+      return;
+    }
     // У видео показываем превью-кадр, у фото — само фото. Превью может не
     // получиться (мелкий снимок, незнакомый формат) — тогда берём оригинал.
     var bytes = await MediaStore.instance.read(m.thumb ?? m.file);
@@ -79,6 +89,15 @@ class _MediaThumbState extends State<MediaThumb> {
         color: scheme.surfaceContainerHighest,
         alignment: Alignment.center,
         child: Icon(Icons.graphic_eq_rounded,
+            color: scheme.onSurfaceVariant, size: 26),
+      );
+    } else if (_noPreview) {
+      // Кадр не из чего взять — показываем спокойную плашку, а не ошибку:
+      // само видео целое, отсутствует только картинка-превью.
+      layer = Container(
+        color: scheme.surfaceContainerHighest,
+        alignment: Alignment.center,
+        child: Icon(Icons.movie_rounded,
             color: scheme.onSurfaceVariant, size: 26),
       );
     } else if (_broken) {
