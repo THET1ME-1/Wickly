@@ -100,8 +100,11 @@ class _VoiceSheetState extends State<_VoiceSheet> {
       final ok = await _speech.initialize(
         // Ошибка гасит слушание (cancelOnError), поэтому вместе с текстом
         // обязательно снимаем «идёт запись» — иначе кнопка залипает на паузе.
+        // Оба колбэка живут, пока открыт лист, и приходят даже когда человек
+        // пишет аудио-заметку. Трогаем «идёт запись» только на своей вкладке,
+        // иначе распознавание глушит чужой диктофон.
         onError: (e) {
-          if (mounted) {
+          if (mounted && _dictation) {
             setState(() {
               _error = tr('voice_unavailable');
               _running = false;
@@ -111,7 +114,7 @@ class _VoiceSheetState extends State<_VoiceSheet> {
         // Движок сам замолкает после паузы в речи. Без этого UI продолжал
         // показывать «Слушаю…» над мёртвым распознаванием.
         onStatus: (status) {
-          if (mounted && status != 'listening') {
+          if (mounted && _dictation && status != 'listening') {
             setState(() => _running = false);
           }
         },
@@ -175,34 +178,66 @@ class _VoiceSheetState extends State<_VoiceSheet> {
 
   Future<void> _toggleRecording() async {
     if (_running) {
-      final path = await _recorder.stop();
       _ticker?.cancel();
+      String? path;
+      try {
+        path = await _recorder.stop();
+      } catch (e) {
+        path = null;
+      }
+      if (!mounted) return;
       setState(() {
         _running = false;
         _audioPath = path;
+        // Пустой путь означает, что диктофон не отдал файл. Молчать нельзя:
+        // человек говорил в микрофон и вправе знать, что записи нет.
+        if (path == null) _error = tr('voice_record_failed');
       });
       return;
     }
-    if (!await _recorder.hasPermission()) {
-      setState(() => _error = tr('mic_denied'));
-      return;
+
+    // Диктофон живёт в нативном слое, и промахнуться может каждый шаг:
+    // разрешение, кодек, занятый другим приложением микрофон. Раньше любой
+    // из них рушил обработчик молча, и кнопка просто ничего не делала.
+    try {
+      if (!await _recorder.hasPermission()) {
+        if (mounted) setState(() => _error = tr('mic_denied'));
+        return;
+      }
+      final dir = await getTemporaryDirectory();
+      final path =
+          '${dir.path}/wickly_voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      await _recorder.start(const RecordConfig(), path: path);
+      if (!mounted) return;
+
+      _elapsed = Duration.zero;
+      _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) async {
+        try {
+          final amp = await _recorder.getAmplitude();
+          // Амплитуда приходит в дБ (около −60…0) — приводим к 0..1.
+          _pushLevel(
+              ((amp.current + 45) / 45).clamp(0.05, 1).toDouble() * 10 - 5);
+        } catch (_) {
+          // Уровень — украшение. Не отдал, и ладно: запись важнее волны.
+        }
+        if (mounted) {
+          setState(() => _elapsed += const Duration(milliseconds: 200));
+        }
+      });
+      setState(() {
+        _error = null;
+        _running = true;
+        _audioPath = null;
+      });
+    } catch (e) {
+      _ticker?.cancel();
+      if (mounted) {
+        setState(() {
+          _running = false;
+          _error = '${tr('voice_record_failed')}\n$e';
+        });
+      }
     }
-    final dir = await getTemporaryDirectory();
-    final path =
-        '${dir.path}/wickly_voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
-    await _recorder.start(const RecordConfig(), path: path);
-    _elapsed = Duration.zero;
-    _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) async {
-      final amp = await _recorder.getAmplitude();
-      // Амплитуда приходит в дБ (около −60…0) — приводим к 0..1.
-      _pushLevel(((amp.current + 45) / 45).clamp(0.05, 1).toDouble() * 10 - 5);
-      setState(() => _elapsed += const Duration(milliseconds: 200));
-    });
-    setState(() {
-      _error = null;
-      _running = true;
-      _audioPath = null;
-    });
   }
 
   void _pushLevel(double raw) {

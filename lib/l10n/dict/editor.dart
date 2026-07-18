@@ -134,6 +134,22 @@ const Map<String, Map<String, String>> editorStrings = {
     'it': 'Il riconoscimento vocale non è disponibile su questo telefono',
     'pt': 'O reconhecimento de fala não está disponível neste telefone',
   },
+  'voice_record_failed': {
+    'ru': 'Диктофон не записал. Проверь доступ к микрофону и не занят ли он '
+        'другим приложением.',
+    'en': 'The recorder captured nothing. Check microphone access and whether '
+        'another app is holding it.',
+    'de': 'Die Aufnahme hat nichts erfasst. Prüfe den Mikrofonzugriff und ob '
+        'eine andere App es belegt.',
+    'fr': 'L’enregistreur n’a rien capté. Vérifie l’accès au micro et si une '
+        'autre application l’occupe.',
+    'es': 'La grabadora no captó nada. Comprueba el acceso al micrófono y si '
+        'otra app lo está usando.',
+    'it': 'Il registratore non ha catturato nulla. Controlla l’accesso al '
+        'microfono e se un’altra app lo occupa.',
+    'pt': 'O gravador não captou nada. Verifica o acesso ao microfone e se '
+        'outra app o está a usar.',
+  },
   'mic_denied': {
     'ru': 'Нужен доступ к микрофону',
     'en': 'Microphone access is needed',
