@@ -10,8 +10,10 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
-    <!-- Голосовые заметки и диктовка. -->
+    <!-- Голосовые заметки и диктовка. BLUETOOTH_CONNECT — чтобы диктовать
+         можно было в гарнитуру, а не только во встроенный микрофон. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
 
     <!-- Камера для снимка прямо в запись. -->
     <uses-permission android:name="android.permission.CAMERA"/>
@@ -96,6 +98,13 @@
         <intent>
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="https"/>
+        </intent>
+        <!-- Диктовка. С Android 11 (targetSdk 30+) приложение не видит чужие
+             сервисы, если не спросило про них здесь: без этого блока
+             speech_to_text не находит распознавание речи, initialize() отдаёт
+             false, и диктовка молча числится недоступной. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>

@@ -69,6 +69,10 @@ class _VoiceSheetState extends State<_VoiceSheet> {
   String _transcript = '';
   String? _error;
 
+  /// Локаль распознавания в том виде, в каком её знает движок телефона
+  /// («ru_RU»), а не голый код языка. Null — пусть берёт системную.
+  String? _speechLocale;
+
   String? _audioPath;
   Duration _elapsed = Duration.zero;
   Timer? _ticker;
@@ -94,11 +98,49 @@ class _VoiceSheetState extends State<_VoiceSheet> {
   Future<void> _initSpeech() async {
     try {
       final ok = await _speech.initialize(
-        onError: (e) => setState(() => _error = tr('voice_unavailable')),
+        // Ошибка гасит слушание (cancelOnError), поэтому вместе с текстом
+        // обязательно снимаем «идёт запись» — иначе кнопка залипает на паузе.
+        onError: (e) {
+          if (mounted) {
+            setState(() {
+              _error = tr('voice_unavailable');
+              _running = false;
+            });
+          }
+        },
+        // Движок сам замолкает после паузы в речи. Без этого UI продолжал
+        // показывать «Слушаю…» над мёртвым распознаванием.
+        onStatus: (status) {
+          if (mounted && status != 'listening') {
+            setState(() => _running = false);
+          }
+        },
       );
-      if (mounted) setState(() => _speechReady = ok);
+      if (!mounted) return;
+      setState(() => _speechReady = ok);
+      if (ok) await _pickSpeechLocale();
     } catch (_) {
       if (mounted) setState(() => _speechReady = false);
+    }
+  }
+
+  /// Подбирает локаль распознавания под язык интерфейса.
+  ///
+  /// Движок знает локали вида «ru_RU»/«ru-RU», а не «ru»: передать голый код
+  /// языка — значит не совпасть ни с чем и остаться без распознавания.
+  Future<void> _pickSpeechLocale() async {
+    try {
+      final code = LocaleController.instance.code.toLowerCase();
+      final locales = await _speech.locales();
+      final match = locales.where((l) {
+        final id = l.localeId.toLowerCase().replaceAll('-', '_');
+        return id == code || id.startsWith('${code}_');
+      });
+      if (match.isNotEmpty && mounted) {
+        setState(() => _speechLocale = match.first.localeId);
+      }
+    } catch (_) {
+      // Не смогли спросить список — пусть распознаёт на системном языке.
     }
   }
 
@@ -120,7 +162,7 @@ class _VoiceSheetState extends State<_VoiceSheet> {
     });
     await _speech.listen(
       listenOptions: SpeechListenOptions(
-        localeId: LocaleController.instance.code,
+        localeId: _speechLocale,
         partialResults: true,
         cancelOnError: true,
       ),
