@@ -1,7 +1,6 @@
 // ignore_for_file: invalid_use_of_visible_for_testing_member
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wickly/services/feed_service.dart';
 import 'package:wickly/theme/wickly_design.dart';
 import 'package:wickly/widgets/entry_card.dart';
 

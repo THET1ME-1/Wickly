@@ -52,6 +52,19 @@ class MediaBlock extends EditorBlock {
 class EditorDocument {
   const EditorDocument._();
 
+  /// Переставляет блок с позиции [oldIndex] на [newIndex].
+  ///
+  /// Отдельно от экрана, потому что индексы у перетаскивания коварные:
+  /// Flutter отдаёт позицию вставки ДО удаления элемента, и без поправки блок
+  /// уезжает на одну позицию дальше при движении вниз.
+  static void reorder(List<EditorBlock> blocks, int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= blocks.length) return;
+    var target = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    target = target.clamp(0, blocks.length - 1);
+    final block = blocks.removeAt(oldIndex);
+    blocks.insert(target, block);
+  }
+
   /// Разбирает текст записи на блоки.
   ///
   /// Идущие подряд вложения склеиваются в один блок: человек вставил их вместе,

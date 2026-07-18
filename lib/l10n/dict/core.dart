@@ -187,6 +187,21 @@ const Map<String, Map<String, String>> coreStrings = {
     'it': 'L’ultimo backup ha {n} giorni. Il diario vive su un solo dispositivo.',
     'pt': 'A última cópia tem {n} dias. O diário vive num só aparelho.',
   },
+  'update_new_version': {
+    'ru': 'Новая {v}', 'en': 'New {v}', 'de': 'Neu {v}', 'fr': 'Nouvelle {v}',
+    'es': 'Nueva {v}', 'it': 'Nuova {v}', 'pt': 'Nova {v}',
+  },
+  'update_current_version': {
+    'ru': 'у тебя {v}', 'en': 'you have {v}', 'de': 'du hast {v}',
+    'fr': 'tu as {v}', 'es': 'tienes {v}', 'it': 'hai {v}',
+    'pt': 'tens {v}',
+  },
+  'update_downloading': {
+    'ru': 'Скачиваем… {p}%', 'en': 'Downloading… {p}%',
+    'de': 'Wird geladen… {p}%', 'fr': 'Téléchargement… {p}%',
+    'es': 'Descargando… {p}%', 'it': 'Scaricamento… {p}%',
+    'pt': 'A transferir… {p}%',
+  },
   'print': {
     'ru': 'Печать', 'en': 'Print', 'de': 'Drucken', 'fr': 'Imprimer',
     'es': 'Imprimir', 'it': 'Stampa', 'pt': 'Imprimir',

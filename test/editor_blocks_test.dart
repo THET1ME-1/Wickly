@@ -5,6 +5,7 @@ import 'package:wickly/widgets/markdown_lite.dart';
 /// Блоки редактора — это только способ показать запись; в базу уезжает обычный
 /// текст. Поэтому главное здесь — что текст переживает круг «разобрать → собрать».
 void main() {
+  _reorderTests();
   test('Пустая запись — один текстовый блок', () {
     final blocks = EditorDocument.parse(null);
     expect(blocks.length, 1);
@@ -147,5 +148,56 @@ void main() {
     final blocks = EditorDocument.parse('Просто текст.');
     EditorDocument.adopt(blocks, const [], newBlock: TextBlock.new);
     expect(blocks.length, 1);
+  });
+}
+
+void _reorderTests() {
+  // Порядок блоков меняется удержанием. Индексы у перетаскивания коварные:
+  // позиция вставки приходит ДО удаления элемента.
+  group('Перестановка блоков', () {
+    List<String> headings(List<EditorBlock> blocks) => [
+          for (final b in blocks)
+            if (b is TextBlock) b.title.text else 'media',
+        ];
+
+    List<EditorBlock> three() => [
+          TextBlock(heading: 'А'),
+          TextBlock(heading: 'Б'),
+          TextBlock(heading: 'В'),
+        ];
+
+    test('Блок едет вниз', () {
+      final blocks = three();
+      EditorDocument.reorder(blocks, 0, 2);
+      expect(headings(blocks), ['Б', 'А', 'В']);
+    });
+
+    test('Блок едет в самый низ', () {
+      final blocks = three();
+      EditorDocument.reorder(blocks, 0, 3);
+      expect(headings(blocks), ['Б', 'В', 'А']);
+    });
+
+    test('Блок едет вверх', () {
+      final blocks = three();
+      EditorDocument.reorder(blocks, 2, 0);
+      expect(headings(blocks), ['В', 'А', 'Б']);
+    });
+
+    test('Текст и вложения переезжают вместе с блоком', () {
+      final blocks = <EditorBlock>[
+        TextBlock(heading: 'А', text: 'первый'),
+        MediaBlock(['m1']),
+      ];
+      EditorDocument.reorder(blocks, 1, 0);
+      expect(headings(blocks), ['media', 'А']);
+      expect((blocks[1] as TextBlock).controller.text, 'первый');
+    });
+
+    test('Мимо списка ничего не ломает', () {
+      final blocks = three();
+      EditorDocument.reorder(blocks, 7, 0);
+      expect(headings(blocks), ['А', 'Б', 'В']);
+    });
   });
 }

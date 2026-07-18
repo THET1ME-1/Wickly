@@ -628,8 +628,25 @@ class _EditorScreenState extends State<EditorScreen> {
                   ),
                   const SizedBox(height: 2),
                   // Лента блоков: абзацы и сетки вложений между ними.
-                  for (var i = 0; i < _blocks.length; i++)
-                    _buildBlock(context, _blocks[i], i),
+                  // Порядок меняется удержанием — список свой, но прокрутка
+                  // общая с экраном, поэтому своей у него нет.
+                  ReorderableListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    buildDefaultDragHandles: false,
+                    itemCount: _blocks.length,
+                    onReorder: _reorderBlocks,
+                    proxyDecorator: _draggedBlock,
+                    itemBuilder: (context, i) =>
+                        ReorderableDelayedDragStartListener(
+                      // Ключ по самому блоку: у него живут контроллеры текста
+                      // и фокус, и при перестановке они должны переехать
+                      // вместе с блоком, а не остаться на месте.
+                      key: ObjectKey(_blocks[i]),
+                      index: i,
+                      child: _buildBlock(context, _blocks[i], i),
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Center(
                     child: OutlinedButton.icon(
@@ -695,30 +712,53 @@ class _EditorScreenState extends State<EditorScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
-                  controller: block.title,
-                  focusNode: block.titleFocus,
-                  textCapitalization: TextCapitalization.sentences,
-                  style: TextStyle(
-                    fontFamily: AppTheme.displayFont,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                    letterSpacing: -0.2,
-                    color: scheme.onSurface,
-                  ),
-                  // Тема тоже переносится: у длинных заголовков было видно
-                  // только начало. Ценой ухода Enter в перенос строки —
-                  // прыжок в текст по Enter при этом невозможен.
-                  maxLines: null,
-                  decoration: InputDecoration(
-                    hintText: tr('block_title_hint'),
-                    filled: false,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: block.title,
+                        focusNode: block.titleFocus,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: TextStyle(
+                          fontFamily: AppTheme.displayFont,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          letterSpacing: -0.2,
+                          color: scheme.onSurface,
+                        ),
+                        // Тема тоже переносится: у длинных заголовков было
+                        // видно только начало. Ценой ухода Enter в перенос
+                        // строки — прыжок в текст по Enter невозможен.
+                        maxLines: null,
+                        decoration: InputDecoration(
+                          hintText: tr('block_title_hint'),
+                          filled: false,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                    // Ручка переноса. Удержание на самой карточке тоже
+                    // работает, но внутри текста длинный тап забирает
+                    // выделение — иначе текст нельзя было бы выделить.
+                    // Здесь захват мгновенный и не спорит ни с чем.
+                    if (_blocks.length > 1)
+                      ReorderableDragStartListener(
+                        index: index,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 6, top: 2),
+                          child: Icon(
+                            Icons.drag_indicator_rounded,
+                            size: 20,
+                            color: scheme.outline,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 2),
                 TextField(
@@ -802,6 +842,28 @@ class _EditorScreenState extends State<EditorScreen> {
         );
     }
   }
+
+  /// Меняет блоки местами после перетаскивания.
+  void _reorderBlocks(int oldIndex, int newIndex) {
+    setState(() => EditorDocument.reorder(_blocks, oldIndex, newIndex));
+    _dirty = true;
+    _scheduleSave();
+  }
+
+  /// Как выглядит блок в руке. Тени в Wickly нет нигде, поэтому «поднимаем»
+  /// его лёгким увеличением, а не подложкой с elevation, как делает M3.
+  Widget _draggedBlock(Widget child, int index, Animation<double> animation) =>
+      AnimatedBuilder(
+        animation: animation,
+        builder: (context, _) {
+          final t = Curves.easeOut.transform(animation.value);
+          return Transform.scale(
+            scale: 1 + 0.03 * t,
+            child: Opacity(opacity: 1 - 0.06 * t, child: child),
+          );
+        },
+        child: child,
+      );
 
   /// Добавляет новую тему в конец записи.
   void _addBlock() {
