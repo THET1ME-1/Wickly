@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
+import '../data/system_pause.dart';
 import '../l10n/locale_controller.dart';
 import '../l10n/strings.dart';
 import '../theme/app_theme.dart';
@@ -97,7 +98,9 @@ class _VoiceSheetState extends State<_VoiceSheet> {
 
   Future<void> _initSpeech() async {
     try {
-      final ok = await _speech.initialize(
+      // Первая инициализация просит доступ к микрофону системным окном — оно
+      // уводит приложение в фон, а замок такого не отличал от «свернули».
+      final ok = await SystemPause.shield(() => _speech.initialize(
         // Ошибка гасит слушание (cancelOnError), поэтому вместе с текстом
         // обязательно снимаем «идёт запись» — иначе кнопка залипает на паузе.
         // Оба колбэка живут, пока открыт лист, и приходят даже когда человек
@@ -118,7 +121,7 @@ class _VoiceSheetState extends State<_VoiceSheet> {
             setState(() => _running = false);
           }
         },
-      );
+      ));
       if (!mounted) return;
       setState(() => _speechReady = ok);
       if (ok) await _pickSpeechLocale();
@@ -200,7 +203,8 @@ class _VoiceSheetState extends State<_VoiceSheet> {
     // разрешение, кодек, занятый другим приложением микрофон. Раньше любой
     // из них рушил обработчик молча, и кнопка просто ничего не делала.
     try {
-      if (!await _recorder.hasPermission()) {
+      // Тоже открывает системное окно на первом разе.
+      if (!await SystemPause.shield(() => _recorder.hasPermission())) {
         if (mounted) setState(() => _error = tr('mic_denied'));
         return;
       }

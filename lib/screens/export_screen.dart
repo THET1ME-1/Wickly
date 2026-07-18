@@ -9,6 +9,7 @@ import '../data/app_prefs.dart';
 import '../data/db_key.dart';
 import '../data/entry_repository.dart';
 import '../l10n/strings.dart';
+import '../data/system_pause.dart';
 import '../services/export_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/wickly_design.dart';
@@ -149,7 +150,7 @@ class _ExportScreenState extends State<ExportScreen> {
   }
 
   Future<void> _restore() async {
-    final picked = await FilePicker.pickFiles();
+    final picked = await SystemPause.shield(FilePicker.pickFiles);
     final path = picked?.files.single.path;
     if (path == null || !mounted) return;
 

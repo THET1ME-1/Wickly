@@ -7,6 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../data/app_prefs.dart';
 import '../data/db.dart';
 import '../l10n/strings.dart';
+import '../data/system_pause.dart';
 import '../services/p2p_service.dart';
 import '../services/sync_service.dart';
 import '../theme/app_theme.dart';
@@ -85,7 +86,7 @@ class _SyncScreenState extends State<SyncScreen> {
   /// Кладёт пакет в общую папку и подхватывает чужие.
   Future<void> _syncFolder() async {
     if (_busy) return;
-    final path = await FilePicker.getDirectoryPath();
+    final path = await SystemPause.shield(FilePicker.getDirectoryPath);
     if (path == null) return;
 
     setState(() {

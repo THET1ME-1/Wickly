@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../data/media_repository.dart';
 import '../data/media_store.dart';
+import '../data/system_pause.dart';
 import '../l10n/strings.dart';
 import '../models/entry.dart';
 import '../models/media.dart';
@@ -106,11 +107,13 @@ class _CoverSheetState extends State<_CoverSheet> {
   Future<void> _pickOwn(_Source source) async {
     setState(() => _picking = source);
     try {
-      final file = await ImagePicker().pickImage(
-        source: source == _Source.camera
-            ? ImageSource.camera
-            : ImageSource.gallery,
-      );
+      // Камера и галерея уводят приложение в фон: без отметки на возврате
+      // сработает замок и лист обложки умрёт вместе с выбранным снимком.
+      final file = await SystemPause.shield(() => ImagePicker().pickImage(
+            source: source == _Source.camera
+                ? ImageSource.camera
+                : ImageSource.gallery,
+          ));
       if (file == null || !mounted) return;
 
       final bytes = await file.readAsBytes();

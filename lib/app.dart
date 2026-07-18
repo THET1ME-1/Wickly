@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'data/app_prefs.dart';
 import 'data/media_store.dart';
+import 'data/system_pause.dart';
 import 'screens/lock_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/shell_screen.dart';
@@ -60,7 +61,10 @@ class _WicklyGateState extends State<WicklyGate> with WidgetsBindingObserver {
 
     if (state == AppLifecycleState.resumed && _leftAt != null) {
       final away = DateTime.now().difference(_leftAt!).inSeconds;
-      if (away >= prefs.lockTimeoutSec) {
+      // В фон уводит и системное окно, которое позвали мы сами: запрос доступа
+      // к микрофону, камера, выбор файла. Запирать после него — значит убивать
+      // лист, ради которого окно и открывали.
+      if (!SystemPause.active && away >= prefs.lockTimeoutSec) {
         setState(() => _gate = _Gate.locked);
       }
       _leftAt = null;

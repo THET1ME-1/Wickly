@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../data/media_repository.dart';
 import '../data/media_store.dart';
+import '../data/system_pause.dart';
 import '../models/media.dart';
 
 /// Кладёт фото, видео и рисунки в запись.
@@ -24,7 +25,8 @@ class MediaService {
 
   /// Фото из галереи (можно несколько) в запись.
   static Future<List<Media>> pickPhotos(String entryId, {int sortFrom = 0}) async {
-    final files = await _picker.pickMultiImage();
+    // Галерея уводит приложение в фон — иначе на возврате сработает замок.
+    final files = await SystemPause.shield(() => _picker.pickMultiImage());
     final out = <Media>[];
     for (var i = 0; i < files.length; i++) {
       final m = await _attachImage(entryId, files[i], sort: sortFrom + i);
@@ -35,7 +37,8 @@ class MediaService {
 
   /// Снимок с камеры.
   static Future<Media?> takePhoto(String entryId, {int sort = 0}) async {
-    final file = await _picker.pickImage(source: ImageSource.camera);
+    final file = await SystemPause.shield(
+        () => _picker.pickImage(source: ImageSource.camera));
     if (file == null) return null;
     return _attachImage(entryId, file, sort: sort);
   }
@@ -46,7 +49,8 @@ class MediaService {
     ImageSource source = ImageSource.gallery,
     int sort = 0,
   }) async {
-    final file = await _picker.pickVideo(source: source);
+    final file =
+        await SystemPause.shield(() => _picker.pickVideo(source: source));
     if (file == null) return null;
     final name = await MediaStore.instance.putFile(File(file.path));
     final media = Media.create(
