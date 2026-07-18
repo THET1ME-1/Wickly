@@ -88,6 +88,25 @@ class MediaStore {
     if (tmp.existsSync()) await tmp.delete();
   }
 
+  /// Сырые (уже зашифрованные) байты файла — как они лежат на диске.
+  ///
+  /// Нужны синхронизации: пересылать вложение между своими устройствами можно
+  /// не расшифровывая, ключ на обоих один и тот же.
+  Future<List<int>?> readRaw(String name) async {
+    if (!isReady) return null;
+    final file = File(await path(name));
+    if (!file.existsSync()) return null;
+    return file.readAsBytes();
+  }
+
+  /// Кладёт сырые байты, приехавшие с другого устройства.
+  Future<void> writeRaw(String name, List<int> bytes) async {
+    if (!isReady) return;
+    final file = File(await path(name));
+    if (file.existsSync()) return; // имя — хэш содержимого, перезапись не нужна
+    await file.writeAsBytes(bytes, flush: true);
+  }
+
   /// Стирает расшифрованные копии — вызываем при блокировке дневника.
   Future<void> clearTemp() async {
     if (!isReady) return;

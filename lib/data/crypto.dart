@@ -15,11 +15,17 @@ class Crypto {
 
   final _algo = AesGcm.with256bits();
   SecretKey? _key;
+  String? _keyHex;
 
   bool get isReady => _key != null;
 
+  /// Ключ устройства в hex — уезжает в опись бэкапа, иначе на новом телефоне
+  /// вложения останутся нечитаемым шумом.
+  String get keyHex => _keyHex ?? '';
+
   /// [keyHex] — 64 hex-символа = 32-байтный ключ.
   void init(String keyHex) {
+    _keyHex = keyHex;
     _key = SecretKey(_hexToBytes(keyHex));
   }
 

@@ -3,6 +3,7 @@ import 'dict/core.dart';
 import 'dict/editor.dart';
 import 'dict/feed.dart';
 import 'dict/onboarding.dart';
+import 'dict/prompts.dart';
 
 import 'locale_controller.dart';
 
@@ -38,4 +39,5 @@ const Map<String, Map<String, String>> _strings = {
   ...feedStrings,
   ...editorStrings,
   ...catalogStrings,
+  ...promptStrings,
 };
