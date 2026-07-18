@@ -1,4 +1,6 @@
+import 'dict/catalog.dart';
 import 'dict/core.dart';
+import 'dict/editor.dart';
 import 'dict/feed.dart';
 import 'dict/onboarding.dart';
 
@@ -34,4 +36,6 @@ const Map<String, Map<String, String>> _strings = {
   ...coreStrings,
   ...onboardingStrings,
   ...feedStrings,
+  ...editorStrings,
+  ...catalogStrings,
 };

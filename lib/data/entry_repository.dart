@@ -69,6 +69,7 @@ class EntryRepository {
     bool includeHidden = false,
     bool includeDrafts = true,
   }) async {
+    if (!Db.isReady) return const [];
     final rows = await _db.query(
       'SELECT $_cols FROM entries WHERE '
       '${_where(includeHidden: includeHidden, includeDrafts: includeDrafts)} '
@@ -78,6 +79,7 @@ class EntryRepository {
   }
 
   Future<Entry?> getById(String id) async {
+    if (!Db.isReady) return null;
     final rows = await _db.query(
       'SELECT $_cols FROM entries WHERE id = ?1 AND is_deleted = 0',
       [id],
@@ -87,6 +89,7 @@ class EntryRepository {
 
   /// Записи за конкретный календарный день.
   Future<List<Entry>> forDay(DateTime day, {bool includeHidden = false}) async {
+    if (!Db.isReady) return const [];
     final from = DateTime(day.year, day.month, day.day);
     final to = from.add(const Duration(days: 1));
     final rows = await _db.query(
@@ -112,6 +115,7 @@ class EntryRepository {
   }
 
   Future<int> count({String? journalId}) async {
+    if (!Db.isReady) return 0;
     final rows = journalId == null
         ? await _db.query(
             'SELECT COUNT(*) AS c FROM entries WHERE is_deleted = 0 AND hidden = 0')

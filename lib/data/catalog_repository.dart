@@ -31,6 +31,7 @@ class CatalogRepository {
   }
 
   Future<List<Emotion>> emotions() async {
+    if (!Db.isReady) return const [];
     final rows = await _db.query(
         'SELECT $_emotionCols FROM emotions WHERE is_deleted = 0 ORDER BY sort');
     return Future.wait(rows.map(_decodeEmotion));
@@ -94,6 +95,7 @@ class CatalogRepository {
   }
 
   Future<List<Activity>> activities() async {
+    if (!Db.isReady) return const [];
     final rows = await _db.query('SELECT $_activityCols FROM activities '
         'WHERE is_deleted = 0 ORDER BY sort');
     return Future.wait(rows.map(_decodeActivity));
@@ -149,6 +151,7 @@ class CatalogRepository {
   // ------------------------------ Теги ------------------------------
 
   Future<List<Tag>> tags() async {
+    if (!Db.isReady) return const [];
     final rows = await _db.query(
         'SELECT id, created_at, enc FROM tags WHERE is_deleted = 0 '
         'ORDER BY created_at DESC');
@@ -206,12 +209,14 @@ class CatalogRepository {
       entryId);
 
   Future<List<String>> _linkIds(String sql, String entryId) async {
+    if (!Db.isReady) return const [];
     final rows = await _db.query(sql, [entryId]);
     return rows.map((r) => r['v'] as String).toList();
   }
 
   /// Все связи разом — чтобы лента/поиск не делали запрос на каждую запись.
   Future<Map<String, List<String>>> allLinks(String table, String column) async {
+    if (!Db.isReady) return const {};
     final rows = await _db
         .query('SELECT entry_id, $column AS v FROM $table WHERE is_deleted = 0');
     final out = <String, List<String>>{};

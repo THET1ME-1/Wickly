@@ -15,7 +15,16 @@ class Db {
 
   static SqlCrdt? _crdt;
 
-  static SqlCrdt get crdt => _crdt!;
+  static SqlCrdt get crdt {
+    final crdt = _crdt;
+    if (crdt == null) {
+      throw StateError(
+        'База не открыта. Чтения умеют возвращать пустоту через Db.isReady, '
+        'а запись до AppDatabase.init() — это ошибка вызывающего кода.',
+      );
+    }
+    return crdt;
+  }
   static bool get isReady => _crdt != null;
 
   static void attach(SqlCrdt crdt) => _crdt = crdt;

@@ -8,7 +8,10 @@ void main() {
     await Harness.shoot(
       tester,
       'lock',
-      () => LockScreen(onUnlocked: () {}),
+      () => LockScreen(
+        onUnlocked: () {},
+        now: DateTime(2026, 7, 17, 21, 41),
+      ),
       // Замок с кодом и включённым отпечатком — как в макете.
       prefs: const {'lock_pin_hash': 'x', 'lock_pin_salt': 'y', 'lock_biometrics': true},
       afterPump: (t) async {

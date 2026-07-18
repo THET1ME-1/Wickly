@@ -43,9 +43,12 @@ class ContextChip extends StatelessWidget {
     final foreground =
         selected ? scheme.onPrimaryContainer : scheme.onSurface;
 
-    final content = Padding(
-      padding: EdgeInsets.fromLTRB(icon != null || dotColor != null ? 10 : 14,
-          0, 14, 0),
+    // Высота и отступы заданы контейнером, а ширина остаётся по содержимому:
+    // иначе Wrap растягивает пилюлю на всю строку.
+    final content = Container(
+      height: 34,
+      padding: EdgeInsets.fromLTRB(
+          icon != null || dotColor != null ? 10 : 14, 0, 14, 0),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -73,16 +76,13 @@ class ContextChip extends StatelessWidget {
       ),
     );
 
-    return SizedBox(
-      height: 34,
-      child: Material(
-        color: background,
-        shape: const StadiumBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: onTap == null
-            ? Center(child: content)
-            : InkWell(onTap: onTap, child: Center(child: content)),
-      ),
+    return Material(
+      color: background,
+      shape: const StadiumBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: onTap == null
+          ? content
+          : InkWell(onTap: onTap, child: content),
     );
   }
 }

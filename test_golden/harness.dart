@@ -145,7 +145,7 @@ class Harness {
       await tester.pump(const Duration(milliseconds: 700));
       await expectLater(
         find.byType(MaterialApp),
-        matchesGoldenFile('../goldens/${name}_${mode.$1}.png'),
+        matchesGoldenFile('goldens/${name}_${mode.$1}.png'),
       );
     }
     debugDisableShadows = true;

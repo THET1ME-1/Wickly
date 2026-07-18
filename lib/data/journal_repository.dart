@@ -27,6 +27,7 @@ class JournalRepository {
   }
 
   Future<List<Journal>> all() async {
+    if (!Db.isReady) return const [];
     final rows = await _db.query(
       'SELECT $_cols FROM journals WHERE is_deleted = 0 ORDER BY sort, created_at',
     );
@@ -34,6 +35,7 @@ class JournalRepository {
   }
 
   Future<Journal?> getById(String id) async {
+    if (!Db.isReady) return null;
     final rows = await _db.query(
       'SELECT $_cols FROM journals WHERE id = ?1 AND is_deleted = 0',
       [id],
@@ -98,6 +100,7 @@ class JournalRepository {
 
   /// Сколько живых записей в каждом дневнике — для подписей на обложках.
   Future<Map<String, int>> counts() async {
+    if (!Db.isReady) return const {};
     final rows = await _db.query(
       'SELECT journal_id, COUNT(*) AS c FROM entries '
       'WHERE is_deleted = 0 AND hidden = 0 GROUP BY journal_id',

@@ -45,5 +45,7 @@ app.*.map.json
 /android/app/release
 dist/
 
-# Снимки экранов из test/golden — генерируются, в репозитории не нужны.
-test/goldens/
+# Снимки экранов — генерируются командой ниже, в репозитории не нужны:
+#   flutter test --update-goldens test_golden
+test_golden/goldens/
+test_golden/failures/

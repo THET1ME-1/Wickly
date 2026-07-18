@@ -26,6 +26,7 @@ class TrackerRepository {
   }
 
   Future<List<Tracker>> trackers() async {
+    if (!Db.isReady) return const [];
     final rows = await _db
         .query('SELECT $_cols FROM trackers WHERE is_deleted = 0 ORDER BY sort');
     return Future.wait(rows.map(_decode));
@@ -101,6 +102,7 @@ class TrackerRepository {
   }
 
   Future<Map<String, double>> valuesForDay(DateTime day) async {
+    if (!Db.isReady) return const {};
     final rows = await _db.query(
       'SELECT tracker_id, value FROM tracker_logs WHERE day = ?1 AND is_deleted = 0',
       [TrackerLog.dayKey(day)],
@@ -117,6 +119,7 @@ class TrackerRepository {
     DateTime from,
     DateTime to,
   ) async {
+    if (!Db.isReady) return const {};
     final rows = await _db.query(
       'SELECT day, value FROM tracker_logs WHERE tracker_id = ?1 '
       'AND day >= ?2 AND day <= ?3 AND is_deleted = 0',

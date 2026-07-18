@@ -37,6 +37,7 @@ class MediaRepository {
   }
 
   Future<List<Media>> forEntry(String entryId) async {
+    if (!Db.isReady) return const [];
     final rows = await _db.query(
       'SELECT $_cols FROM media WHERE entry_id = ?1 AND is_deleted = 0 '
       'ORDER BY sort, created_at',
@@ -46,6 +47,7 @@ class MediaRepository {
   }
 
   Future<List<Media>> all() async {
+    if (!Db.isReady) return const [];
     final rows = await _db.query(
       'SELECT $_cols FROM media WHERE is_deleted = 0 ORDER BY created_at DESC',
     );
@@ -53,6 +55,7 @@ class MediaRepository {
   }
 
   Future<Media?> getById(String id) async {
+    if (!Db.isReady) return null;
     final rows = await _db
         .query('SELECT $_cols FROM media WHERE id = ?1 AND is_deleted = 0', [id]);
     return rows.isEmpty ? null : _decode(rows.first);
@@ -60,6 +63,7 @@ class MediaRepository {
 
   /// Сколько вложений у каждой записи — бейджи «+5» на карточках ленты.
   Future<Map<String, int>> countsByEntry() async {
+    if (!Db.isReady) return const {};
     final rows = await _db.query(
       'SELECT entry_id, COUNT(*) AS c FROM media WHERE is_deleted = 0 '
       'GROUP BY entry_id',

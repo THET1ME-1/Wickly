@@ -30,10 +30,15 @@ class LockScreen extends StatefulWidget {
   /// Вызывается, когда код принят (или задан).
   final VoidCallback onUnlocked;
 
+  /// «Сейчас» для часов. Снаружи задаётся только в снимках экранов, чтобы
+  /// картинка не менялась каждую минуту.
+  final DateTime? now;
+
   const LockScreen({
     super.key,
     this.mode = LockMode.unlock,
     required this.onUnlocked,
+    this.now,
   });
 
   @override
@@ -154,7 +159,7 @@ class _LockScreenState extends State<LockScreen>
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    final now = DateTime.now();
+    final now = widget.now ?? DateTime.now();
 
     return Scaffold(
       body: SafeArea(
