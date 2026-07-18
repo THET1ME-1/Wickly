@@ -253,6 +253,16 @@ const Map<String, Map<String, String>> feedStrings = {
     'es': 'reconocido en una foto', 'it': 'riconosciuto su una foto',
     'pt': 'reconhecido numa foto',
   },
+  'corr_tracker_more': {
+    'ru': '{name} побольше', 'en': 'More {name}', 'de': 'Mehr {name}',
+    'fr': 'Plus de {name}', 'es': 'Más {name}', 'it': 'Più {name}',
+    'pt': 'Mais {name}',
+  },
+  'corr_tracker_less': {
+    'ru': '{name} поменьше', 'en': 'Less {name}', 'de': 'Weniger {name}',
+    'fr': 'Moins de {name}', 'es': 'Menos {name}', 'it': 'Meno {name}',
+    'pt': 'Menos {name}',
+  },
   'filter_favorite': {
     'ru': 'Избранное', 'en': 'Favorites', 'de': 'Favoriten', 'fr': 'Favoris',
     'es': 'Favoritos', 'it': 'Preferiti', 'pt': 'Favoritos',

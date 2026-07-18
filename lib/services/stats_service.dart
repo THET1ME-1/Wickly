@@ -69,6 +69,10 @@ class Correlation {
 class StatsService {
   const StatsService._();
 
+  /// Суффиксы ключей связки с трекером — по ним экран подставляет подпись.
+  static const trackerMore = '#more';
+  static const trackerLess = '#less';
+
   static int _dayKey(DateTime d) => TrackerLog.dayKey(d);
 
   /// Дни, в которые есть хотя бы одна запись.
@@ -201,6 +205,67 @@ class StatsService {
     Map<String, List<String>> activitiesByEntry,
   ) =>
       _correlate(entries, (e) => activitiesByEntry[e.id] ?? const []);
+
+  /// Настроение в разрезе трекеров: «Сон побольше 4,3 · Сон поменьше 3,2».
+  ///
+  /// Самая ценная связка из заявленных — и единственная, которой не было:
+  /// корреляции считались только по погоде и действиям, а логи трекеров в
+  /// статистику не заглядывали вовсе.
+  ///
+  /// День делим по медиане значений самого трекера, а не по «выполнено»:
+  /// у воды и сна нет отметки «сделано», у них есть «сколько». Медиана
+  /// устойчивее среднего к одному дню, когда человек проспал полсуток.
+  /// Ключи возвращаются служебными («id#more»/«id#less»): подставлять имена и
+  /// переводить — дело экрана. Сервис обязан оставаться чистым Dart без
+  /// Flutter, иначе он перестаёт гоняться в `tool/db_smoke.dart`.
+  static List<Correlation> byTracker(
+    List<Entry> entries,
+    Map<String, Map<int, double>> valuesByTracker,
+  ) {
+    final out = <Correlation>[];
+
+    for (final entry in valuesByTracker.entries) {
+      final byDay = entry.value;
+      if (byDay.length < 4) continue;
+
+      final sorted = byDay.values.toList()..sort();
+      final median = sorted[sorted.length ~/ 2];
+      // Все дни одинаковые — делить нечего, связка ничего не покажет.
+      if (sorted.first == sorted.last) continue;
+
+      var highSum = 0.0, lowSum = 0.0;
+      var highCount = 0, lowCount = 0;
+      for (final e in entries) {
+        final mood = e.mood;
+        if (mood == null) continue;
+        final value = byDay[TrackerLog.dayKey(e.entryDate)];
+        if (value == null) continue;
+        if (value >= median) {
+          highSum += mood;
+          highCount++;
+        } else {
+          lowSum += mood;
+          lowCount++;
+        }
+      }
+      // Одна сторона пустая — сравнивать не с чем.
+      if (highCount < 2 || lowCount < 2) continue;
+
+      out.add(Correlation(
+        key: '${entry.key}$trackerMore',
+        average: highSum / highCount,
+        count: highCount,
+      ));
+      out.add(Correlation(
+        key: '${entry.key}$trackerLess',
+        average: lowSum / lowCount,
+        count: lowCount,
+      ));
+    }
+
+    out.sort((a, b) => b.average.compareTo(a.average));
+    return out;
+  }
 
   static List<Correlation> _correlate(
     List<Entry> entries,

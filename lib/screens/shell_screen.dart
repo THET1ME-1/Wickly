@@ -10,6 +10,8 @@ import '../data/media_repository.dart';
 import '../l10n/strings.dart';
 import '../models/entry.dart';
 import '../models/media.dart';
+import '../services/notifications_service.dart';
+import '../services/prompts.dart';
 import '../services/feed_service.dart';
 import '../services/search_service.dart';
 import '../services/stats_service.dart';
@@ -103,9 +105,24 @@ class _ShellScreenState extends State<ShellScreen> {
       final launched = await HomeWidget.initiallyLaunchedFromHomeWidget();
       if (launched != null) _handleWidgetUri(launched);
       _widgetTaps = HomeWidget.widgetClicked.listen(_handleWidgetUri);
+      _consumePendingWrite();
     } catch (_) {
       // Виджеты есть не на всякой платформе — это не повод падать.
     }
+  }
+
+  /// Открывает редактор, если сюда пришли по тапу на напоминание.
+  void _consumePendingWrite() {
+    if (!NotificationsService.pendingWrite) return;
+    NotificationsService.pendingWrite = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _write(
+          promptKey: Prompts.keyOfDay(
+              AppPrefs.instance.promptPack, DateTime.now()),
+        );
+      }
+    });
   }
 
   void _handleWidgetUri(Uri? uri) {

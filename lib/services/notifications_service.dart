@@ -17,6 +17,13 @@ class NotificationsService {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static bool _ready = false;
 
+  static const _writePayload = 'write';
+
+  /// Человек нажал на напоминание — оболочка откроет редактор, когда дойдёт
+  /// до первого кадра. Флаг снимает тот, кто его прочитал.
+  static bool pendingWrite = false;
+
+
   /// Один канал на напоминания и один на воспоминания: так их можно отключать
   /// по отдельности в системных настройках Android.
   static const _dailyChannel = 'wickly_daily';
@@ -37,7 +44,20 @@ class NotificationsService {
         requestSoundPermission: false,
       ),
     );
-    await _plugin.initialize(settings: settings);
+    await _plugin.initialize(
+      settings: settings,
+      // Тап по напоминанию раньше просто открывал приложение — человек жал
+      // «пора написать» и попадал в ленту, где надо ещё раз искать кнопку.
+      onDidReceiveNotificationResponse: (response) {
+        if (response.payload == _writePayload) pendingWrite = true;
+      },
+    );
+    // Холодный старт по тапу: колбэк выше в этом случае не приходит.
+    final launch = await _plugin.getNotificationAppLaunchDetails();
+    if (launch?.didNotificationLaunchApp == true &&
+        launch?.notificationResponse?.payload == _writePayload) {
+      pendingWrite = true;
+    }
     _ready = true;
   }
 
@@ -164,6 +184,7 @@ class NotificationsService {
           ),
           iOS: const DarwinNotificationDetails(),
         ),
+        payload: _writePayload,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         matchDateTimeComponents: match,
       );

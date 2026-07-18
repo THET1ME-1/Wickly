@@ -1,8 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:meta/meta.dart';
 
-import '../models/entry.dart';
-import '../screens/lock_screen.dart';
-import 'app_prefs.dart';
 import 'journal_repository.dart';
 
 /// Замок отдельного дневника.
@@ -14,6 +11,10 @@ import 'journal_repository.dart';
 /// Разблокировка живёт до конца сеанса: ходить за PIN на каждое открытие
 /// дневника — быстрее выключить замок совсем. При уходе в фон общий замок
 /// приложения всё равно закроет всё.
+///
+/// Здесь только состояние: файл лежит в слое данных, который обязан
+/// собираться без Flutter (`tool/db_smoke.dart` гоняет его в чистой Dart VM).
+/// Спрос PIN живёт в `widgets/journal_gate.dart`.
 class JournalLock {
   const JournalLock._();
 
@@ -24,12 +25,14 @@ class JournalLock {
   static Set<String> get hiddenJournalIds =>
       _locked.difference(_unlocked);
 
-  /// Замок вообще имеет смысл только когда есть чем запирать.
-  static bool get _armed => AppPrefs.instance.hasPin;
+  /// Есть ли чем запирать — задан ли PIN. Приходит снаружи: слой данных не
+  /// заглядывает в настройки, иначе он утащит за собой Flutter.
+  static bool _armed = false;
 
   /// Перечитывает, какие дневники заперты. Зовётся после правок дневников и
   /// на старте: список нужен синхронно, выборки не могут ждать базу.
-  static Future<void> refresh() async {
+  static Future<void> refresh({required bool armed}) async {
+    _armed = armed;
     final journals = await JournalRepository.instance.all();
     _locked
       ..clear()
@@ -42,28 +45,18 @@ class JournalLock {
   static bool isHidden(String? journalId) =>
       _armed && journalId != null && hiddenJournalIds.contains(journalId);
 
-  /// Спрашивает PIN, если дневник заперт. Возвращает true, когда можно войти.
-  static Future<bool> ensureOpen(BuildContext context, Journal journal) async {
-    if (!_armed || !journal.locked || _unlocked.contains(journal.id)) {
-      return true;
-    }
-    final ok = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => LockScreen(
-          onUnlocked: () => Navigator.of(context).pop(true),
-        ),
-      ),
-    );
-    if (ok == true) {
-      _unlocked.add(journal.id);
-      return true;
-    }
-    return false;
-  }
+  /// Нужен ли PIN, чтобы войти в этот дневник.
+  static bool needsUnlock(String id, bool locked) =>
+      _armed && locked && !_unlocked.contains(id);
+
+  /// Дневник открыли — до конца сеанса больше не спрашиваем.
+  static void markUnlocked(String id) => _unlocked.add(id);
 
   /// Забывает разблокировки — при выходе из дневника в замок приложения.
   static void forget() => _unlocked.clear();
+
+  @visibleForTesting
+  static set debugArmed(bool value) => _armed = value;
 
   @visibleForTesting
   static void debugSetLocked(Set<String> ids) => _locked

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../data/app_prefs.dart';
 import '../data/journal_lock.dart';
 import '../data/journal_repository.dart';
 import '../models/entry.dart';
 import '../widgets/journal_editor_sheet.dart';
+import '../widgets/journal_gate.dart';
 import 'journals_screen.dart';
 
 /// Дневники с настоящими данными.
@@ -46,13 +48,13 @@ class _JournalsContainerState extends State<JournalsContainer> {
     await showJournalEditor(context, journal: journal);
     // Замок могли включить или снять прямо сейчас — список запертых обновляем
     // до перезагрузки, иначе выборки отработают по старому.
-    await JournalLock.refresh();
+    await JournalLock.refresh(armed: AppPrefs.instance.hasPin);
     await _load();
   }
 
   /// Запертый дневник спрашивает PIN. Раньше замок был только значком.
   Future<void> _open(Journal journal) async {
-    if (!await JournalLock.ensureOpen(context, journal)) return;
+    if (!await openJournalGate(context, journal)) return;
     if (!mounted) return;
     if (widget.onPick != null) {
       widget.onPick!(journal);

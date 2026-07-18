@@ -7,6 +7,7 @@ Entry _at(DateTime d, {int? mood, String? weather}) =>
         .copyWith(weather: weather);
 
 void main() {
+  _trackerCorrelationTests();
   final today = DateTime(2026, 7, 18);
 
   test('Серия считается назад от сегодня', () {
@@ -90,5 +91,53 @@ void main() {
   test('Записи без настроения не портят статистику', () {
     final entries = [_at(today), _at(today, mood: 4)];
     expect(StatsService.moodByDay(entries).values.first, 4);
+  });
+}
+
+void _trackerCorrelationTests() {
+  // Связка «настроение × трекеры» — единственная из заявленных, которой не
+  // было: корреляции считались только по погоде и действиям.
+  group('Настроение и трекеры', () {
+    Entry day(int d, int mood) => Entry.create(journalId: 'j').copyWith(
+          entryDate: DateTime(2026, 7, d),
+          mood: mood,
+        );
+
+    test('Дни с бо́льшим сном дают более высокое настроение', () {
+      final entries = [day(1, 5), day(2, 5), day(3, 2), day(4, 2)];
+      final sleep = {
+        20260701: 8.0,
+        20260702: 9.0,
+        20260703: 4.0,
+        20260704: 5.0,
+      };
+      final out = StatsService.byTracker(entries, {'t-sleep': sleep});
+      expect(out, hasLength(2));
+      expect(out.first.average, greaterThan(out.last.average));
+      expect(out.first.key, 't-sleep${StatsService.trackerMore}');
+    });
+
+    test('Одинаковые значения не дают связки', () {
+      final entries = [day(1, 5), day(2, 4), day(3, 3), day(4, 2)];
+      final flat = {
+        20260701: 2.0,
+        20260702: 2.0,
+        20260703: 2.0,
+        20260704: 2.0,
+      };
+      expect(
+        StatsService.byTracker(entries, {'t': flat}),
+        isEmpty,
+      );
+    });
+
+    test('Мало дней — молчим, а не выдумываем вывод', () {
+      final entries = [day(1, 5), day(2, 1)];
+      expect(
+        StatsService.byTracker(
+            entries, {'t': {20260701: 1.0, 20260702: 3.0}}),
+        isEmpty,
+      );
+    });
   });
 }

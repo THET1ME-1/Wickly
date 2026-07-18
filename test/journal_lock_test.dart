@@ -1,6 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wickly/data/app_prefs.dart';
 import 'package:wickly/data/journal_lock.dart';
 
 void main() {
@@ -11,36 +9,25 @@ void main() {
     JournalLock.debugSetLocked(const {});
   });
 
-  test('Без PIN замок дневника ничего не прячет', () async {
-    SharedPreferences.setMockInitialValues(const {});
-    await AppPrefs.instance.load();
+  test('Без PIN замок дневника ничего не прячет', () {
+    JournalLock.debugArmed = false;
     JournalLock.debugSetLocked(const {'j-secret'});
 
-    expect(AppPrefs.instance.hasPin, isFalse);
     expect(JournalLock.isHidden('j-secret'), isFalse,
         reason: 'запирать нечем — прятать нечестно');
   });
 
-  test('С PIN записи запертого дневника прячутся', () async {
-    SharedPreferences.setMockInitialValues(const {
-      'lock_pin_hash': 'x',
-      'lock_pin_salt': 'y',
-    });
-    await AppPrefs.instance.load();
+  test('С PIN записи запертого дневника прячутся', () {
+    JournalLock.debugArmed = true;
     JournalLock.debugSetLocked(const {'j-secret'});
 
-    expect(AppPrefs.instance.hasPin, isTrue);
     expect(JournalLock.isHidden('j-secret'), isTrue);
     expect(JournalLock.isHidden('j-open'), isFalse);
     expect(JournalLock.hiddenJournalIds, contains('j-secret'));
   });
 
-  test('Разблокированный дневник виден до конца сеанса', () async {
-    SharedPreferences.setMockInitialValues(const {
-      'lock_pin_hash': 'x',
-      'lock_pin_salt': 'y',
-    });
-    await AppPrefs.instance.load();
+  test('Разблокированный дневник виден до конца сеанса', () {
+    JournalLock.debugArmed = true;
     JournalLock.debugSetLocked(const {'j-secret'});
 
     JournalLock.debugUnlock('j-secret');

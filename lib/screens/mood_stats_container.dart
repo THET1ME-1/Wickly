@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../data/catalog_repository.dart';
+import '../l10n/strings.dart';
+import '../data/tracker_repository.dart';
 import '../data/entry_repository.dart';
 import '../models/entry.dart';
 import '../services/stats_service.dart';
@@ -22,6 +24,8 @@ class _MoodStatsContainerState extends State<MoodStatsContainer> {
   /// Имена действий по id — иначе в корреляциях были бы голые идентификаторы.
   Map<String, String> _activityNames = const {};
   Map<String, List<String>> _activityLinks = const {};
+  Map<String, String> _trackerNames = const {};
+  Map<String, Map<int, double>> _trackerValues = const {};
 
   @override
   void initState() {
@@ -34,6 +38,17 @@ class _MoodStatsContainerState extends State<MoodStatsContainer> {
     final activities = await CatalogRepository.instance.activities();
     final links = await CatalogRepository.instance
         .allLinks('entry_activities', 'activity_id');
+
+    // Логи трекеров за последний год — из них считается связка «настроение
+    // и сон/вода/шаги». Раньше трекеры в статистику не заглядывали вовсе.
+    final trackers = await TrackerRepository.instance.trackers();
+    final now = DateTime.now();
+    final from = now.subtract(const Duration(days: 365));
+    final values = <String, Map<int, double>>{};
+    for (final t in trackers) {
+      values[t.id] = await TrackerRepository.instance.range(t.id, from, now);
+    }
+
     if (!mounted) return;
     setState(() {
       _entries = entries;
@@ -41,6 +56,8 @@ class _MoodStatsContainerState extends State<MoodStatsContainer> {
         for (final a in activities) a.id: CatalogNames.of(a),
       };
       _activityLinks = links;
+      _trackerNames = {for (final t in trackers) t.id: CatalogNames.of(t)};
+      _trackerValues = values;
     });
   }
 
@@ -80,12 +97,29 @@ class _MoodStatsContainerState extends State<MoodStatsContainer> {
       streak: StatsService.streak(_entries, now: now),
       trend: trend,
       byWeather: StatsService.byWeather(inRange),
-      byActivity: activityCorrelations,
+      byActivity: [
+        ...activityCorrelations,
+        ...StatsService.byTracker(inRange, _trackerValues).map(_trackerLabel),
+      ],
       startLabel: range == StatsRange.year
           ? '${now.year}'
           : Dates.dayMonth(from),
       middleLabel: range == StatsRange.year ? '' : Dates.dayMonth(now),
       endLabel: range == StatsRange.year ? '' : '',
+    );
+  }
+
+  /// Служебный ключ связки с трекером превращается в человеческую подпись.
+  /// Перевод живёт здесь, а не в сервисе: сервис — чистый Dart.
+  Correlation _trackerLabel(Correlation c) {
+    final more = c.key.endsWith(StatsService.trackerMore);
+    final id = c.key.substring(
+        0, c.key.length - (more ? StatsService.trackerMore : StatsService.trackerLess).length);
+    final name = _trackerNames[id] ?? id;
+    return Correlation(
+      key: trf(more ? 'corr_tracker_more' : 'corr_tracker_less', {'name': name}),
+      average: c.average,
+      count: c.count,
     );
   }
 
