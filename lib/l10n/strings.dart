@@ -1,4 +1,5 @@
 import 'dict/core.dart';
+import 'dict/feed.dart';
 import 'dict/onboarding.dart';
 
 import 'locale_controller.dart';
@@ -32,4 +33,5 @@ bool hasTr(String key) => _strings.containsKey(key);
 const Map<String, Map<String, String>> _strings = {
   ...coreStrings,
   ...onboardingStrings,
+  ...feedStrings,
 };

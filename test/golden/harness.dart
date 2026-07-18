@@ -44,6 +44,19 @@ class Harness {
     await loader.load();
   }
 
+  /// Подставляет каталоги вместо плагина `path_provider`.
+  ///
+  /// Плагинов в `flutter_test` нет, а карта (кэш тайлов) и склад вложений
+  /// каталоги спрашивают. Без заглушки экран падает на первом же кадре.
+  static void _mockPathProvider() {
+    final dir = Directory.systemTemp.createTempSync('wickly_golden').path;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (call) async => dir,
+    );
+  }
+
   static String? _materialIconsPath() {
     final flutterRoot = Platform.environment['FLUTTER_ROOT'];
     final candidates = [
@@ -92,10 +105,18 @@ class Harness {
     Future<void> Function(WidgetTester tester)? afterPump,
   }) async {
     await loadFonts();
+    // По умолчанию flutter_test рисует тени сплошным чёрным контуром
+    // (debugDisableShadows = true). На снимке это выглядит как жирная обводка
+    // у FAB и листов, хотя в приложении тень мягкая. Включаем настоящие тени.
+    // Возвращаем флаг в конце этого же метода: flutter_test проверяет, что
+    // тест не оставил после себя изменённых debug-переменных, и делает это
+    // раньше, чем отработает addTearDown.
+    debugDisableShadows = false;
     // Настройки устройства подменяем в памяти: экраны спрашивают у AppPrefs,
     // включён ли отпечаток, какой стартовый экран и так далее.
     SharedPreferences.setMockInitialValues(prefs);
     await AppPrefs.instance.load();
+    _mockPathProvider();
     // Снимаем на русском: на нём читает автор, и именно он ловит переполнения
     // (русские строки длиннее английских на 15–30%).
     LocaleController.instance.setCodeForTest(language);
@@ -127,5 +148,6 @@ class Harness {
         matchesGoldenFile('../goldens/${name}_${mode.$1}.png'),
       );
     }
+    debugDisableShadows = true;
   }
 }

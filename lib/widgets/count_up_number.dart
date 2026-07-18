@@ -2,22 +2,43 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Целое число, которое при изменении «набегает» от старого значения к новому
-/// и слегка подпрыгивает (M3 pop). При уменьшении (отмена хода) — мягче.
+/// Число, которое при изменении «набегает» от старого значения к новому и
+/// слегка подпрыгивает (M3 pop). При уменьшении (отмена хода) — мягче.
+///
+/// Умеет и целые (счёт, серия), и дробные ([fractionDigits] — среднее
+/// настроение «4,1»). Разделитель дробной части берётся у языка интерфейса:
+/// в русском это запятая.
 ///
 /// Цвет/шрифт берутся из [style]. На первом построении значение показывается
 /// сразу, без анимации.
 class CountUpNumber extends StatefulWidget {
-  final int value;
+  final double value;
   final TextStyle style;
   final Duration duration;
+
+  /// Сколько знаков после запятой. 0 — целое число.
+  final int fractionDigits;
 
   const CountUpNumber({
     super.key,
     required this.value,
     required this.style,
     this.duration = const Duration(milliseconds: 480),
+    this.fractionDigits = 0,
   });
+
+  /// Удобный конструктор для целых.
+  const CountUpNumber.int({
+    Key? key,
+    required int value,
+    required TextStyle style,
+    Duration duration = const Duration(milliseconds: 480),
+  }) : this(
+          key: key,
+          value: value + 0.0,
+          style: style,
+          duration: duration,
+        );
 
   @override
   State<CountUpNumber> createState() => _CountUpNumberState();
@@ -27,7 +48,7 @@ class _CountUpNumberState extends State<CountUpNumber>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c =
       AnimationController(vsync: this, duration: widget.duration);
-  int _from = 0;
+  double _from = 0;
   bool _increased = false;
 
   @override
@@ -52,21 +73,30 @@ class _CountUpNumberState extends State<CountUpNumber>
     super.dispose();
   }
 
+  String _format(double v) {
+    final text = v.toStringAsFixed(widget.fractionDigits);
+    if (widget.fractionDigits == 0) return text;
+    // Запятая как разделитель там, где так принято (ru/de/fr/es/it/pt).
+    final separator =
+        Localizations.localeOf(context).languageCode == 'en' ? '.' : ',';
+    return text.replaceAll('.', separator);
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _c,
       builder: (_, _) {
         if (!_c.isAnimating) {
-          return Text('${widget.value}', maxLines: 1, style: widget.style);
+          return Text(_format(widget.value), maxLines: 1, style: widget.style);
         }
         final t = _c.value;
         final e = Curves.easeOut.transform(t);
-        final shown = (_from + (widget.value - _from) * e).round();
+        final shown = _from + (widget.value - _from) * e;
         final pop = 1 + (_increased ? 0.16 : 0.05) * math.sin(t * math.pi);
         return Transform.scale(
           scale: pop,
-          child: Text('$shown', maxLines: 1, style: widget.style),
+          child: Text(_format(shown), maxLines: 1, style: widget.style),
         );
       },
     );

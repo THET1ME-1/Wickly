@@ -27,6 +27,10 @@ class MediaStore {
     _tmp = Directory('$tempDir/wickly_media')..createSync(recursive: true);
   }
 
+  /// Настроен ли склад. Чтение до [configure] возвращает пустоту, а не падает:
+  /// экраны в этот момент должны показать заглушку обложки, а не белый экран.
+  bool get isReady => _dir != null;
+
   Future<Directory> _mediaDir() async => _dir!;
 
   Future<Directory> _tmpDir() async => _tmp!;
@@ -52,6 +56,7 @@ class MediaStore {
 
   /// Расшифрованные байты вложения (для картинок — прямо в `Image.memory`).
   Future<Uint8List?> read(String name) async {
+    if (!isReady) return null;
     final file = File(await path(name));
     if (!file.existsSync()) return null;
     try {
@@ -65,6 +70,7 @@ class MediaStore {
   /// для плееров, «поделиться» и экспорта. Временный каталог чистится
   /// системой и вручную через [clearTemp].
   Future<String?> materialize(String name) async {
+    if (!isReady) return null;
     final bytes = await read(name);
     if (bytes == null) return null;
     final out = File('${(await _tmpDir()).path}/$name');
@@ -75,6 +81,7 @@ class MediaStore {
   }
 
   Future<void> deleteFile(String name) async {
+    if (!isReady) return;
     final file = File(await path(name));
     if (file.existsSync()) await file.delete();
     final tmp = File('${(await _tmpDir()).path}/$name');
@@ -83,6 +90,7 @@ class MediaStore {
 
   /// Стирает расшифрованные копии — вызываем при блокировке дневника.
   Future<void> clearTemp() async {
+    if (!isReady) return;
     final dir = await _tmpDir();
     if (dir.existsSync()) {
       for (final f in dir.listSync()) {
@@ -97,6 +105,7 @@ class MediaStore {
 
   /// Сколько места занимают вложения (для экрана «Экспорт и бэкап»).
   Future<int> totalBytes() async {
+    if (!isReady) return 0;
     final dir = await _mediaDir();
     if (!dir.existsSync()) return 0;
     var sum = 0;
@@ -108,6 +117,7 @@ class MediaStore {
 
   /// Имена всех файлов хранилища — для бэкапа и уборки сирот.
   Future<List<String>> listNames() async {
+    if (!isReady) return const [];
     final dir = await _mediaDir();
     if (!dir.existsSync()) return const [];
     return dir.listSync().whereType<File>().map((f) {

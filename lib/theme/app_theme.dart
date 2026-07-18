@@ -141,6 +141,22 @@ class AppTheme {
           borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
       ),
+      // Плавающая кнопка — такая же «таблетка», как остальные кнопки ДНК.
+      // Без явной формы M3 рисует прямоугольник с радиусом 16 и обводкой.
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        elevation: 3,
+        focusElevation: 3,
+        hoverElevation: 4,
+        highlightElevation: 4,
+        backgroundColor: colorScheme.primaryContainer,
+        foregroundColor: colorScheme.onPrimaryContainer,
+        shape: const StadiumBorder(),
+        extendedTextStyle: TextStyle(
+          fontFamily: bodyFont,
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
       navigationBarTheme: NavigationBarThemeData(
         elevation: 3,
         height: 72,
