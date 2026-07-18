@@ -15,6 +15,7 @@ import '../utils/dates.dart';
 import '../widgets/pressable.dart';
 import '../widgets/reveal.dart';
 import '../widgets/settings_scaffold.dart';
+import 'scan_screen.dart';
 
 /// Как синхронизируемся.
 enum SyncMode { direct, folder }
@@ -157,7 +158,12 @@ class _SyncScreenState extends State<SyncScreen> {
                 subtitle: tr('sync_scan_sub'),
                 trailing:
                     Icon(Icons.chevron_right_rounded, color: scheme.outline),
-                onTap: () => Navigator.of(context).pushNamed('/sync/scan'),
+                onTap: () async {
+                  await Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const ScanScreen(),
+                  ));
+                  if (mounted) setState(() {});
+                },
               ),
             ]),
           ] else

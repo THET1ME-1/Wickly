@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../data/app_prefs.dart';
 import '../data/catalog_repository.dart';
 import '../data/entry_repository.dart';
+import '../data/journal_repository.dart';
 import '../data/media_repository.dart';
 import '../l10n/strings.dart';
 import '../models/entry.dart';
@@ -63,6 +64,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   late Entry _entry;
   List<Media> _media = const [];
+  List<Journal> _journals = const [];
 
   Timer? _autosave;
   bool _dirty = false;
@@ -86,11 +88,63 @@ class _EditorScreenState extends State<EditorScreen> {
     _title.addListener(_onChanged);
     _body.addListener(_onChanged);
 
+    _loadJournals();
     if (widget.entry == null) {
       _captureContext();
     } else {
       _loadMedia();
     }
+  }
+
+  Future<void> _loadJournals() async {
+    final journals = await JournalRepository.instance.all();
+    if (mounted) setState(() => _journals = journals);
+  }
+
+  /// Перенос записи в другой дневник. Выбранный запоминается: следующая запись
+  /// по умолчанию ляжет туда же.
+  Future<void> _pickJournal() async {
+    if (_journals.length < 2) return;
+    final scheme = Theme.of(context).colorScheme;
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: scheme.surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 14),
+            for (final j in _journals)
+              ListTile(
+                leading: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    gradient: CoverPalette.gradient(j.cover),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                ),
+                title: Text(j.name),
+                trailing: j.id == _entry.journalId
+                    ? Icon(Icons.check_rounded, color: scheme.primary)
+                    : null,
+                onTap: () => Navigator.pop(ctx, j.id),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    await AppPrefs.instance.setLastJournal(picked);
+    setState(() {
+      _entry = _entry.copyWith(journalId: picked);
+      _dirty = true;
+    });
+    _scheduleSave();
   }
 
   @override
@@ -455,6 +509,15 @@ class _EditorScreenState extends State<EditorScreen> {
       spacing: 8,
       runSpacing: 8,
       children: [
+        if (_journals.length > 1)
+          ContextChip(
+            icon: Icons.menu_book_rounded,
+            label: _journals
+                .firstWhere((j) => j.id == e.journalId,
+                    orElse: () => _journals.first)
+                .name,
+            onTap: _pickJournal,
+          ),
         ContextChip(
           icon: Icons.schedule_rounded,
           label: '${Dates.relativeDay(e.entryDate)}, ${Dates.time(e.entryDate)}',

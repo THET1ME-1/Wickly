@@ -640,4 +640,15 @@ const Map<String, Map<String, String>> promptStrings = {
     'pt': 'O backup guarda anotações e anexos e é cifrado com a frase, não '
         'com a chave do aparelho — por isso abre num telefone novo.',
   },
+
+  'sync_manual': {
+    'ru': 'Ввести руками', 'en': 'Enter by hand', 'de': 'Manuell eingeben',
+    'fr': 'Saisir à la main', 'es': 'Escribir a mano',
+    'it': 'Inserisci a mano', 'pt': 'Digitar manualmente',
+  },
+  'sync_address': {
+    'ru': 'Адрес устройства', 'en': 'Device address', 'de': 'Geräteadresse',
+    'fr': 'Adresse de l’appareil', 'es': 'Dirección del dispositivo',
+    'it': 'Indirizzo del dispositivo', 'pt': 'Endereço do aparelho',
+  },
 };
