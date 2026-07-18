@@ -81,6 +81,15 @@ class LocaleController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Переключение языка без обращения к хранилищу — для снимков экранов
+  /// (`test/golden`), где `SharedPreferences` нет.
+  @visibleForTesting
+  void setCodeForTest(String code) {
+    _code = code;
+    _loaded = true;
+    notifyListeners();
+  }
+
   Future<void> setCode(String code) async {
     if (code == _code || !_codes.contains(code)) return;
     _code = code;

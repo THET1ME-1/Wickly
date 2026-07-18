@@ -44,3 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 dist/
+
+# Снимки экранов из test/golden — генерируются, в репозитории не нужны.
+test/goldens/

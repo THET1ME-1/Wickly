@@ -1,10 +1,30 @@
-// Проверка шифрования + слоя данных в чистой Dart VM (crypto — чистый Dart,
-// sqflite-ffi работает и завершается; во flutter_tester изолят-фабрика виснет).
+// Проверка слоя данных Wickly на настоящем SQLite+CRDT в чистой Dart VM.
+//
+// Почему не `flutter test`: `sqlite_crdt` 3.x жёстко берёт изолят-фабрику
+// `databaseFactoryFfi`, и под `flutter_tester` изолят не завершается — тест
+// виснет навсегда. Поэтому базу гоняем отдельным раннером:
 //
 //   dart run tool/db_smoke.dart
+//
+// Здесь работают НАСТОЯЩИЕ репозитории приложения (они ходят в `Db`, а не в
+// `AppDatabase`, поэтому не тянут плагины Flutter).
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqlite_crdt/sqlite_crdt.dart';
+import 'package:wickly/data/catalog_repository.dart';
 import 'package:wickly/data/crypto.dart';
+import 'package:wickly/data/db.dart';
+import 'package:wickly/data/entry_repository.dart';
+import 'package:wickly/data/journal_repository.dart';
+import 'package:wickly/data/media_repository.dart';
+import 'package:wickly/data/media_store.dart';
+import 'package:wickly/data/schema.dart';
+import 'package:wickly/data/tracker_repository.dart';
+import 'package:wickly/models/catalog.dart';
+import 'package:wickly/models/entry.dart';
+import 'package:wickly/models/media.dart';
 
 int _pass = 0, _fail = 0;
 void _check(String n, bool ok) {
@@ -14,94 +34,125 @@ void _check(String n, bool ok) {
 
 Future<void> main() async {
   sqfliteFfiInit();
-  const key =
-      '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';
-  Crypto.instance.init(key);
+  Crypto.instance.init(
+      '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff');
+
+  final tmp = Directory.systemTemp.createTempSync('wickly_smoke');
+  MediaStore.instance
+      .configure(supportDir: tmp.path, tempDir: '${tmp.path}/tmp');
 
   final crdt = await SqliteCrdt.openInMemory(
-    version: 1,
-    onCreate: (db, version) async {
-      await db.execute('''
-        CREATE TABLE entries (
-          id TEXT NOT NULL,
-          journal_id TEXT NOT NULL,
-          entry_date INTEGER NOT NULL,
-          created_at INTEGER NOT NULL,
-          favorite INTEGER NOT NULL DEFAULT 0,
-          enc TEXT,
-          PRIMARY KEY (id)
-        )
-      ''');
-    },
+    version: Schema.version,
+    onCreate: Schema.onCreate,
+    onUpgrade: Schema.onUpgrade,
   );
+  Db.attach(crdt);
+  await Schema.ensureSeeds(crdt, 'Личное');
 
-  Future<int> count() async => (await crdt.query(
-              'SELECT COUNT(*) AS c FROM entries WHERE is_deleted = 0'))
-          .first['c'] as int? ??
-      0;
+  final entries = EntryRepository.instance;
+  final journals = JournalRepository.instance;
+  final catalog = CatalogRepository.instance;
+  final trackers = TrackerRepository.instance;
+  final media = MediaRepository.instance;
 
-  final now = DateTime.now().millisecondsSinceEpoch;
-  _check('старт пуст', await count() == 0);
+  print('\n— Дневники —');
+  final js = await journals.all();
+  _check('дневник по умолчанию создан', js.length == 1);
+  _check('имя дневника расшифровалось', js.first.name == 'Личное');
+  final rawJournal = (await crdt.query('SELECT name, enc FROM journals')).first;
+  _check('имя не лежит открытым текстом',
+      rawJournal['name'] == '' && (rawJournal['enc'] as String).isNotEmpty);
 
-  final enc = await Crypto.instance.encryptJson(
-      {'title': 'Секретный вечер', 'body': 'Личное', 'mood': 4, 'place': 'дом'});
-  await crdt.execute(
-    'INSERT INTO entries (id, journal_id, entry_date, created_at, favorite, enc) '
-    'VALUES (?1, ?2, ?3, ?4, ?5, ?6)',
-    ['a', 'default', now, now, 0, enc],
-  );
-  _check('вставка → count 1', await count() == 1);
-
-  final stored =
-      (await crdt.query('SELECT enc FROM entries WHERE id = ?1', ['a']))
-          .first['enc'] as String;
-  _check('в базе ШИФРТЕКСТ (нет "Секретный"/"Личное")',
-      !stored.contains('Секретный') && !stored.contains('Личное'));
-
-  final back = await Crypto.instance.decryptJson(stored);
-  _check('расшифровка title', back['title'] == 'Секретный вечер');
-  _check('расшифровка mood', back['mood'] == 4);
-
-  // Реактивный поток.
-  final lengths = <int>[];
-  final sub = crdt
-      .watch('SELECT id FROM entries WHERE is_deleted = 0')
-      .listen((rows) => lengths.add(rows.length));
-  await Future<void>.delayed(const Duration(milliseconds: 60));
-  await crdt.execute(
-    'INSERT INTO entries (id, journal_id, entry_date, created_at, enc) '
-    'VALUES (?1, ?2, ?3, ?4, ?5)',
-    ['b', 'default', now, now, await Crypto.instance.encryptJson({'title': 'Вторая'})],
-  );
-  await Future<void>.delayed(const Duration(milliseconds: 180));
-  await sub.cancel();
-  _check('watch дошёл до 2 (${lengths.join(",")})',
-      lengths.isNotEmpty && lengths.last == 2);
-
-  // Мягкое удаление (тумбстоун).
-  await crdt.execute('DELETE FROM entries WHERE id = ?1', ['a']);
-  _check('удаление → count 1', await count() == 1);
+  print('\n— Каталог —');
+  _check('эмоции засеяны', (await catalog.emotions()).length == 9);
+  _check('действия засеяны', (await catalog.activities()).length == 12);
+  _check('трекеры засеяны', (await trackers.trackers()).length == 6);
+  await Schema.ensureSeeds(crdt, 'Личное');
   _check(
-      'строка жива как тумбстоун',
-      (await crdt.query('SELECT is_deleted FROM entries WHERE id = ?1', ['a']))
-              .first['is_deleted'] ==
-          1);
+      'повторный посев не плодит дублей', (await catalog.emotions()).length == 9);
+  await catalog.deleteEmotion('emo_angry');
+  await Schema.ensureSeeds(crdt, 'Личное');
+  _check('удалённое не воскресает', (await catalog.emotions()).length == 8);
 
-  final cs = await crdt.getChangeset();
-  _check('changeset содержит entries', cs.containsKey('entries'));
+  print('\n— Записи —');
+  final e = Entry.create(
+    journalId: Schema.defaultJournalId,
+    title: 'Вечер у реки',
+    body: 'Дошли до старого моста, вода ещё тёплая.',
+    mood: 4,
+  ).copyWith(place: 'Набережная', lat: 59.93, lon: 30.31, wordCount: 7);
+  await entries.insert(e);
+  final loaded = await entries.getById(e.id);
+  _check('запись читается целиком',
+      loaded?.title == 'Вечер у реки' && loaded?.mood == 4);
+  _check('гео сохранилось', loaded?.hasPlace == true);
+  final rawEntry =
+      (await crdt.query('SELECT enc FROM entries WHERE id = ?1', [e.id]))
+          .first['enc'] as String;
+  _check('в базе шифртекст', !rawEntry.contains('мост'));
 
-  // Неверный ключ не расшифровывает (аутентификация GCM).
-  Crypto.instance.init('f' * 64);
-  var rejected = false;
-  try {
-    await Crypto.instance.decryptJson(stored);
-  } catch (_) {
-    rejected = true;
-  }
-  _check('неверный ключ отклонён', rejected);
+  await entries.upsert(loaded!.copyWith(title: 'Вечер у реки, поздно'));
+  _check(
+      'upsert обновил, а не задвоил', (await entries.allEntries()).length == 1);
+
+  await entries.insert(
+      Entry.create(journalId: Schema.defaultJournalId, title: 'Скрытое')
+          .copyWith(hidden: true));
+  _check('скрытая не в общей ленте', (await entries.allEntries()).length == 1);
+  _check('скрытая видна по запросу',
+      (await entries.allEntries(includeHidden: true)).length == 2);
+
+  print('\n— Связи —');
+  final tag = await catalog.ensureTag('#прогулка');
+  final same = await catalog.ensureTag('Прогулка');
+  _check('тег не двоится по регистру и решётке', tag.id == same.id);
+  await catalog.setTagsOf(e.id, [tag.id]);
+  await catalog.setEmotionsOf(e.id, ['emo_calm', 'emo_gratitude']);
+  await catalog.setActivitiesOf(e.id, ['act_walk']);
+  _check('теги записи', (await catalog.tagIdsOf(e.id)).single == tag.id);
+  _check('эмоции записи', (await catalog.emotionIdsOf(e.id)).length == 2);
+  await catalog.setEmotionsOf(e.id, ['emo_calm']);
+  _check('лишняя связь снята',
+      (await catalog.emotionIdsOf(e.id)).single == 'emo_calm');
+
+  print('\n— Медиа —');
+  final bytes = Uint8List.fromList(List.generate(2048, (i) => i % 256));
+  final name = await MediaStore.instance.put(bytes, ext: 'jpg');
+  final onDisk = File('${tmp.path}/media/$name').readAsBytesSync();
+  _check('файл на диске зашифрован', onDisk.length != bytes.length);
+  final back = await MediaStore.instance.read(name);
+  _check('файл читается обратно байт в байт',
+      back != null && back.length == bytes.length && back[100] == bytes[100]);
+  _check('одинаковые файлы не дублируются',
+      await MediaStore.instance.put(bytes, ext: 'jpg') == name);
+  await media.insert(Media.create(
+      entryId: e.id, kind: MediaKind.photo, file: name, caption: 'мост'));
+  _check('вложение привязано', (await media.forEntry(e.id)).length == 1);
+  _check('счётчик вложений', (await media.countsByEntry())[e.id] == 1);
+
+  print('\n— Трекеры —');
+  final today = DateTime(2026, 7, 18);
+  await trackers.setValue('trk_water', today, 6);
+  await trackers.setValue('trk_water', today, 7);
+  _check('значение за день одно и последнее',
+      (await trackers.valuesForDay(today))['trk_water'] == 7);
+  final week = await trackers.range(
+      'trk_water', today.subtract(const Duration(days: 7)), today);
+  _check('диапазон отдаёт день', week[TrackerLog.dayKey(today)] == 7);
+
+  print('\n— Удаление —');
+  await entries.delete(e.id);
+  _check('запись удалена', (await entries.getById(e.id)) == null);
+  _check('связи записи сняты', (await catalog.tagIdsOf(e.id)).isEmpty);
+  _check('вложения записи сняты', (await media.forEntry(e.id)).isEmpty);
+
+  print('\n— Синк —');
+  _check('чейнджсет собирается', (await crdt.getChangeset()).isNotEmpty);
 
   await crdt.close();
-  print(_fail == 0
-      ? '\n✅ Шифрование + слой данных: $_pass проверок пройдено.'
-      : '\n❌ Провалено: $_fail');
+  Db.detach();
+  tmp.deleteSync(recursive: true);
+
+  print('\n$_pass пройдено, $_fail провалено');
+  exit(_fail == 0 ? 0 : 1);
 }

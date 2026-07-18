@@ -4,11 +4,16 @@ const _uuid = Uuid();
 
 /// Дневник (журнал): у пользователя их может быть несколько — «Личное»,
 /// «Путешествия» и т.д. Хранится в таблице `journals`.
+///
+/// Имя лежит зашифрованным (`enc`), поэтому [name] заполняется репозиторием
+/// после расшифровки. Плейнтекстом остаются только обложка, цвет и порядок.
 class Journal {
   final String id;
   final String name;
-  final int? color; // ARGB seed обложки (nullable)
-  final String? icon; // ключ иконки (nullable)
+  final int? color; // ARGB акцента обложки (nullable)
+  final String? icon; // ключ иконки
+  final String? cover; // ключ градиента обложки
+  final bool locked; // дневник под отдельным паролем
   final int sort;
   final DateTime createdAt;
 
@@ -17,6 +22,8 @@ class Journal {
     required this.name,
     this.color,
     this.icon,
+    this.cover,
+    this.locked = false,
     this.sort = 0,
     required this.createdAt,
   });
@@ -25,6 +32,8 @@ class Journal {
     required String name,
     int? color,
     String? icon,
+    String? cover,
+    bool locked = false,
     int sort = 0,
   }) =>
       Journal(
@@ -32,28 +41,62 @@ class Journal {
         name: name,
         color: color,
         icon: icon,
+        cover: cover,
+        locked: locked,
         sort: sort,
         createdAt: DateTime.now(),
       );
 
-  factory Journal.fromRow(Map<String, Object?> r) => Journal(
-        id: r['id'] as String,
-        name: r['name'] as String,
-        color: r['color'] as int?,
-        icon: r['icon'] as String?,
-        sort: (r['sort'] as int?) ?? 0,
-        createdAt:
-            DateTime.fromMillisecondsSinceEpoch((r['created_at'] as int?) ?? 0),
-      );
-
-  Map<String, Object?> toColumns() => {
+  /// Структурные колонки (без приватного текста).
+  Map<String, Object?> toRowColumns() => {
         'id': id,
-        'name': name,
+        // Пустая строка вместо NULL — в базах с v1 у колонки осталось NOT NULL.
+        'name': '',
         'color': color,
         'icon': icon,
+        'cover': cover,
+        'locked': locked ? 1 : 0,
         'sort': sort,
         'created_at': createdAt.millisecondsSinceEpoch,
       };
+
+  Map<String, Object?> toPayload() => {'name': name};
+
+  factory Journal.fromStorage(
+    Map<String, Object?> row,
+    Map<String, Object?> payload,
+  ) =>
+      Journal(
+        id: row['id'] as String,
+        // Приоритет у расшифрованного имени; строки из v1 читаются из `name`.
+        name: (payload['name'] as String?) ?? (row['name'] as String?) ?? '',
+        color: row['color'] as int?,
+        icon: row['icon'] as String?,
+        cover: row['cover'] as String?,
+        locked: ((row['locked'] as int?) ?? 0) == 1,
+        sort: (row['sort'] as int?) ?? 0,
+        createdAt:
+            DateTime.fromMillisecondsSinceEpoch((row['created_at'] as int?) ?? 0),
+      );
+
+  Journal copyWith({
+    String? name,
+    int? color,
+    String? icon,
+    String? cover,
+    bool? locked,
+    int? sort,
+  }) =>
+      Journal(
+        id: id,
+        name: name ?? this.name,
+        color: color ?? this.color,
+        icon: icon ?? this.icon,
+        cover: cover ?? this.cover,
+        locked: locked ?? this.locked,
+        sort: sort ?? this.sort,
+        createdAt: createdAt,
+      );
 }
 
 /// Одна запись дневника. Запись-центричная модель под CRDT-синк: стабильный
@@ -64,21 +107,43 @@ class Entry {
   final String journalId;
   final String? title;
 
-  /// Тело записи (позже — размеченный текст: markdown/JSON). Пока простой текст.
+  /// Тело записи — текст с лёгкой Markdown-разметкой (см. `markdown_lite.dart`):
+  /// заголовки, жирный/курсив, списки, чеклисты `- [ ]`, цитаты `>`.
   final String? body;
 
-  /// О каком моменте запись (для сортировки в ленте/календаре).
+  /// О каком моменте запись (для сортировки в ленте/календаре) — можно задать
+  /// задним числом.
   final DateTime entryDate;
   final DateTime createdAt;
 
   /// Настроение 1..5 (nullable).
   final int? mood;
 
-  final String? weather;
-  final String? place;
+  /// Авто-контекст момента.
+  final String? weather; // человеческое описание: «ясно»
+  final int? weatherCode; // код Open-Meteo (иконка)
+  final double? temp; // °C
+  final String? place; // человеческое название места
   final double? lat;
   final double? lon;
+  final int? steps; // активность за день, если отдало здоровье
+  final String? nowPlaying; // что играло в момент записи
+
+  /// Обложка — id медиа из этой же записи.
+  final String? coverMediaId;
+
+  final int wordCount;
+
+  /// Сколько времени человек писал запись (мс) — «время на запись».
+  final int writeMs;
+
+  /// Ключ журнальной подсказки, если запись начата с неё.
+  final String? promptKey;
+
   final bool favorite;
+  final bool pinned;
+  final bool hidden; // скрытая запись: видна только после разблокировки
+  final bool draft; // черновик: автосохранён, но не завершён
 
   const Entry({
     required this.id,
@@ -89,10 +154,21 @@ class Entry {
     required this.createdAt,
     this.mood,
     this.weather,
+    this.weatherCode,
+    this.temp,
     this.place,
     this.lat,
     this.lon,
+    this.steps,
+    this.nowPlaying,
+    this.coverMediaId,
+    this.wordCount = 0,
+    this.writeMs = 0,
+    this.promptKey,
     this.favorite = false,
+    this.pinned = false,
+    this.hidden = false,
+    this.draft = false,
   });
 
   /// Новая запись с сгенерированным [id] и текущим временем.
@@ -102,11 +178,8 @@ class Entry {
     String? body,
     DateTime? entryDate,
     int? mood,
-    String? weather,
-    String? place,
-    double? lat,
-    double? lon,
-    bool favorite = false,
+    String? promptKey,
+    bool draft = false,
   }) {
     final now = DateTime.now();
     return Entry(
@@ -117,22 +190,25 @@ class Entry {
       entryDate: entryDate ?? now,
       createdAt: now,
       mood: mood,
-      weather: weather,
-      place: place,
-      lat: lat,
-      lon: lon,
-      favorite: favorite,
+      promptKey: promptKey,
+      draft: draft,
     );
   }
 
+  /// Есть ли у записи привязка к месту (для карты).
+  bool get hasPlace => lat != null && lon != null;
+
   /// Плейнтекст-колонки таблицы `entries` (для запросов/сортировки —
-  /// не содержат приватного: только id, дневник, даты, флаг).
+  /// не содержат приватного: только id, дневник, даты, флаги).
   Map<String, Object?> toRowColumns() => {
         'id': id,
         'journal_id': journalId,
         'entry_date': entryDate.millisecondsSinceEpoch,
         'created_at': createdAt.millisecondsSinceEpoch,
         'favorite': favorite ? 1 : 0,
+        'pinned': pinned ? 1 : 0,
+        'hidden': hidden ? 1 : 0,
+        'draft': draft ? 1 : 0,
       };
 
   /// Приватные поля — шифруются (AES-GCM) в колонку `enc`.
@@ -141,9 +217,17 @@ class Entry {
         'body': body,
         'mood': mood,
         'weather': weather,
+        'weatherCode': weatherCode,
+        'temp': temp,
         'place': place,
         'lat': lat,
         'lon': lon,
+        'steps': steps,
+        'nowPlaying': nowPlaying,
+        'coverMediaId': coverMediaId,
+        'wordCount': wordCount,
+        'writeMs': writeMs,
+        'promptKey': promptKey,
       };
 
   /// Собирает запись из плейнтекст-строки и расшифрованного payload.
@@ -159,15 +243,28 @@ class Entry {
         createdAt: DateTime.fromMillisecondsSinceEpoch(
             (row['created_at'] as int?) ?? 0),
         favorite: ((row['favorite'] as int?) ?? 0) == 1,
+        pinned: ((row['pinned'] as int?) ?? 0) == 1,
+        hidden: ((row['hidden'] as int?) ?? 0) == 1,
+        draft: ((row['draft'] as int?) ?? 0) == 1,
         title: payload['title'] as String?,
         body: payload['body'] as String?,
         mood: payload['mood'] as int?,
         weather: payload['weather'] as String?,
+        weatherCode: payload['weatherCode'] as int?,
+        temp: (payload['temp'] as num?)?.toDouble(),
         place: payload['place'] as String?,
         lat: (payload['lat'] as num?)?.toDouble(),
         lon: (payload['lon'] as num?)?.toDouble(),
+        steps: payload['steps'] as int?,
+        nowPlaying: payload['nowPlaying'] as String?,
+        coverMediaId: payload['coverMediaId'] as String?,
+        wordCount: (payload['wordCount'] as int?) ?? 0,
+        writeMs: (payload['writeMs'] as int?) ?? 0,
+        promptKey: payload['promptKey'] as String?,
       );
 
+  /// `null` в аргументе означает «не трогать»; чтобы стереть значение,
+  /// используем [clearMood] / [clearPlace] / [clearCover].
   Entry copyWith({
     String? journalId,
     String? title,
@@ -175,10 +272,24 @@ class Entry {
     DateTime? entryDate,
     int? mood,
     String? weather,
+    int? weatherCode,
+    double? temp,
     String? place,
     double? lat,
     double? lon,
+    int? steps,
+    String? nowPlaying,
+    String? coverMediaId,
+    int? wordCount,
+    int? writeMs,
+    String? promptKey,
     bool? favorite,
+    bool? pinned,
+    bool? hidden,
+    bool? draft,
+    bool clearMood = false,
+    bool clearPlace = false,
+    bool clearCover = false,
   }) =>
       Entry(
         id: id,
@@ -187,11 +298,22 @@ class Entry {
         body: body ?? this.body,
         entryDate: entryDate ?? this.entryDate,
         createdAt: createdAt,
-        mood: mood ?? this.mood,
-        weather: weather ?? this.weather,
-        place: place ?? this.place,
-        lat: lat ?? this.lat,
-        lon: lon ?? this.lon,
+        mood: clearMood ? null : (mood ?? this.mood),
+        weather: clearPlace ? null : (weather ?? this.weather),
+        weatherCode: clearPlace ? null : (weatherCode ?? this.weatherCode),
+        temp: clearPlace ? null : (temp ?? this.temp),
+        place: clearPlace ? null : (place ?? this.place),
+        lat: clearPlace ? null : (lat ?? this.lat),
+        lon: clearPlace ? null : (lon ?? this.lon),
+        steps: steps ?? this.steps,
+        nowPlaying: nowPlaying ?? this.nowPlaying,
+        coverMediaId: clearCover ? null : (coverMediaId ?? this.coverMediaId),
+        wordCount: wordCount ?? this.wordCount,
+        writeMs: writeMs ?? this.writeMs,
+        promptKey: promptKey ?? this.promptKey,
         favorite: favorite ?? this.favorite,
+        pinned: pinned ?? this.pinned,
+        hidden: hidden ?? this.hidden,
+        draft: draft ?? this.draft,
       );
 }

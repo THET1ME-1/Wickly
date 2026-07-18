@@ -2,9 +2,12 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'package:path_provider/path_provider.dart';
+
 import 'data/app_database.dart';
 import 'data/crypto.dart';
 import 'data/db_key.dart';
+import 'data/media_store.dart';
 import 'l10n/locale_controller.dart';
 import 'l10n/strings.dart';
 import 'screens/home_screen.dart';
@@ -20,6 +23,13 @@ Future<void> main() async {
 
   // Ключ шифрования из системного хранилища (Keystore/Keychain) → крипто-слой.
   Crypto.instance.init(await DbKey.getOrCreate());
+
+  // Склад вложений: каталоги приходят снаружи, чтобы сам склад оставался
+  // чистым Dart и проверялся в `tool/db_smoke.dart`.
+  MediaStore.instance.configure(
+    supportDir: (await getApplicationSupportDirectory()).path,
+    tempDir: (await getTemporaryDirectory()).path,
+  );
 
   // Локальное хранилище (SQLite + CRDT). Язык уже загружен — имя дефолтного
   // дневника берём локализованным.

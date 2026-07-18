@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
@@ -38,6 +39,57 @@ class Crypto {
     final clear =
         await _algo.decrypt(SecretBox(cipher, nonce: nonce, mac: mac), secretKey: _key!);
     return (jsonDecode(utf8.decode(clear)) as Map).cast<String, Object?>();
+  }
+
+  /// Шифрует произвольные байты (файлы вложений и бэкапы).
+  /// Формат тот же: nonce ‖ ciphertext ‖ mac — одним блобом.
+  Future<Uint8List> encryptBytes(List<int> bytes) async {
+    final box = await _algo.encrypt(bytes, secretKey: _key!);
+    return Uint8List.fromList(
+        [...box.nonce, ...box.cipherText, ...box.mac.bytes]);
+  }
+
+  Future<Uint8List> decryptBytes(List<int> raw) async {
+    final nonce = raw.sublist(0, 12);
+    final mac = Mac(raw.sublist(raw.length - 16));
+    final cipher = raw.sublist(12, raw.length - 16);
+    final clear = await _algo.decrypt(
+      SecretBox(cipher, nonce: nonce, mac: mac),
+      secretKey: _key!,
+    );
+    return Uint8List.fromList(clear);
+  }
+
+  /// Шифрование произвольным ключом — для бэкапов с парольной фразой,
+  /// которые должны открываться на другом устройстве.
+  Future<Uint8List> encryptBytesWith(List<int> bytes, SecretKey key) async {
+    final box = await _algo.encrypt(bytes, secretKey: key);
+    return Uint8List.fromList(
+        [...box.nonce, ...box.cipherText, ...box.mac.bytes]);
+  }
+
+  Future<Uint8List> decryptBytesWith(List<int> raw, SecretKey key) async {
+    final nonce = raw.sublist(0, 12);
+    final mac = Mac(raw.sublist(raw.length - 16));
+    final cipher = raw.sublist(12, raw.length - 16);
+    final clear = await _algo.decrypt(
+      SecretBox(cipher, nonce: nonce, mac: mac),
+      secretKey: key,
+    );
+    return Uint8List.fromList(clear);
+  }
+
+  /// Ключ из парольной фразы (PBKDF2-HMAC-SHA256) — для шифрованного бэкапа.
+  static Future<SecretKey> keyFromPassphrase(
+    String passphrase,
+    List<int> salt,
+  ) async {
+    final kdf = Pbkdf2(
+      macAlgorithm: Hmac.sha256(),
+      iterations: 120000,
+      bits: 256,
+    );
+    return kdf.deriveKeyFromPassword(password: passphrase, nonce: salt);
   }
 
   static List<int> _hexToBytes(String hex) => [
