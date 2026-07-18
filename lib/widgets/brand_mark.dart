@@ -8,10 +8,7 @@ import 'package:flutter/material.dart';
 class BrandMark extends StatelessWidget {
   final double size;
 
-  /// Тень под знаком — на титульных экранах она уместна, в списке лишняя.
-  final bool glow;
-
-  const BrandMark({super.key, this.size = 76, this.glow = true});
+  const BrandMark({super.key, this.size = 76});
 
   @override
   Widget build(BuildContext context) {
@@ -30,16 +27,6 @@ class BrandMark extends StatelessWidget {
             scheme.primary,
           ],
         ),
-        boxShadow: glow
-            ? [
-                BoxShadow(
-                  color: scheme.primary.withValues(alpha: 0.28),
-                  blurRadius: size * 0.55,
-                  spreadRadius: -size * 0.06,
-                  offset: Offset(0, size * 0.16),
-                ),
-              ]
-            : null,
       ),
       child: Icon(
         Icons.edit_note_rounded,

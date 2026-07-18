@@ -218,8 +218,6 @@ class _SearchBar extends StatelessWidget {
       child: Material(
         color: scheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(WicklyDesign.radiusField),
-        elevation: 2,
-        shadowColor: Colors.black26,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -281,13 +279,6 @@ class _Pin extends StatelessWidget {
             color: scheme.primary,
             shape: BoxShape.circle,
             border: Border.all(color: scheme.onPrimary, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.28),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
           child: Center(
             child: Container(
@@ -321,8 +312,6 @@ class _PlaceCard extends StatelessWidget {
       child: Material(
         color: scheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(WicklyDesign.radiusCard),
-        elevation: 3,
-        shadowColor: Colors.black26,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,

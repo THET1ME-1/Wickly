@@ -112,10 +112,8 @@ class Harness {
     // По умолчанию flutter_test рисует тени сплошным чёрным контуром
     // (debugDisableShadows = true). На снимке это выглядит как жирная обводка
     // у FAB и листов, хотя в приложении тень мягкая. Включаем настоящие тени.
-    // Возвращаем флаг в конце этого же метода: flutter_test проверяет, что
-    // тест не оставил после себя изменённых debug-переменных, и делает это
-    // раньше, чем отработает addTearDown.
-    debugDisableShadows = false;
+    // Тени в приложении сняты полностью (см. WicklyDesign), поэтому флаг
+    // flutter_test оставляем как есть — рисовать нечего.
     // Настройки устройства подменяем в памяти: экраны спрашивают у AppPrefs,
     // включён ли отпечаток, какой стартовый экран и так далее.
     SharedPreferences.setMockInitialValues(prefs);
@@ -152,6 +150,5 @@ class Harness {
         matchesGoldenFile('goldens/${name}_${mode.$1}.png'),
       );
     }
-    debugDisableShadows = true;
   }
 }

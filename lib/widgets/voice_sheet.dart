@@ -386,14 +386,6 @@ class _RecordButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: running ? scheme.errorContainer : scheme.primary,
           shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: (running ? scheme.error : scheme.primary)
-                  .withValues(alpha: 0.3),
-              blurRadius: 22,
-              offset: const Offset(0, 6),
-            ),
-          ],
         ),
         child: Icon(
           running ? Icons.pause_rounded : Icons.mic_rounded,

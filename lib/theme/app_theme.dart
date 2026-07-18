@@ -66,7 +66,7 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         centerTitle: true,
         elevation: 0,
-        scrolledUnderElevation: 2,
+        scrolledUnderElevation: 0,
         backgroundColor: colorScheme.surface,
         foregroundColor: colorScheme.onSurface,
         titleTextStyle: textTheme.titleLarge?.copyWith(
@@ -143,11 +143,12 @@ class AppTheme {
       ),
       // Плавающая кнопка — такая же «таблетка», как остальные кнопки ДНК.
       // Без явной формы M3 рисует прямоугольник с радиусом 16 и обводкой.
+      // Тени нет: интерфейс плоский, глубину держат цвет и форма.
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        elevation: 3,
-        focusElevation: 3,
-        hoverElevation: 4,
-        highlightElevation: 4,
+        elevation: 0,
+        focusElevation: 0,
+        hoverElevation: 0,
+        highlightElevation: 0,
         backgroundColor: colorScheme.primaryContainer,
         foregroundColor: colorScheme.onPrimaryContainer,
         shape: const StadiumBorder(),
@@ -158,7 +159,7 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        elevation: 3,
+        elevation: 0,
         height: 72,
         backgroundColor: colorScheme.surfaceContainer,
         indicatorColor: colorScheme.primaryContainer,

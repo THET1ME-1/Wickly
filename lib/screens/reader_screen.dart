@@ -14,6 +14,7 @@ import '../utils/dates.dart';
 import '../widgets/audio_player_bar.dart';
 import '../widgets/context_chip.dart';
 import '../widgets/markdown_lite.dart';
+import '../widgets/media_grid.dart';
 import '../widgets/media_thumb.dart';
 import '../widgets/media_viewer.dart';
 import '../widgets/pressable.dart';
@@ -163,8 +164,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
     final scheme = Theme.of(context).colorScheme;
     final cover = _media.where((m) => m.isVisual).firstOrNull;
-    final gallery = _media.where((m) => m.isVisual).toList();
-    final audio = _media.where((m) => m.kind == MediaKind.audio).toList();
+    final byId = {for (final m in _media) m.id: m};
+    // Вложения, которых нет в тексте (пришли из старых записей или из синка),
+    // показываем в конце — молча терять их нельзя.
+    final referenced = MarkdownLite.parse(e.body ?? '')
+        .where((b) => b.kind == MdBlockKind.media)
+        .map((b) => b.mediaId)
+        .toSet();
+    final loose = _media.where((m) => !referenced.contains(m.id)).toList();
+    final looseVisual = loose.where((m) => m.kind != MediaKind.audio).toList();
+    final looseAudio = loose.where((m) => m.kind == MediaKind.audio).toList();
 
     return Scaffold(
       body: CustomScrollView(
@@ -201,21 +210,25 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     MarkdownBody(
                       source: e.body!,
                       onToggleTodo: _toggleTodo,
+                      media: byId,
+                      onOpenMedia: (group, index) =>
+                          showMediaViewer(context, group, index),
                     ),
-                  if (audio.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    for (final a in audio)
+                  if (looseVisual.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    MediaGrid(
+                      media: looseVisual,
+                      onOpen: (i) =>
+                          showMediaViewer(context, looseVisual, i),
+                    ),
+                  ],
+                  if (looseAudio.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    for (final a in looseAudio)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: AudioPlayerBar(media: a),
                       ),
-                  ],
-                  if (gallery.isNotEmpty) ...[
-                    const SizedBox(height: 18),
-                    _Gallery(
-                      media: gallery,
-                      onOpen: (i) => showMediaViewer(context, gallery, i),
-                    ),
                   ],
                   if (_tags.isNotEmpty) ...[
                     const SizedBox(height: 18),
@@ -398,95 +411,4 @@ class _RoundIconButton extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Галерея записи: крупный кадр и мелкие рядом, «+N» на последнем.
-class _Gallery extends StatelessWidget {
-  final List<Media> media;
-  final ValueChanged<int> onOpen;
-
-  const _Gallery({required this.media, required this.onOpen});
-
-  @override
-  Widget build(BuildContext context) {
-    if (media.length == 1) {
-      return _tile(media.first, 0, height: 220, width: double.infinity);
-    }
-
-    return LayoutBuilder(builder: (context, c) {
-      const gap = 8.0;
-      final smallSide = (c.maxWidth - gap * 2) / 3;
-      final bigSide = smallSide * 2 + gap;
-      final rest = media.skip(1).take(2).toList();
-      final hidden = media.length - 3;
-
-      return SizedBox(
-        height: bigSide,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _tile(media.first, 0, height: bigSide, width: bigSide),
-            const SizedBox(width: gap),
-            Column(
-              children: [
-                for (var i = 0; i < rest.length; i++) ...[
-                  _tile(
-                    rest[i],
-                    i + 1,
-                    height: smallSide,
-                    width: smallSide,
-                    more: i == rest.length - 1 && hidden > 0 ? hidden : null,
-                  ),
-                  if (i == 0) const SizedBox(height: gap),
-                ],
-              ],
-            ),
-          ],
-        ),
-      );
-    });
-  }
-
-  Widget _tile(
-    Media m,
-    int index, {
-    required double height,
-    required double width,
-    int? more,
-  }) =>
-      PressableScale(
-        child: GestureDetector(
-          onTap: () => onOpen(index),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: SizedBox(
-              width: width,
-              height: height,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  MediaThumb(
-                    media: m,
-                    coverKey: CoverPalette.forSeed(m.id),
-                  ),
-                  if (more != null)
-                    Container(
-                      color: const Color(0x8C000000),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '+$more',
-                        style: const TextStyle(
-                          fontFamily: AppTheme.displayFont,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
 }

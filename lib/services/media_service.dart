@@ -106,20 +106,31 @@ class MediaService {
     return media;
   }
 
-  /// Общий путь для картинки: EXIF, превью, запись в базу.
+  /// Общий путь для картинки: сперва сохранить, потом всё остальное.
+  ///
+  /// Порядок важен. Раньше фото сначала декодировалось ради размеров и превью,
+  /// и на большом снимке с телефона декодер мог не справиться — тогда падало
+  /// всё вместе, и фотография не попадала в запись вообще. Теперь снимок
+  /// сохраняется первым, а EXIF, размеры и превью считаются по мере
+  /// возможности: не вышло — останется фото без превью, а не пустота.
   static Future<Media?> _attachImage(
     String entryId,
     XFile file, {
     required int sort,
   }) async {
-    final bytes = await file.readAsBytes();
+    final Uint8List bytes;
+    final String name;
+    try {
+      bytes = await file.readAsBytes();
+      name = await MediaStore.instance.put(bytes, ext: _extOf(file.path));
+    } catch (_) {
+      // Файл не прочитался или диск занят — прикрепить нечего.
+      return null;
+    }
+
     final exif = await _readExif(bytes);
-    final name = await MediaStore.instance.put(
-      bytes,
-      ext: file.path.split('.').last.toLowerCase(),
-    );
     final thumb = await _makeThumb(bytes);
-    final decoded = img.decodeImage(bytes);
+    final size = _sizeOf(bytes);
 
     final media = Media.create(
       entryId: entryId,
@@ -130,11 +141,32 @@ class MediaService {
       takenAt: exif.takenAt,
       lat: exif.lat,
       lon: exif.lon,
-      width: decoded?.width,
-      height: decoded?.height,
+      width: size?.$1,
+      height: size?.$2,
     );
     await MediaRepository.instance.insert(media);
     return media;
+  }
+
+  /// Расширение файла. Путь без точки дал бы имя с косыми чертами, и запись
+  /// на диск упала бы на ровном месте.
+  static String _extOf(String path) {
+    final name = path.split(Platform.pathSeparator).last;
+    if (!name.contains('.')) return 'jpg';
+    final ext = name.split('.').last.toLowerCase();
+    return RegExp(r'^[a-z0-9]{1,5}$').hasMatch(ext) ? ext : 'jpg';
+  }
+
+  /// Размеры кадра. Формат может оказаться незнакомым (HEIC с айфона) —
+  /// тогда сетка возьмёт пропорции по умолчанию.
+  static (int, int)? _sizeOf(Uint8List bytes) {
+    try {
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return null;
+      return (decoded.width, decoded.height);
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<String?> _makeThumb(Uint8List bytes) async {

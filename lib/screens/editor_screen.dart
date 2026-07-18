@@ -20,8 +20,10 @@ import '../utils/dates.dart';
 import '../utils/markdown_edit.dart';
 import '../widgets/context_chip.dart';
 import '../widgets/markdown_controller.dart';
+import '../widgets/media_grid.dart';
+import '../widgets/media_viewer.dart';
+import 'editor_blocks.dart';
 import '../widgets/markdown_lite.dart';
-import '../widgets/media_thumb.dart';
 import '../widgets/mood_sheet.dart';
 import '../widgets/sketch_sheet.dart';
 import '../widgets/voice_sheet.dart';
@@ -59,11 +61,16 @@ class EditorScreen extends StatefulWidget {
 
 class _EditorScreenState extends State<EditorScreen> {
   late final TextEditingController _title;
-  late final MarkdownEditingController _body;
-  final _bodyFocus = FocusNode();
+
+  /// Запись как лента блоков: абзацы текста и сетки вложений между ними.
+  late List<EditorBlock> _blocks;
+
+  /// Куда писать и что форматировать — последний текстовый блок в фокусе.
+  TextBlock? _active;
 
   late Entry _entry;
   List<Media> _media = const [];
+  Map<String, Media> _mediaById = const {};
   List<Journal> _journals = const [];
 
   Timer? _autosave;
@@ -84,9 +91,12 @@ class _EditorScreenState extends State<EditorScreen> {
           draft: true,
         );
     _title = TextEditingController(text: _entry.title ?? '');
-    _body = MarkdownEditingController(text: _entry.body ?? '');
     _title.addListener(_onChanged);
-    _body.addListener(_onChanged);
+    _blocks = EditorDocument.parse(_entry.body);
+    for (final b in _blocks) {
+      if (b is TextBlock) _watch(b);
+    }
+    _active = _blocks.whereType<TextBlock>().firstOrNull;
 
     _loadJournals();
     if (widget.entry == null) {
@@ -151,14 +161,86 @@ class _EditorScreenState extends State<EditorScreen> {
   void dispose() {
     _autosave?.cancel();
     _title.dispose();
-    _body.dispose();
-    _bodyFocus.dispose();
+    for (final b in _blocks) {
+      if (b is TextBlock) b.dispose();
+    }
     super.dispose();
+  }
+
+  /// Каждый текстовый блок сам сообщает о правках и о том, что он в фокусе.
+  void _watch(TextBlock block) {
+    block.controller.addListener(_onChanged);
+    block.focus.addListener(() {
+      if (block.focus.hasFocus) _active = block;
+    });
+  }
+
+  /// Текст записи целиком — из него считаются слова, теги и превью.
+  String get _bodyText => EditorDocument.serialize(_blocks);
+
+  TextBlock _newTextBlock([String text = '']) {
+    final block = TextBlock(text: text);
+    _watch(block);
+    return block;
   }
 
   Future<void> _loadMedia() async {
     final media = await MediaRepository.instance.forEntry(_entry.id);
-    if (mounted) setState(() => _media = media);
+    if (!mounted) return;
+    setState(() {
+      _media = media;
+      _mediaById = {for (final m in media) m.id: m};
+    });
+  }
+
+  /// Ставит вложения туда, где стоит курсор: текстовый блок разрезается, а
+  /// между половинами появляется сетка.
+  void _insertMedia(List<Media> added) {
+    if (added.isEmpty) return;
+    final ids = added.map((m) => m.id).toList();
+    final active = _active;
+    final index = active == null ? -1 : _blocks.indexOf(active);
+
+    setState(() {
+      if (active == null || index < 0) {
+        _blocks.add(MediaBlock(ids));
+        final tail = _newTextBlock();
+        _blocks.add(tail);
+        _active = tail;
+        return;
+      }
+
+      final text = active.controller.text;
+      final at = active.controller.selection.baseOffset.clamp(0, text.length);
+      final before = text.substring(0, at);
+      final after = text.substring(at);
+
+      active.controller.text = before;
+      final tail = _newTextBlock(after);
+      _blocks
+        ..insert(index + 1, MediaBlock(ids))
+        ..insert(index + 2, tail);
+      _active = tail;
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => tail.focus.requestFocus());
+    });
+    _dirty = true;
+    _scheduleSave();
+  }
+
+  /// Убирает вложение из текста и из записи.
+  Future<void> _removeMedia(Media m) async {
+    setState(() {
+      for (final block in _blocks.whereType<MediaBlock>()) {
+        block.mediaIds.remove(m.id);
+      }
+      _blocks.removeWhere((b) => b is MediaBlock && b.mediaIds.isEmpty);
+      if (_blocks.isEmpty) _blocks.add(_newTextBlock());
+    });
+    await MediaRepository.instance.delete(m);
+    await _loadMedia();
+    _dirty = true;
+    _scheduleSave();
   }
 
   /// Место и погода подставляются сами — если человек это разрешил.
@@ -198,7 +280,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (_saving) return;
     _saving = true;
 
-    final body = _body.text;
+    final body = _bodyText;
     final entry = _entry.copyWith(
       title: _title.text.trim(),
       body: body,
@@ -225,7 +307,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   /// Пустую запись при выходе не оставляем: иначе лента засоряется призраками.
   bool get _isEmpty =>
-      _title.text.trim().isEmpty && _body.text.trim().isEmpty && _media.isEmpty;
+      _title.text.trim().isEmpty && _bodyText.trim().isEmpty && _media.isEmpty;
 
   Future<void> _close() async {
     _autosave?.cancel();
@@ -247,14 +329,19 @@ class _EditorScreenState extends State<EditorScreen> {
   // ------------------------------ Действия ------------------------------
 
   void _format(String marker, {bool prefix = false}) {
+    final active = _active ?? _blocks.whereType<TextBlock>().firstOrNull;
+    if (active == null) return;
+    final controller = active.controller;
     final result = prefix
-        ? MarkdownEdit.togglePrefix(_body.text, _body.selection, marker)
-        : MarkdownEdit.toggleInline(_body.text, _body.selection, marker);
-    _body.value = TextEditingValue(
+        ? MarkdownEdit.togglePrefix(
+            controller.text, controller.selection, marker)
+        : MarkdownEdit.toggleInline(
+            controller.text, controller.selection, marker);
+    controller.value = TextEditingValue(
       text: result.text,
       selection: result.selection,
     );
-    _bodyFocus.requestFocus();
+    active.focus.requestFocus();
   }
 
   Future<void> _pickDate() async {
@@ -305,20 +392,26 @@ class _EditorScreenState extends State<EditorScreen> {
     await _save();
     final added = await MediaService.pickPhotos(_entry.id,
         sortFrom: _media.length);
-    if (added.isNotEmpty) _loadMedia();
+    if (added.isEmpty) return;
+    await _loadMedia();
+    _insertMedia(added);
   }
 
   Future<void> _takePhoto() async {
     await _save();
     final added =
         await MediaService.takePhoto(_entry.id, sort: _media.length);
-    if (added != null) _loadMedia();
+    if (added == null) return;
+    await _loadMedia();
+    _insertMedia([added]);
   }
 
   Future<void> _addVideo() async {
     await _save();
     final added = await MediaService.pickVideo(_entry.id, sort: _media.length);
-    if (added != null) _loadMedia();
+    if (added == null) return;
+    await _loadMedia();
+    _insertMedia([added]);
   }
 
   Future<void> _addSketch() async {
@@ -326,8 +419,10 @@ class _EditorScreenState extends State<EditorScreen> {
     if (!mounted) return;
     final png = await showSketchSheet(context);
     if (png == null) return;
-    await MediaService.attachSketch(_entry.id, png, sort: _media.length);
-    _loadMedia();
+    final added =
+        await MediaService.attachSketch(_entry.id, png, sort: _media.length);
+    await _loadMedia();
+    _insertMedia([added]);
   }
 
   Future<void> _voice() async {
@@ -336,28 +431,29 @@ class _EditorScreenState extends State<EditorScreen> {
     final result = await showVoiceSheet(context, entryId: _entry.id);
     if (result == null || !mounted) return;
 
-    if (result.transcript != null && result.transcript!.isNotEmpty) {
-      final insertion =
-          _body.text.isEmpty ? result.transcript! : ' ${result.transcript!}';
-      final edit =
-          MarkdownEdit.insert(_body.text, _body.selection, insertion);
-      _body.value =
+    final active = _active ?? _blocks.whereType<TextBlock>().firstOrNull;
+    if (result.transcript != null &&
+        result.transcript!.isNotEmpty &&
+        active != null) {
+      final controller = active.controller;
+      final insertion = controller.text.isEmpty
+          ? result.transcript!
+          : ' ${result.transcript!}';
+      final edit = MarkdownEdit.insert(
+          controller.text, controller.selection, insertion);
+      controller.value =
           TextEditingValue(text: edit.text, selection: edit.selection);
     }
     if (result.audioPath != null) {
-      await MediaService.attachAudio(
+      final added = await MediaService.attachAudio(
         _entry.id,
         result.audioPath!,
         durationMs: result.durationMs,
         sort: _media.length,
       );
-      _loadMedia();
+      await _loadMedia();
+      _insertMedia([added]);
     }
-  }
-
-  Future<void> _removeMedia(Media m) async {
-    await MediaRepository.instance.delete(m);
-    _loadMedia();
   }
 
   // ------------------------------- Вид -------------------------------
@@ -365,7 +461,7 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final words = MarkdownLite.wordCount(_body.text);
+    final words = MarkdownLite.wordCount(_bodyText);
 
     return PopScope(
       canPop: false,
@@ -431,32 +527,10 @@ class _EditorScreenState extends State<EditorScreen> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  TextField(
-                    controller: _body,
-                    focusNode: _bodyFocus,
-                    maxLines: null,
-                    minLines: 6,
-                    textCapitalization: TextCapitalization.sentences,
-                    keyboardType: TextInputType.multiline,
-                    style: TextStyle(
-                      fontFamily: AppTheme.bodyFont,
-                      fontSize: 15,
-                      height: 1.5,
-                      color: scheme.onSurface,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: tr('entry_body_hint'),
-                      filled: false,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    onChanged: _onBodyChanged,
-                  ),
-                  const SizedBox(height: 14),
-                  _mediaStrip(),
-                  const SizedBox(height: 10),
+                  // Лента блоков: абзацы и сетки вложений между ними.
+                  for (var i = 0; i < _blocks.length; i++)
+                    _buildBlock(context, _blocks[i], i),
+                  const SizedBox(height: 12),
                   Text(
                     '${Dates.wordCount(words)} · '
                     '${Dates.minutes(DateTime.now().difference(_openedAt).inMilliseconds + _entry.writeMs)}',
@@ -485,22 +559,69 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
+  Widget _buildBlock(BuildContext context, EditorBlock block, int index) {
+    final scheme = Theme.of(context).colorScheme;
+
+    switch (block) {
+      case TextBlock(:final controller, :final focus):
+        return TextField(
+          controller: controller,
+          focusNode: focus,
+          maxLines: null,
+          // Высоту держит только пустая запись — чтобы было куда нажать.
+          // Как только в записи что-то есть, блоки растут по содержимому:
+          // иначе перед фотографией зияет пустая полоса.
+          minLines: index == 0 && _blocks.length == 1 ? 5 : 1,
+          textCapitalization: TextCapitalization.sentences,
+          keyboardType: TextInputType.multiline,
+          style: TextStyle(
+            fontFamily: AppTheme.bodyFont,
+            fontSize: 15,
+            height: 1.5,
+            color: scheme.onSurface,
+          ),
+          decoration: InputDecoration(
+            hintText: index == 0 ? tr('entry_body_hint') : null,
+            filled: false,
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 4),
+          ),
+          onChanged: (value) => _continueList(controller, value),
+        );
+
+      case MediaBlock(:final mediaIds):
+        final items = [
+          for (final id in mediaIds)
+            if (_mediaById[id] != null) _mediaById[id]!,
+        ];
+        if (items.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: MediaGrid(
+            media: items,
+            onOpen: (i) => showMediaViewer(context, items, i),
+            onRemove: _removeMedia,
+          ),
+        );
+    }
+  }
+
   /// Enter внутри списка продолжает список.
-  void _onBodyChanged(String value) {
+  void _continueList(MarkdownEditingController controller, String value) {
     if (!value.endsWith('\n')) return;
-    final selection = TextSelection.collapsed(offset: _body.selection.start);
     final before = value.substring(0, value.length - 1);
     final result = MarkdownEdit.continueList(
       before,
       TextSelection.collapsed(offset: before.length),
     );
     if (result == null) return;
-    _body.value = TextEditingValue(
+    controller.value = TextEditingValue(
       text: result.text,
       selection: result.selection,
     );
-    // selection выше уже учтён — переменная нужна лишь для читаемости.
-    assert(selection.isValid || true);
   }
 
   Widget _contextChips() {
@@ -536,80 +657,6 @@ class _EditorScreenState extends State<EditorScreen> {
             icon: ContextService.weatherIcon(e.weatherCode),
             label: ContextService.weatherChip(e.temp, e.weather),
           ),
-      ],
-    );
-  }
-
-  Widget _mediaStrip() {
-    final scheme = Theme.of(context).colorScheme;
-    return SizedBox(
-      height: 78,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          for (final m in _media) ...[
-            _MediaTile(media: m, onRemove: () => _removeMedia(m)),
-            const SizedBox(width: 8),
-          ],
-          // Плитка «плюс» — тот же размер, чтобы ряд не прыгал.
-          GestureDetector(
-            onTap: _addPhotos,
-            child: Container(
-              width: 78,
-              height: 78,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: scheme.outlineVariant, width: 1.5),
-              ),
-              child: Icon(Icons.add_rounded, color: scheme.onSurfaceVariant),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Плитка вложения в редакторе с крестиком.
-class _MediaTile extends StatelessWidget {
-  final Media media;
-  final VoidCallback onRemove;
-
-  const _MediaTile({required this.media, required this.onRemove});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Stack(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: SizedBox(
-            width: 78,
-            height: 78,
-            child: MediaThumb(
-              media: media,
-              coverKey: CoverPalette.forSeed(media.id),
-            ),
-          ),
-        ),
-        Positioned(
-          right: 2,
-          top: 2,
-          child: GestureDetector(
-            onTap: onRemove,
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                color: scheme.surface.withValues(alpha: 0.85),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.close_rounded,
-                  size: 14, color: scheme.onSurface),
-            ),
-          ),
-        ),
       ],
     );
   }

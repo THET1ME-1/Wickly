@@ -1,9 +1,26 @@
 import 'package:flutter/material.dart';
 
+import '../models/media.dart';
 import '../theme/app_theme.dart';
+import 'audio_player_bar.dart';
+import 'media_grid.dart';
 
 /// Вид строки-блока в тексте записи.
-enum MdBlockKind { paragraph, heading, quote, bullet, numbered, todo, divider }
+enum MdBlockKind {
+  paragraph,
+  heading,
+  quote,
+  bullet,
+  numbered,
+  todo,
+  divider,
+
+  /// Вложение внутри текста: `![](media:ID)`.
+  ///
+  /// Фото живёт там, куда его поставил человек, а не отдельной полосой внизу.
+  /// Идущие подряд вложения рендерятся одной сеткой.
+  media,
+}
 
 /// Разобранная строка текста записи.
 class MdBlock {
@@ -19,12 +36,16 @@ class MdBlock {
   /// Номер исходной строки — по нему чеклист меняет текст на месте.
   final int line;
 
+  /// Id вложения для [MdBlockKind.media].
+  final String? mediaId;
+
   const MdBlock({
     required this.kind,
     required this.text,
     this.level = 0,
     this.checked = false,
     required this.line,
+    this.mediaId,
   });
 }
 
@@ -43,6 +64,11 @@ class MarkdownLite {
   static final _bullet = RegExp(r'^[-*]\s+(.*)$');
   static final _numbered = RegExp(r'^(\d+)[.)]\s+(.*)$');
   static final _divider = RegExp(r'^(-{3,}|\*{3,})$');
+  static final _media = RegExp(r'^!\[\]\(media:([A-Za-z0-9-]+)\)$');
+
+  /// Как вложение записывается в текст. Формат нарочно похож на markdown:
+  /// экспорт превращает его в обычную картинку, а не в мусор.
+  static String mediaToken(String mediaId) => '![](media:$mediaId)';
 
   /// Разбирает текст на блоки построчно.
   static List<MdBlock> parse(String source) {
@@ -53,6 +79,16 @@ class MarkdownLite {
       final line = raw.trimRight();
       if (line.trim().isEmpty) continue;
 
+      final media = _media.firstMatch(line.trim());
+      if (media != null) {
+        out.add(MdBlock(
+          kind: MdBlockKind.media,
+          text: '',
+          line: i,
+          mediaId: media.group(1),
+        ));
+        continue;
+      }
       if (_divider.hasMatch(line.trim())) {
         out.add(MdBlock(kind: MdBlockKind.divider, text: '', line: i));
         continue;
@@ -108,7 +144,8 @@ class MarkdownLite {
   static String strip(String? source) {
     if (source == null || source.isEmpty) return '';
     return parse(source)
-        .where((b) => b.kind != MdBlockKind.divider)
+        .where((b) =>
+            b.kind != MdBlockKind.divider && b.kind != MdBlockKind.media)
         .map((b) => _stripInline(b.text))
         .join(' ')
         .replaceAll(RegExp(r'\s+'), ' ')
@@ -159,24 +196,77 @@ class MarkdownBody extends StatelessWidget {
   /// Размер основного текста — читалка уважает выбранный масштаб.
   final double fontSize;
 
+  /// Вложения записи по их id — то, на что ссылается текст.
+  final Map<String, Media> media;
+
+  /// Открыть просмотр вложения.
+  final void Function(List<Media> group, int index)? onOpenMedia;
+
   const MarkdownBody({
     super.key,
     required this.source,
     this.onToggleTodo,
     this.fontSize = 15,
+    this.media = const {},
+    this.onOpenMedia,
   });
 
   @override
   Widget build(BuildContext context) {
     final blocks = MarkdownLite.parse(source);
+    final children = <Widget>[];
+
+    for (var i = 0; i < blocks.length; i++) {
+      final b = blocks[i];
+
+      // Идущие подряд вложения собираем в одну сетку: человек вставил их в
+      // одно место, значит и смотреть их надо вместе.
+      if (b.kind == MdBlockKind.media) {
+        final group = <Media>[];
+        while (i < blocks.length && blocks[i].kind == MdBlockKind.media) {
+          final m = media[blocks[i].mediaId];
+          if (m != null) group.add(m);
+          i++;
+        }
+        i--;
+        if (group.isEmpty) continue;
+        children.add(Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: _mediaGroup(context, group),
+        ));
+        continue;
+      }
+
+      children.add(Padding(
+        padding:
+            EdgeInsets.only(bottom: b.kind == MdBlockKind.divider ? 14 : 8),
+        child: _block(context, b),
+      ));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
+  }
+
+  /// Голос показывается плеером, а не плиткой: у него нечего разглядывать.
+  Widget _mediaGroup(BuildContext context, List<Media> group) {
+    final audio = group.where((m) => m.kind == MediaKind.audio).toList();
+    final visual = group.where((m) => m.kind != MediaKind.audio).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final b in blocks)
+        if (visual.isNotEmpty)
+          MediaGrid(
+            media: visual,
+            onOpen: (index) => onOpenMedia?.call(visual, index),
+          ),
+        for (final a in audio)
           Padding(
-            padding: EdgeInsets.only(
-                bottom: b.kind == MdBlockKind.divider ? 14 : 8),
-            child: _block(context, b),
+            padding: const EdgeInsets.only(top: 8),
+            child: AudioPlayerBar(media: a),
           ),
       ],
     );
@@ -185,6 +275,10 @@ class MarkdownBody extends StatelessWidget {
   Widget _block(BuildContext context, MdBlock b) {
     final scheme = Theme.of(context).colorScheme;
     switch (b.kind) {
+      // Вложения собираются группами в build — сюда они не доходят.
+      case MdBlockKind.media:
+        return const SizedBox.shrink();
+
       case MdBlockKind.divider:
         return Divider(color: scheme.outlineVariant);
 

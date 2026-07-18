@@ -37,6 +37,9 @@ class MediaThumb extends StatefulWidget {
 class _MediaThumbState extends State<MediaThumb> {
   Uint8List? _bytes;
 
+  /// Файл не открылся: показываем это честно, а не тёплым градиентом.
+  bool _broken = false;
+
   @override
   void initState() {
     super.initState();
@@ -52,10 +55,15 @@ class _MediaThumbState extends State<MediaThumb> {
   Future<void> _load() async {
     final m = widget.media;
     if (m == null || m.kind == MediaKind.audio) return;
-    // У видео показываем превью-кадр, у фото — само фото.
-    final name = m.thumb ?? m.file;
-    final bytes = await MediaStore.instance.read(name);
-    if (mounted) setState(() => _bytes = bytes);
+    // У видео показываем превью-кадр, у фото — само фото. Превью может не
+    // получиться (мелкий снимок, незнакомый формат) — тогда берём оригинал.
+    var bytes = await MediaStore.instance.read(m.thumb ?? m.file);
+    bytes ??= m.thumb == null ? null : await MediaStore.instance.read(m.file);
+    if (!mounted) return;
+    setState(() {
+      _bytes = bytes;
+      _broken = bytes == null;
+    });
   }
 
   @override
@@ -73,7 +81,15 @@ class _MediaThumbState extends State<MediaThumb> {
         child: Icon(Icons.graphic_eq_rounded,
             color: scheme.onSurfaceVariant, size: 26),
       );
+    } else if (_broken) {
+      layer = Container(
+        color: scheme.surfaceContainerHighest,
+        alignment: Alignment.center,
+        child: Icon(Icons.broken_image_rounded,
+            color: scheme.onSurfaceVariant, size: 26),
+      );
     } else {
+      // Пока байты едут — тёплая заглушка обложки.
       layer = DecoratedBox(
         decoration: BoxDecoration(
           gradient: CoverPalette.gradient(widget.coverKey),
