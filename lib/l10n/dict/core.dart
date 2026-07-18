@@ -147,6 +147,19 @@ const Map<String, Map<String, String>> coreStrings = {
     'ru': 'Палитры', 'en': 'Presets', 'de': 'Paletten', 'fr': 'Palettes',
     'es': 'Paletas', 'it': 'Palette', 'pt': 'Paletas',
   },
+  'theme_intensity': {
+    'ru': 'Насыщенность', 'en': 'Intensity', 'de': 'Intensität',
+    'fr': 'Intensité', 'es': 'Intensidad', 'it': 'Intensità',
+    'pt': 'Intensidade',
+  },
+  'theme_vibrant': {
+    'ru': 'Сочно', 'en': 'Vibrant', 'de': 'Kräftig', 'fr': 'Vif',
+    'es': 'Vivo', 'it': 'Vivace', 'pt': 'Vibrante',
+  },
+  'theme_faithful': {
+    'ru': 'Точь-в-точь', 'en': 'Faithful', 'de': 'Originalgetreu',
+    'fr': 'Fidèle', 'es': 'Fiel', 'it': 'Fedele', 'pt': 'Fiel',
+  },
   'custom_color': {
     'ru': 'Свой цвет', 'en': 'Custom color', 'de': 'Eigene Farbe',
     'fr': 'Couleur personnalisée', 'es': 'Color propio',

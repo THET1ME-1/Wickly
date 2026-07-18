@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/app_prefs.dart';
 import '../l10n/strings.dart';
 import '../theme/app_theme.dart';
-import '../widgets/appearance_settings.dart';
+import '../widgets/appearance_card.dart';
 import '../widgets/settings_scaffold.dart';
 import 'settings_screen.dart';
 
@@ -30,25 +30,9 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
-          AppearanceSettings(
-            presets: kWicklyPresets,
-            labels: AppearanceLabels(
-              section: tr('theme'),
-              themeMode: tr('theme'),
-              themeModeSheetTitle: tr('theme_sheet_title'),
-              light: tr('theme_light'),
-              dark: tr('theme_dark'),
-              system: tr('theme_system'),
-              autoTime: tr('theme_auto'),
-              amoled: tr('amoled'),
-              amoledSub: tr('amoled_sub'),
-              dynamicColor: tr('material_you'),
-              dynamicColorSub: tr('material_you_sub'),
-              themeColor: tr('theme_color'),
-              themeColorDefault: tr('theme_color_default'),
-              presets: tr('presets'),
-            ),
-          ),
+          SettingsSection(tr('theme')),
+          const AppearanceCard(presets: kWicklyPresets),
+          const SizedBox(height: 4),
 
           SettingsSection(tr('text_size')),
           SettingsGroup([

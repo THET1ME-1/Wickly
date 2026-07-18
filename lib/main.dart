@@ -75,8 +75,12 @@ class WicklyApp extends StatelessWidget {
           return MaterialApp(
             title: 'Wickly',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.light(seed),
-            darkTheme: AppTheme.dark(seed, amoled: theme.amoled),
+            theme: AppTheme.light(seed, vibrant: theme.vibrantScheme),
+            darkTheme: AppTheme.dark(
+              seed,
+              amoled: theme.amoled,
+              vibrant: theme.vibrantScheme,
+            ),
             themeMode: theme.themeMode,
             locale: locale.locale,
             supportedLocales: LocaleController.supported,
