@@ -49,6 +49,9 @@ class UpdateService {
       request.headers
           .set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
       final response = await request.close();
+      // 404 — полных релизов нет, одни предрелизы. Это не сбой: обновляться
+      // не на что, и «не удалось проверить» тут соврало бы.
+      if (response.statusCode == HttpStatus.notFound) return null;
       if (response.statusCode != 200) {
         throw HttpException('GitHub API ${response.statusCode}');
       }
