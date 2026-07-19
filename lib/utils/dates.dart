@@ -41,6 +41,27 @@ class Dates {
   static String monthYear(DateTime d) =>
       _capitalize(DateFormat('LLLL yyyy', _loc).format(d));
 
+  /// «16 июля, четверг» — заголовок дня в списке и в колонке дня. Дата
+  /// впереди: по ней ищут глазами, а день недели уточняет.
+  static String dayWithWeekday(DateTime d) =>
+      '${dayMonth(d)}, ${DateFormat('EEEE', _loc).format(d)}';
+
+  /// «8 200» — число с разрядами, чтобы крупная цифра читалась с одного
+  /// взгляда.
+  static String grouped(int n) {
+    final digits = n.abs().toString();
+    final out = StringBuffer(n < 0 ? '-' : '');
+    for (var i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) out.write('\u2009');
+      out.write(digits[i]);
+    }
+    return out.toString();
+  }
+
+  /// «Июль» — месяц без года: год стоит рядом отдельной строкой.
+  static String monthOnly(DateTime d) =>
+      _capitalize(DateFormat('LLLL', _loc).format(d));
+
   /// «17 июля 2023»
   static String full(DateTime d) => DateFormat('d MMMM yyyy', _loc).format(d);
 

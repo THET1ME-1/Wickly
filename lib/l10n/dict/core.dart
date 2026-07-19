@@ -443,6 +443,139 @@ const Map<String, Map<String, String>> coreStrings = {
     'it': 'Dimensione del testo', 'pt': 'Tamanho do texto',
   },
 
+  'favorites': {
+    'ru': 'Избранное', 'en': 'Favorites', 'de': 'Favoriten', 'fr': 'Favoris',
+    'es': 'Favoritos', 'it': 'Preferiti', 'pt': 'Favoritos',
+  },
+  'prev_month': {
+    'ru': 'Прошлый месяц', 'en': 'Previous month', 'de': 'Voriger Monat',
+    'fr': 'Mois précédent', 'es': 'Mes anterior', 'it': 'Mese precedente',
+    'pt': 'Mês anterior',
+  },
+  'next_month': {
+    'ru': 'Следующий месяц', 'en': 'Next month', 'de': 'Nächster Monat',
+    'fr': 'Mois suivant', 'es': 'Mes siguiente', 'it': 'Mese successivo',
+    'pt': 'Próximo mês',
+  },
+  'synced': {
+    'ru': 'Синхронизировано', 'en': 'Synced', 'de': 'Synchronisiert',
+    'fr': 'Synchronisé', 'es': 'Sincronizado', 'it': 'Sincronizzato',
+    'pt': 'Sincronizado',
+  },
+  'sync_never': {
+    'ru': 'Ещё не синхронизировано', 'en': 'Not synced yet',
+    'de': 'Noch nicht synchronisiert', 'fr': 'Pas encore synchronisé',
+    'es': 'Aún sin sincronizar', 'it': 'Non ancora sincronizzato',
+    'pt': 'Ainda não sincronizado',
+  },
+  'tags': {
+    'ru': 'Теги', 'en': 'Tags', 'de': 'Tags', 'fr': 'Étiquettes',
+    'es': 'Etiquetas', 'it': 'Tag', 'pt': 'Tags',
+  },
+  'days_short': {
+    'ru': '{n} дн.', 'en': '{n} d', 'de': '{n} T.', 'fr': '{n} j',
+    'es': '{n} d', 'it': '{n} gg', 'pt': '{n} d',
+  },
+  'day_mood': {
+    'ru': 'Как день', 'en': 'How the day went', 'de': 'Wie der Tag war',
+    'fr': 'La journée', 'es': 'Cómo fue el día', 'it': 'Com’è andata',
+    'pt': 'Como foi o dia',
+  },
+  'write_on_day': {
+    'ru': 'Записать этим днём', 'en': 'Write for this day',
+    'de': 'Für diesen Tag schreiben', 'fr': 'Écrire pour ce jour',
+    'es': 'Escribir para ese día', 'it': 'Scrivi per questo giorno',
+    'pt': 'Escrever para esse dia',
+  },
+  'write_on_day_sub': {
+    'ru': 'задним числом, без потери порядка',
+    'en': 'backdated, order stays intact',
+    'de': 'rückdatiert, die Reihenfolge bleibt',
+    'fr': 'antidaté, l’ordre est conservé',
+    'es': 'con fecha anterior, sin romper el orden',
+    'it': 'retrodatato, l’ordine resta',
+    'pt': 'com data anterior, sem quebrar a ordem',
+  },
+  'month_written': {
+    'ru': 'записано {a} из {b} дней', 'en': 'written {a} of {b} days',
+    'de': '{a} von {b} Tagen beschrieben', 'fr': '{a} jours sur {b} écrits',
+    'es': 'escritos {a} de {b} días', 'it': 'scritti {a} giorni su {b}',
+    'pt': 'escritos {a} de {b} dias',
+  },
+  'month_words': {
+    'ru': 'слов за месяц', 'en': 'words this month', 'de': 'Wörter im Monat',
+    'fr': 'mots ce mois', 'es': 'palabras del mes', 'it': 'parole nel mese',
+    'pt': 'palavras no mês',
+  },
+  'days_written': {
+    'ru': 'дней с записью', 'en': 'days with an entry',
+    'de': 'Tage mit Eintrag', 'fr': 'jours avec une entrée',
+    'es': 'días con anotación', 'it': 'giorni con una voce',
+    'pt': 'dias com anotação',
+  },
+  'days_in_row': {
+    'ru': 'дней подряд', 'en': 'days in a row', 'de': 'Tage in Folge',
+    'fr': 'jours d’affilée', 'es': 'días seguidos', 'it': 'giorni di fila',
+    'pt': 'dias seguidos',
+  },
+  'mood_average': {
+    'ru': 'среднее настроение', 'en': 'average mood',
+    'de': 'durchschnittliche Stimmung', 'fr': 'humeur moyenne',
+    'es': 'ánimo medio', 'it': 'umore medio', 'pt': 'humor médio',
+  },
+  'filter_all': {
+    'ru': 'Все', 'en': 'All', 'de': 'Alle', 'fr': 'Tout', 'es': 'Todo',
+    'it': 'Tutte', 'pt': 'Todas',
+  },
+  'filter_photo': {
+    'ru': 'С фото', 'en': 'With photos', 'de': 'Mit Fotos',
+    'fr': 'Avec photos', 'es': 'Con fotos', 'it': 'Con foto',
+    'pt': 'Com fotos',
+  },
+  'desktop_layout': {
+    'ru': 'Раскладка', 'en': 'Layout', 'de': 'Anordnung', 'fr': 'Disposition',
+    'es': 'Disposición', 'it': 'Disposizione', 'pt': 'Disposição',
+  },
+  'layout_board': {
+    'ru': 'Стол', 'en': 'Board', 'de': 'Tisch', 'fr': 'Table',
+    'es': 'Mesa', 'it': 'Tavolo', 'pt': 'Mesa',
+  },
+  'layout_board_sub': {
+    'ru': 'доска записей, дневники слева, сегодня справа',
+    'en': 'a board of entries, journals on the left, today on the right',
+    'de': 'Pinnwand mit Einträgen, Tagebücher links, Heute rechts',
+    'fr': 'un tableau d’entrées, journaux à gauche, aujourd’hui à droite',
+    'es': 'tablero de anotaciones, diarios a la izquierda, hoy a la derecha',
+    'it': 'bacheca di voci, diari a sinistra, oggi a destra',
+    'pt': 'quadro de anotações, diários à esquerda, hoje à direita',
+  },
+  'layout_spread': {
+    'ru': 'Разворот', 'en': 'Spread', 'de': 'Doppelseite', 'fr': 'Double page',
+    'es': 'Doble página', 'it': 'Doppia pagina', 'pt': 'Página dupla',
+  },
+  'layout_spread_sub': {
+    'ru': 'список слева, запись во всю высоту справа',
+    'en': 'the list on the left, the entry full height on the right',
+    'de': 'Liste links, Eintrag rechts in voller Höhe',
+    'fr': 'la liste à gauche, l’entrée en pleine hauteur à droite',
+    'es': 'la lista a la izquierda, la anotación a toda altura a la derecha',
+    'it': 'elenco a sinistra, voce a tutta altezza a destra',
+    'pt': 'a lista à esquerda, a anotação em altura total à direita',
+  },
+  'layout_chronicle': {
+    'ru': 'Хроника', 'en': 'Chronicle', 'de': 'Chronik', 'fr': 'Chronique',
+    'es': 'Crónica', 'it': 'Cronaca', 'pt': 'Crônica',
+  },
+  'layout_chronicle_sub': {
+    'ru': 'месяц цветом настроения, записи дня рядом',
+    'en': 'the month coloured by mood, the day’s entries beside it',
+    'de': 'der Monat in Stimmungsfarben, die Einträge des Tages daneben',
+    'fr': 'le mois coloré par l’humeur, les entrées du jour à côté',
+    'es': 'el mes coloreado por el ánimo, las anotaciones del día al lado',
+    'it': 'il mese colorato dall’umore, le voci del giorno accanto',
+    'pt': 'o mês colorido pelo humor, as anotações do dia ao lado',
+  },
+
   // ---------------------------- Десктоп ----------------------------
   'desktop': {
     'ru': 'Широкое окно', 'en': 'Wide window', 'de': 'Breites Fenster',

@@ -60,6 +60,10 @@ class FeedView extends StatefulWidget {
   final VoidCallback? onOpenMemories;
   final VoidCallback? onOpenStreak;
 
+  /// Дневник, которым сужена лента: показывается снимаемым чипом в шапке.
+  final String? filterLabel;
+  final VoidCallback? onClearFilter;
+
   const FeedView({
     super.key,
     required this.data,
@@ -69,6 +73,8 @@ class FeedView extends StatefulWidget {
     this.onMenu,
     this.onOpenMemories,
     this.onOpenStreak,
+    this.filterLabel,
+    this.onClearFilter,
   });
 
   @override
@@ -120,15 +126,30 @@ class _FeedViewState extends State<FeedView> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          tr('tab_feed'),
-                          style: TextStyle(
-                            fontFamily: AppTheme.displayFont,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 26,
-                            letterSpacing: -0.5,
-                            color: scheme.onSurface,
-                          ),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.filterLabel ?? tr('tab_feed'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: AppTheme.displayFont,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 26,
+                                  letterSpacing: -0.5,
+                                  color: scheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            if (widget.filterLabel != null)
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 18),
+                                tooltip: tr('cancel'),
+                                onPressed: widget.onClearFilter,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 3),
                         Text(

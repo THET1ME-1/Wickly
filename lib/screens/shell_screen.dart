@@ -22,15 +22,20 @@ import '../services/feed_service.dart';
 import '../services/search_service.dart';
 import '../services/stats_service.dart';
 import '../services/update_service.dart';
+import '../services/desk_service.dart';
 import '../services/widget_service.dart';
 import '../widgets/update_sheet.dart';
 import '../utils/dates.dart';
-import '../widgets/brand_mark.dart';
 import '../widgets/day_sheet.dart';
+import '../widgets/desk_list.dart';
+import '../widgets/desk_rail.dart';
+import '../widgets/desk_today.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/entry_card.dart';
 import '../widgets/journal_gate.dart';
 import '../widgets/panel_route.dart';
 import 'calendar_screen.dart';
+import 'desk_chronicle.dart';
 import 'catalog_manager_screen.dart';
 import 'editor_screen.dart';
 import 'feed_screen.dart';
@@ -72,6 +77,20 @@ class _ShellScreenState extends State<ShellScreen> {
   /// Замки дневников меняются мимо базы (пароль ввели — данные те же), поэтому
   /// на их тик выборки пересобираются вручную.
   StreamSubscription<void>? _lockChanges;
+
+  /// Раскладка широкого окна: «Стол», «Разворот» или «Хроника».
+  DeskLayout get _layout => DeskLayout.parse(AppPrefs.instance.desktopLayout);
+
+  /// Дневники, теги, привычки и сегодняшний день для обвязки десктопа.
+  DeskData _desk = DeskData.empty;
+  String _deskSig = '';
+
+  /// Открытая запись «Разворота» и выбранный день «Хроники».
+  String? _selectedId;
+  DateTime _selectedDay = DateTime.now();
+
+  /// Дневник, выбранный в боковой панели: сужает ленту и список.
+  DeskJournal? _journalFilter;
 
   @override
   void initState() {
@@ -207,7 +226,7 @@ class _ShellScreenState extends State<ShellScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _openSearch() async {
+  Future<void> _openSearch({String? query}) async {
     final entries = await EntryRepository.instance.allEntries();
     final years = entries.map((e) => e.entryDate.year).toSet().toList()
       ..sort((a, b) => b.compareTo(a));
@@ -216,6 +235,7 @@ class _ShellScreenState extends State<ShellScreen> {
       pageOrPanel(
         context,
         (_) => SearchView(
+          initialQuery: query,
           years: years.take(4).toList(),
           onSearch: (q, f) => SearchService.search(entries, q, filters: f),
           onOpen: _openEntry,
@@ -327,146 +347,59 @@ class _ShellScreenState extends State<ShellScreen> {
     setState(() => _tab = ShellTab.values[i]);
   }
 
-  /// Боковой рельс широкого окна. Сворачивается до одних значков и помнит
-  /// выбор: на ноутбуке с лентой в шесть колонок подписи занимают место,
-  /// которое хочется отдать записям.
-  Widget _rail(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final extended = AppPrefs.instance.railExtended;
+  /// Боковая панель широкого окна.
+  Widget _rail(BuildContext context) => DeskRail(
+        tabs: [
+          for (final t in _tabs.take(4)) DeskTab(t.icon, t.active, t.label),
+        ],
+        // «Ещё» стоит внизу отдельно, поэтому на нём подсвечивать в списке
+        // разделов нечего.
+        selected: _tab == ShellTab.more ? -1 : _tab.index,
+        onSelect: _selectTab,
+        slim: !AppPrefs.instance.railExtended,
+        onToggle: _toggleRail,
+        onWrite: _write,
+        onMore: () => _selectTab(ShellTab.more.index),
+        onSettings: () => _openScreen(const SettingsScreen()),
+        journals: _desk.journals,
+        tags: _layout == DeskLayout.chronicle ? const [] : _desk.tags,
+        habits: _layout == DeskLayout.chronicle ? _desk.habits : const [],
+        syncLabel: _desk.syncLabel,
+        onJournal: _pickJournal,
+        onTag: (tag) => _openSearch(query: '#$tag'),
+      );
 
-    return NavigationRail(
-      extended: extended,
-      minWidth: 76,
-      minExtendedWidth: 216,
-      backgroundColor: scheme.surface,
-      indicatorColor: scheme.secondaryContainer,
-      groupAlignment: -0.9,
-      // Подписи под значками нужны только сложенному рельсу: у развёрнутого
-      // они и так стоят рядом (и Flutter запрещает сочетать их с extended).
-      labelType: extended
-          ? NavigationRailLabelType.none
-          : NavigationRailLabelType.all,
-      selectedIndex: _tab.index,
-      onDestinationSelected: _selectTab,
-      // Ширину рельс шапке не задаёт (колонка внутри него ужимается по
-      // содержимому), поэтому её задаём сами — иначе `Expanded` внутри падает
-      // на бесконечных ограничениях.
-      leading: Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: SizedBox(
-          width: extended ? 196 : 56,
-          child: Column(
-            children: [
-              // Имя приложения там, где его ждут на десктопе, — в углу
-              // собственной панели, а не в заголовке окна системы.
-              SizedBox(
-                height: 40,
-                child: Row(
-                  mainAxisAlignment: extended
-                      ? MainAxisAlignment.spaceBetween
-                      : MainAxisAlignment.center,
-                  children: [
-                    if (extended) ...[
-                      const SizedBox(width: 4),
-                      const BrandMark(size: 26),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Wickly',
-                          style: TextStyle(
-                            fontFamily: AppTheme.displayFont,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                            letterSpacing: -0.3,
-                            color: scheme.onSurface,
-                          ),
-                        ),
-                      ),
-                    ],
-                    IconButton(
-                      icon: Icon(
-                        extended ? Icons.menu_open_rounded : Icons.menu_rounded,
-                        size: 20,
-                      ),
-                      tooltip: tr(extended ? 'rail_collapse' : 'rail_expand'),
-                      onPressed: _toggleRail,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (extended)
-                SizedBox(
-                  width: double.infinity,
-                  child: FloatingActionButton.extended(
-                    heroTag: 'rail-write',
-                    onPressed: _write,
-                    icon: const Icon(Icons.edit_rounded),
-                    label: Text(tr('write')),
-                  ),
-                )
-              else
-                FloatingActionButton(
-                  heroTag: 'rail-write',
-                  onPressed: _write,
-                  tooltip: '${tr('write')}  ·  Ctrl N',
-                  child: const Icon(Icons.edit_rounded),
-                ),
-            ],
-          ),
-        ),
-      ),
-      // Настройки внизу, отдельно от разделов дневника: так их держат все
-      // десктопные приложения, и они перестают быть шестым равноправным
-      // пунктом среди ленты и карты.
-      // Настройки прижаты к низу: `Expanded` забирает всё, что осталось от
-      // разделов (их группа выше ужимается по содержимому), и `Align` кладёт
-      // кнопку на самый низ рельса.
-      trailing: Expanded(
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: SizedBox(
-              width: extended ? 196 : 56,
-              child: extended
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: TextButton.icon(
-                        onPressed: () => _openScreen(const SettingsScreen()),
-                        icon: const Icon(Icons.settings_rounded, size: 20),
-                        label: SizedBox(
-                          width: 120,
-                          child: Text(tr('settings')),
-                        ),
-                        style: TextButton.styleFrom(
-                          foregroundColor: scheme.onSurfaceVariant,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 12,
-                          ),
-                        ),
-                      ),
-                    )
-                  : IconButton(
-                      icon: const Icon(Icons.settings_rounded),
-                      tooltip: tr('settings'),
-                      onPressed: () => _openScreen(const SettingsScreen()),
-                    ),
-            ),
-          ),
-        ),
-      ),
-      destinations: [
-        for (final t in _tabs)
-          NavigationRailDestination(
-            icon: Icon(t.icon),
-            selectedIcon: Icon(t.active),
-            label: Text(t.label),
-            padding: const EdgeInsets.symmetric(vertical: 2),
-          ),
-      ],
-    );
+  /// Тап по дневнику в панели сужает ленту до него. Запертый сперва
+  /// спрашивает пароль — панель показывает его замком, а не содержимым.
+  Future<void> _pickJournal(DeskJournal picked) async {
+    if (_journalFilter?.id == picked.id) {
+      setState(() => _journalFilter = null);
+      return;
+    }
+    if (picked.locked) {
+      final journal = await JournalRepository.instance.getById(picked.id);
+      if (!mounted || journal == null) return;
+      if (!await openJournalGate(context, journal)) return;
+      if (!mounted) return;
+    }
+    setState(() {
+      _journalFilter = picked;
+      _tab = ShellTab.feed;
+      _selectedId = null;
+    });
+  }
+
+  /// Подтягивает данные боковой панели, когда список записей изменился.
+  void _syncDesk(List<Entry> entries) {
+    final sig = '${entries.length}|${entries.isEmpty ? '' : entries.first.id}'
+        '|${AppPrefs.instance.lastSyncAt?.millisecondsSinceEpoch ?? 0}'
+        '|${_desk.journals.length}';
+    if (sig == _deskSig) return;
+    _deskSig = sig;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final data = await DeskService.load(entries);
+      if (mounted) setState(() => _desk = data);
+    });
   }
 
   Future<void> _toggleRail() async {
@@ -504,14 +437,155 @@ class _ShellScreenState extends State<ShellScreen> {
     );
   }
 
+  /// Лента широкого окна в выбранной раскладке.
+  Widget _deskFeed(List<Entry> entries) => switch (_layout) {
+        DeskLayout.board => _boardLayout(entries),
+        DeskLayout.spread => _spreadLayout(entries),
+        DeskLayout.chronicle => _chronicleLayout(entries),
+      };
+
+  /// «Стол»: доска записей и сегодняшний день справа.
+  Widget _boardLayout(List<Entry> entries) => Row(
+        children: [
+          Expanded(
+            child: _FeedPane(
+              entries: entries,
+              onWrite: _write,
+              onOpenEntry: _openEntry,
+              onSearch: _openSearch,
+              onMenu: () => _openScreen(const SettingsScreen()),
+              onMemories: _openMemories,
+              onStats: () => _openScreen(const MoodStatsContainer()),
+              filterLabel: _journalFilter?.name,
+              onClearFilter: () => setState(() => _journalFilter = null),
+            ),
+          ),
+          DeskToday(
+            data: _desk.today,
+            onMood: _setTodayMood,
+            onMarks: () => _write(),
+            onStreak: () => _openScreen(const MoodStatsContainer()),
+            onTracker: (_) => _openScreen(const TrackersContainer()),
+            onMemory: _openMemories,
+          ),
+        ],
+      );
+
+  /// «Разворот»: список слева, открытая запись справа.
+  Widget _spreadLayout(List<Entry> entries) {
+    return FutureBuilder<List<EntryCardItem>>(
+      future: FeedService.decorate(entries),
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? const <EntryCardItem>[];
+        final selected = items.any((i) => i.entry.id == _selectedId)
+            ? _selectedId
+            : items.firstOrNull?.entry.id;
+
+        return Row(
+          children: [
+            DeskList(
+              items: items,
+              selectedId: selected,
+              onOpen: (item) {
+                if (item.locked) {
+                  _openEntry(item.entry);
+                  return;
+                }
+                setState(() => _selectedId = item.entry.id);
+              },
+              onSearch: _openSearch,
+              journalFilter: _journalFilter?.name,
+              onClearJournal: () => setState(() => _journalFilter = null),
+            ),
+            Expanded(
+              child: selected == null
+                  ? EmptyState(
+                      icon: Icons.menu_book_rounded,
+                      title: tr('feed_empty_title'),
+                      subtitle: tr('feed_empty_sub'),
+                    )
+                  : ReaderScreen(
+                      key: ValueKey(selected),
+                      entryId: selected,
+                      onEdit: (e) => Navigator.of(context).push(pageOrPanel(
+                        context,
+                        (_) => EditorScreen(entry: e, journalId: e.journalId),
+                      )),
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// «Хроника»: месяц цветом настроения и записи дня рядом.
+  Widget _chronicleLayout(List<Entry> entries) {
+    final now = DateTime.now();
+    final ofMonth = entries
+        .where((e) =>
+            e.entryDate.year == _month.year && e.entryDate.month == _month.month)
+        .toList();
+    final monthEnd = DateTime(_month.year, _month.month + 1, 0);
+    final to = monthEnd.isAfter(now) ? now : monthEnd;
+    final ofDay =
+        entries.where((e) => Dates.sameDay(e.entryDate, _selectedDay)).toList();
+
+    return FutureBuilder<List<EntryCardItem>>(
+      future: FeedService.decorate(ofDay),
+      builder: (context, snapshot) => DeskChronicle(
+        data: CalendarData(
+          moodByDay: StatsService.moodByDay(entries),
+          writtenDays: StatsService.writtenDays(entries),
+          summary: StatsService.summary(
+              entries, DateTime(_month.year, _month.month, 1), to),
+          streak: StatsService.streak(entries, now: now),
+          month: _month,
+          now: now,
+          entriesThisMonth: ofMonth.length,
+          wordsThisMonth: ofMonth.fold<int>(0, (sum, e) => sum + e.wordCount),
+          countByDay: DeskService.countByDay(entries),
+        ),
+        year: [
+          for (final bar in DeskService.yearBars(entries, _month.year))
+            YearBar(month: bar.month, count: bar.count, mood: bar.mood),
+        ],
+        selected: _selectedDay,
+        onSelectDay: (day) => setState(() => _selectedDay = day),
+        onChangeMonth: (m) => setState(() => _month = m),
+        dayEntries: snapshot.data ?? const [],
+        onOpenEntry: (item) => _openEntry(item.entry),
+        onWriteOnDay: (day) => _write(date: day),
+      ),
+    );
+  }
+
+  /// Настроение дня прямо из колонки «Сегодня»: если запись сегодня уже есть —
+  /// проставляем ей, иначе открываем редактор с этим настроением.
+  Future<void> _setTodayMood(int mood) async {
+    final today = await EntryRepository.instance.forDay(DateTime.now());
+    if (today.isEmpty) {
+      await _write(mood: mood);
+      return;
+    }
+    await EntryRepository.instance.update(today.first.copyWith(mood: mood));
+    _deskSig = '';
+    if (mounted) setState(() {});
+  }
+
   Widget _scaffold(BuildContext context, bool wide) {
     return Scaffold(
       body: StreamBuilder<List<Entry>>(
         stream: EntryRepository.instance.watchEntries(),
         builder: (context, snapshot) {
-          final entries = snapshot.data ?? const <Entry>[];
+          final all = snapshot.data ?? const <Entry>[];
           // Виджет на домашнем экране живёт теми же данными, что и лента.
-          if (snapshot.hasData) WidgetService.refresh(entries);
+          if (snapshot.hasData) WidgetService.refresh(all);
+          _syncDesk(all);
+          // Дневник, выбранный в боковой панели, сужает все три раскладки.
+          final entries = _journalFilter == null
+              ? all
+              : all.where((e) => e.journalId == _journalFilter!.id).toList();
           // Вкладка не «рождается», она сменяет предыдущую: проявление с
           // коротким подъёмом, без сдвига вбок — вкладки не соседние экраны,
           // а разные взгляды на одно и то же.
@@ -545,17 +619,15 @@ class _ShellScreenState extends State<ShellScreen> {
             ),
           );
 
-          // Широкое окно: навигация уезжает вбок, экран остаётся под неё.
+          // Широкое окно: навигация уезжает вбок, а лента раскладывается так,
+          // как выбрано в настройках.
           if (!wide) return body;
           return Row(
             children: [
               _rail(context),
-              VerticalDivider(
-                width: 1,
-                thickness: 1,
-                color: Theme.of(context).colorScheme.outlineVariant,
+              Expanded(
+                child: _tab == ShellTab.feed ? _deskFeed(entries) : body,
               ),
-              Expanded(child: body),
             ],
           );
         },
@@ -628,48 +700,14 @@ class _Body extends StatelessWidget {
 
     switch (tab) {
       case ShellTab.feed:
-        // Записи запертых дневников приходят отдельным потоком и живут только
-        // в ленте — под блюром и с замком. Серия, виджет, карта и медиа
-        // считаются по списку без них.
-        return StreamBuilder<List<Entry>>(
-          stream: EntryRepository.instance.watchLockedEntries(),
-          builder: (context, lockedSnapshot) {
-            final feed = FeedService.withLocked(
-              entries,
-              lockedSnapshot.data ?? const [],
-            );
-            return FutureBuilder<List<EntryCardItem>>(
-              future: FeedService.decorate(feed),
-              builder: (context, snapshot) {
-                final items = snapshot.data ?? const <EntryCardItem>[];
-                final memories = items
-                    .where(
-                      (i) =>
-                          !i.locked &&
-                          i.entry.entryDate.month == now.month &&
-                          i.entry.entryDate.day == now.day &&
-                          i.entry.entryDate.year != now.year,
-                    )
-                    .toList();
-                return FeedView(
-                  data: FeedData(
-                    items: items,
-                    streak: StatsService.streak(entries, now: now),
-                    memories: memories,
-                    period: Dates.monthYear(now),
-                    lastWeek: FeedService.lastWeek(entries, now),
-                    now: now,
-                  ),
-                  onWrite: onWrite,
-                  onOpenEntry: onOpenEntry,
-                  onSearch: onSearch,
-                  onMenu: onSettings,
-                  onOpenMemories: onMemories,
-                  onOpenStreak: onStats,
-                );
-              },
-            );
-          },
+        return _FeedPane(
+          entries: entries,
+          onWrite: onWrite,
+          onOpenEntry: onOpenEntry,
+          onSearch: onSearch,
+          onMenu: onSettings,
+          onMemories: onMemories,
+          onStats: onStats,
         );
 
       case ShellTab.calendar:
@@ -763,5 +801,86 @@ class _Body extends StatelessWidget {
       case ShellTab.more:
         return MoreScreen(items: moreItems);
     }
+  }
+}
+
+
+/// Лента как отдельная панель: её показывает и телефон, и «Стол» рядом с
+/// колонкой «Сегодня».
+///
+/// Записи запертых дневников приходят отдельным потоком и живут только здесь —
+/// под блюром и с замком. Серия, виджет, карта и медиа считаются по списку без
+/// них.
+class _FeedPane extends StatelessWidget {
+  final List<Entry> entries;
+  final VoidCallback onWrite;
+  final void Function(Entry) onOpenEntry;
+  final VoidCallback onSearch;
+  final VoidCallback onMenu;
+  final VoidCallback onMemories;
+  final VoidCallback onStats;
+
+  /// Имя дневника, которым сужена лента (выбран в боковой панели).
+  final String? filterLabel;
+  final VoidCallback? onClearFilter;
+
+  const _FeedPane({
+    required this.entries,
+    required this.onWrite,
+    required this.onOpenEntry,
+    required this.onSearch,
+    required this.onMenu,
+    required this.onMemories,
+    required this.onStats,
+    this.filterLabel,
+    this.onClearFilter,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+
+    return StreamBuilder<List<Entry>>(
+      stream: EntryRepository.instance.watchLockedEntries(),
+      builder: (context, lockedSnapshot) {
+        final feed = FeedService.withLocked(
+          entries,
+          lockedSnapshot.data ?? const [],
+        );
+        return FutureBuilder<List<EntryCardItem>>(
+          future: FeedService.decorate(feed),
+          builder: (context, snapshot) {
+            final items = snapshot.data ?? const <EntryCardItem>[];
+            final memories = items
+                .where(
+                  (i) =>
+                      !i.locked &&
+                      i.entry.entryDate.month == now.month &&
+                      i.entry.entryDate.day == now.day &&
+                      i.entry.entryDate.year != now.year,
+                )
+                .toList();
+            return FeedView(
+              data: FeedData(
+                items: items,
+                streak: StatsService.streak(entries, now: now),
+                memories: memories,
+                period: Dates.monthYear(now),
+                lastWeek: FeedService.lastWeek(entries, now),
+                now: now,
+              ),
+              onWrite: onWrite,
+              onOpenEntry: onOpenEntry,
+              onSearch: onSearch,
+              onMenu: onMenu,
+              onOpenMemories: onMemories,
+              onOpenStreak: onStats,
+              filterLabel: filterLabel,
+              onClearFilter: onClearFilter,
+            );
+          },
+        );
+      },
+    );
   }
 }

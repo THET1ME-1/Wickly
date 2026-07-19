@@ -25,11 +25,16 @@ class SearchView extends StatefulWidget {
   /// Годы, за которые есть записи — из них строится фильтр.
   final List<int> years;
 
+  /// Запрос, с которым экран открыли: тап по тегу в боковой панели уже знает,
+  /// что искать.
+  final String? initialQuery;
+
   const SearchView({
     super.key,
     required this.onSearch,
     this.onOpen,
     this.years = const [],
+    this.initialQuery,
   });
 
   @override
@@ -37,7 +42,16 @@ class SearchView extends StatefulWidget {
 }
 
 class _SearchViewState extends State<SearchView> {
-  final _controller = TextEditingController();
+  late final _controller =
+      TextEditingController(text: widget.initialQuery ?? '');
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialQuery != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _run());
+    }
+  }
 
   /// Что уже показывали — чтобы каскад не перезапускался при прокрутке.
   final Set<Object> _shown = <Object>{};

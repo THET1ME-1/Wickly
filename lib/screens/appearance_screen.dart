@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/app_prefs.dart';
+import '../services/desk_service.dart';
 import '../l10n/strings.dart';
 import '../theme/app_theme.dart';
 import '../theme/wickly_design.dart';
@@ -72,6 +73,26 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
           // и выбирать там нечего.
           if (WicklyDesign.isWide(context)) ...[
             SettingsSection(tr('desktop')),
+            SettingsGroup([
+              for (final layout in DeskLayout.values)
+                SettingsRow(
+                  icon: switch (layout) {
+                    DeskLayout.board => Icons.dashboard_rounded,
+                    DeskLayout.spread => Icons.vertical_split_rounded,
+                    DeskLayout.chronicle => Icons.calendar_view_month_rounded,
+                  },
+                  title: layout.title,
+                  subtitle: layout.subtitle,
+                  trailing: AppPrefs.instance.desktopLayout == layout.name
+                      ? Icon(Icons.check_rounded, color: scheme.primary)
+                      : null,
+                  onTap: () async {
+                    await AppPrefs.instance.setDesktopLayout(layout.name);
+                    if (mounted) setState(() {});
+                  },
+                ),
+            ]),
+            const SizedBox(height: 4),
             SettingsGroup([
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),

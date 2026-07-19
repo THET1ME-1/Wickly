@@ -352,17 +352,19 @@ const Map<String, Map<String, String>> catalogStrings = {
     'ru': 'Привычка', 'en': 'Habit', 'de': 'Gewohnheit', 'fr': 'Habitude',
     'es': 'Hábito', 'it': 'Abitudine', 'pt': 'Hábito',
   },
+  // Имена трекеров — тоже подписи, а не слова во фразе: с заглавной, как
+  // эмоции и действия.
   'trk_water': {
-    'ru': 'вода', 'en': 'water', 'de': 'Wasser', 'fr': 'eau',
-    'es': 'agua', 'it': 'acqua', 'pt': 'água',
+    'ru': 'Вода', 'en': 'Water', 'de': 'Wasser', 'fr': 'Eau',
+    'es': 'Agua', 'it': 'Acqua', 'pt': 'Água',
   },
   'trk_sleep': {
-    'ru': 'сон', 'en': 'sleep', 'de': 'Schlaf', 'fr': 'sommeil',
-    'es': 'sueño', 'it': 'sonno', 'pt': 'sono',
+    'ru': 'Сон', 'en': 'Sleep', 'de': 'Schlaf', 'fr': 'Sommeil',
+    'es': 'Sueño', 'it': 'Sonno', 'pt': 'Sono',
   },
   'trk_steps': {
-    'ru': 'шаги', 'en': 'steps', 'de': 'Schritte', 'fr': 'pas',
-    'es': 'pasos', 'it': 'passi', 'pt': 'passos',
+    'ru': 'Шаги', 'en': 'Steps', 'de': 'Schritte', 'fr': 'Pas',
+    'es': 'Pasos', 'it': 'Passi', 'pt': 'Passos',
   },
   'trk_read': {
     'ru': 'Читать', 'en': 'Read', 'de': 'Lesen', 'fr': 'Lire',

@@ -31,6 +31,10 @@ class CalendarData {
   final int entriesThisMonth;
   final int wordsThisMonth;
 
+  /// Сколько записей в каждом дне: `yyyymmdd` → счётчик. Нужен хронике —
+  /// в клетке месяца стоит число, а не только цвет.
+  final Map<int, int> countByDay;
+
   const CalendarData({
     required this.moodByDay,
     required this.writtenDays,
@@ -40,6 +44,7 @@ class CalendarData {
     required this.now,
     this.entriesThisMonth = 0,
     this.wordsThisMonth = 0,
+    this.countByDay = const {},
   });
 
   /// Настроение по дням месяца для графика: пропуск — день без отметки.

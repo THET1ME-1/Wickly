@@ -147,7 +147,7 @@ class EntryCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            _title(e),
+                            titleOf(e),
                             // Три строки: заголовок записи — главное, что
                             // человек ищет глазами в ленте. В плитке две:
                             // высота у неё общая с соседями.
@@ -376,7 +376,8 @@ class EntryCard extends StatelessWidget {
     return body.length <= 90 ? body : '${body.substring(0, 90)}…';
   }
 
-  static String _title(Entry e) {
+  /// Заголовок записи для карточки и списка: свой, иначе первая строка текста.
+  static String titleOf(Entry e) {
     final t = e.title?.trim();
     if (t != null && t.isNotEmpty) return t;
     final body = MarkdownLite.strip(e.body);

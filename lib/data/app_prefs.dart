@@ -38,6 +38,7 @@ class AppPrefs extends ChangeNotifier {
   static const _kSkippedUpdate = 'update_skipped';
   static const _kRailExtended = 'desktop_rail_extended';
   static const _kFeedColumns = 'desktop_feed_columns';
+  static const _kDeskLayout = 'desktop_layout';
 
   SharedPreferences? _p;
 
@@ -68,6 +69,7 @@ class AppPrefs extends ChangeNotifier {
   String _skippedUpdate = '';
   bool _railExtended = true;
   int _feedColumns = 0;
+  String _desktopLayout = 'board';
 
   bool get onboarded => _onboarded;
   bool get hasPin => _pinHash != null && _pinHash!.isNotEmpty;
@@ -124,6 +126,9 @@ class AppPrefs extends ChangeNotifier {
   /// Сколько карточек в ряду ленты на широком окне. 0 — по ширине окна.
   int get feedColumns => _feedColumns;
 
+  /// Раскладка широкого окна: `board`, `spread` или `chronicle`.
+  String get desktopLayout => _desktopLayout;
+
   Future<void> load() async {
     final p = _p = await SharedPreferences.getInstance();
     _onboarded = p.getBool(_kOnboarded) ?? false;
@@ -153,6 +158,7 @@ class AppPrefs extends ChangeNotifier {
     _updateCheckedAt = p.getInt(_kUpdateCheckedAt) ?? 0;
     _railExtended = p.getBool(_kRailExtended) ?? true;
     _feedColumns = p.getInt(_kFeedColumns) ?? 0;
+    _desktopLayout = p.getString(_kDeskLayout) ?? 'board';
     _skippedUpdate = p.getString(_kSkippedUpdate) ?? '';
     notifyListeners();
   }
@@ -292,6 +298,12 @@ class AppPrefs extends ChangeNotifier {
   Future<void> setRailExtended(bool v) async {
     _railExtended = v;
     await _p?.setBool(_kRailExtended, v);
+    notifyListeners();
+  }
+
+  Future<void> setDesktopLayout(String v) async {
+    _desktopLayout = v;
+    await _p?.setString(_kDeskLayout, v);
     notifyListeners();
   }
 
