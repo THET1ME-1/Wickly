@@ -60,18 +60,19 @@ class PanelRoute<T> extends PopupRoute<T> {
   ) {
     final size = MediaQuery.sizeOf(context);
     final scheme = Theme.of(context).colorScheme;
+    const hPad = 32.0;
+    final vPad = size.height > 760 ? 48.0 : 16.0;
+    final boxW = maxWidth < size.width - hPad * 2
+        ? maxWidth
+        : size.width - hPad * 2;
+    final tall = fitContent ? size.height * 0.86 : 900.0;
+    final boxH = tall < size.height - vPad * 2 ? tall : size.height - vPad * 2;
 
     return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: 32,
-          vertical: size.height > 760 ? 48 : 16,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
         child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: maxWidth,
-            maxHeight: fitContent ? size.height * 0.86 : 900,
-          ),
+          constraints: BoxConstraints(maxWidth: boxW, maxHeight: tall),
           child: CallbackShortcuts(
             bindings: {
               const SingleActivator(LogicalKeyboardKey.escape): () {
@@ -90,8 +91,8 @@ class PanelRoute<T> extends PopupRoute<T> {
                 // По высоте содержимого — только если сам экран этого просит:
                 // `Column(mainAxisSize.min)` внутри листа тогда решает сам.
                 child: fitContent
-                    ? IntrinsicHeight(child: Builder(builder: _scoped))
-                    : Builder(builder: _scoped),
+                    ? IntrinsicHeight(child: _sized(context, boxW, boxH))
+                    : _sized(context, boxW, boxH),
               ),
             ),
           ),
@@ -100,8 +101,22 @@ class PanelRoute<T> extends PopupRoute<T> {
     );
   }
 
-  Widget _scoped(BuildContext context) =>
-      _PanelScope(child: Builder(builder: builder));
+  /// Экран внутри панели должен считать себя окном шириной с саму панель.
+  ///
+  /// Без этого он берёт размер настоящего окна: колонка чтения выставляет поля
+  /// по монитору (например, по 480 с каждой стороны), а живёт в панели на 980 —
+  /// и от текста остаётся столбец в одну букву. Здесь панель объявляет свой
+  /// размер: отступы системы и вырез клавиатуры при этом обнуляются, у окна
+  /// внутри окна их нет.
+  Widget _sized(BuildContext context, double w, double h) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          size: Size(w, h),
+          viewInsets: EdgeInsets.zero,
+          viewPadding: EdgeInsets.zero,
+          padding: EdgeInsets.zero,
+        ),
+        child: _PanelScope(child: Builder(builder: builder)),
+      );
 
   @override
   Widget buildTransitions(
