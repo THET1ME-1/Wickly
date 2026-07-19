@@ -226,16 +226,25 @@ class _ShellScreenState extends State<ShellScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _openSearch({String? query}) async {
+  /// Поиск. [tag] уводит сразу в фильтр по тегу — так открываются теги из
+  /// боковой панели и из самой записи.
+  Future<void> _openSearch({String? query, String? tag}) async {
     final entries = await EntryRepository.instance.allEntries();
     final years = entries.map((e) => e.entryDate.year).toSet().toList()
       ..sort((a, b) => b.compareTo(a));
+    final tags = await DeskService.rankedTags();
+    final picked = tag == null
+        ? null
+        : tags.where((t) => t.name == tag).firstOrNull;
     if (!mounted) return;
     await Navigator.of(context).push(
       pageOrPanel(
         context,
         (_) => SearchView(
           initialQuery: query,
+          initialFilters:
+              picked == null ? null : SearchFilters(tagId: picked.id),
+          tags: tags,
           years: years.take(4).toList(),
           onSearch: (q, f) => SearchService.search(entries, q, filters: f),
           onOpen: _openEntry,
@@ -366,7 +375,7 @@ class _ShellScreenState extends State<ShellScreen> {
         habits: _layout == DeskLayout.chronicle ? _desk.habits : const [],
         syncLabel: _desk.syncLabel,
         onJournal: _pickJournal,
-        onTag: (tag) => _openSearch(query: '#$tag'),
+        onTag: (tag) => _openSearch(tag: tag),
       );
 
   /// Тап по дневнику в панели сужает ленту до него. Запертый сперва
@@ -507,6 +516,7 @@ class _ShellScreenState extends State<ShellScreen> {
                   : ReaderScreen(
                       key: ValueKey(selected),
                       entryId: selected,
+                      onTag: (tag) => _openSearch(tag: tag),
                       onEdit: (e) => Navigator.of(context).push(pageOrPanel(
                         context,
                         (_) => EditorScreen(entry: e, journalId: e.journalId),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/strings.dart';
+import '../models/catalog.dart';
 import '../models/entry.dart';
 import '../services/search_service.dart';
 import '../theme/app_theme.dart';
@@ -29,12 +30,20 @@ class SearchView extends StatefulWidget {
   /// что искать.
   final String? initialQuery;
 
+  /// Теги дневника — самые ходовые впереди. Ими сужают поиск.
+  final List<Tag> tags;
+
+  /// Фильтр, с которым экран открыли (тап по тегу в записи).
+  final SearchFilters? initialFilters;
+
   const SearchView({
     super.key,
     required this.onSearch,
     this.onOpen,
     this.years = const [],
     this.initialQuery,
+    this.tags = const [],
+    this.initialFilters,
   });
 
   @override
@@ -48,7 +57,8 @@ class _SearchViewState extends State<SearchView> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialQuery != null) {
+    if (widget.initialFilters != null) _filters = widget.initialFilters!;
+    if (widget.initialQuery != null || widget.initialFilters != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _run());
     }
   }
@@ -134,6 +144,7 @@ class _SearchViewState extends State<SearchView> {
             _FilterBar(
               filters: _filters,
               years: widget.years,
+              tags: widget.tags,
               onChange: _setFilters,
             ),
             Expanded(child: _body(context)),
@@ -451,12 +462,14 @@ class HighlightedText extends StatelessWidget {
 class _FilterBar extends StatelessWidget {
   final SearchFilters filters;
   final List<int> years;
+  final List<Tag> tags;
   final ValueChanged<SearchFilters> onChange;
 
   const _FilterBar({
     required this.filters,
     required this.years,
     required this.onChange,
+    this.tags = const [],
   });
 
   @override
@@ -496,6 +509,18 @@ class _FilterBar extends StatelessWidget {
               onTap: () => onChange(filters.year == year
                   ? filters.copyWith(clearYear: true)
                   : filters.copyWith(year: year)),
+            ),
+            const SizedBox(width: 8),
+          ],
+          // Теги здесь — единственное место на телефоне, где их видно списком:
+          // на карточке и в записи они только подписи.
+          for (final tag in tags) ...[
+            _Chip(
+              label: '#${tag.name}',
+              selected: filters.tagId == tag.id,
+              onTap: () => onChange(filters.tagId == tag.id
+                  ? filters.copyWith(clearTag: true)
+                  : filters.copyWith(tagId: tag.id)),
             ),
             const SizedBox(width: 8),
           ],

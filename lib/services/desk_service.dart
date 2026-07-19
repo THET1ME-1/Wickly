@@ -47,27 +47,35 @@ class DeskService {
   /// облако тегов.
   static const _tagLimit = 8;
 
+  /// Теги дневника, самые ходовые впереди. Ими живут и боковая панель, и
+  /// фильтры поиска на телефоне.
+  static Future<List<Tag>> rankedTags({int limit = 12}) async {
+    final tags = await CatalogRepository.instance.tags();
+    final links =
+        await CatalogRepository.instance.allLinks('entry_tags', 'tag_id');
+    final usage = <String, int>{};
+    for (final ids in links.values) {
+      for (final id in ids) {
+        usage[id] = (usage[id] ?? 0) + 1;
+      }
+    }
+    final ranked = [...tags]
+      ..sort((a, b) => (usage[b.id] ?? 0).compareTo(usage[a.id] ?? 0));
+    return [
+      for (final t in ranked.take(limit))
+        if ((usage[t.id] ?? 0) > 0) t,
+    ];
+  }
+
   static Future<DeskData> load(List<Entry> entries, {DateTime? now}) async {
     final today = now ?? DateTime.now();
 
     final journals = await JournalRepository.instance.all();
     final counts = await JournalRepository.instance.counts();
-    final tags = await CatalogRepository.instance.tags();
-    final tagLinks =
-        await CatalogRepository.instance.allLinks('entry_tags', 'tag_id');
     final trackers = await TrackerRepository.instance.trackers();
     final values = await TrackerRepository.instance.valuesForDay(today);
-
     // Теги в панели — самые ходовые: редкий тег там только занимает строку.
-    final usage = <String, int>{};
-    for (final ids in tagLinks.values) {
-      for (final id in ids) {
-        usage[id] = (usage[id] ?? 0) + 1;
-      }
-    }
-    final ranked = [...tags]..sort(
-        (a, b) => (usage[b.id] ?? 0).compareTo(usage[a.id] ?? 0),
-      );
+    final ranked = await rankedTags(limit: _tagLimit);
 
     return DeskData(
       journals: [
@@ -80,10 +88,7 @@ class DeskService {
             locked: JournalLock.isHidden(j.id),
           ),
       ],
-      tags: [
-        for (final t in ranked.take(_tagLimit))
-          if ((usage[t.id] ?? 0) > 0) t.name,
-      ],
+      tags: [for (final t in ranked) t.name],
       habits: await _habits(trackers, today),
       today: await _today(entries, trackers, values, today),
       syncLabel: _syncLabel(),

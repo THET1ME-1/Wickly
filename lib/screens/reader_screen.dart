@@ -33,7 +33,15 @@ class ReaderScreen extends StatefulWidget {
   /// Открыть редактор этой записи.
   final Future<void> Function(Entry entry)? onEdit;
 
-  const ReaderScreen({super.key, required this.entryId, this.onEdit});
+  /// Тап по тегу записи — уводит в поиск по этому тегу.
+  final void Function(String tag)? onTag;
+
+  const ReaderScreen({
+    super.key,
+    required this.entryId,
+    this.onEdit,
+    this.onTag,
+  });
 
   @override
   State<ReaderScreen> createState() => _ReaderScreenState();
@@ -323,7 +331,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       children: [
                         for (final t in _tags)
                           ContextChip(
-                              icon: Icons.sell_rounded, label: '#$t'),
+                            icon: Icons.sell_rounded,
+                            label: '#$t',
+                            onTap: widget.onTag == null
+                                ? null
+                                : () => widget.onTag!(t),
+                          ),
                       ],
                     ),
                   ],
