@@ -19,6 +19,7 @@ import '../widgets/markdown_lite.dart';
 import '../widgets/media_grid.dart';
 import '../widgets/media_thumb.dart';
 import '../widgets/media_viewer.dart';
+import '../services/wiki_links.dart';
 import '../widgets/panel_route.dart';
 import '../widgets/pressable.dart';
 
@@ -36,11 +37,15 @@ class ReaderScreen extends StatefulWidget {
   /// Тап по тегу записи — уводит в поиск по этому тегу.
   final void Function(String tag)? onTag;
 
+  /// Открыть другую запись — переход по ссылке `[[…]]` и по упоминанию.
+  final void Function(Entry entry)? onOpen;
+
   const ReaderScreen({
     super.key,
     required this.entryId,
     this.onEdit,
     this.onTag,
+    this.onOpen,
   });
 
   @override
@@ -51,6 +56,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
   Entry? _entry;
   List<Media> _media = const [];
   List<String> _tags = const [];
+
+  /// Все записи — по ним разрешаются ссылки `[[…]]` и ищутся упоминания.
+  /// Дневник целиком помещается в память: полнотекстового индекса тут нет по
+  /// той же причине.
+  List<Entry> _all = const [];
+  List<Entry> _backlinks = const [];
 
   @override
   void initState() {
@@ -64,10 +75,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final tagIds =
         await CatalogRepository.instance.tagIdsOf(widget.entryId);
     final allTags = await CatalogRepository.instance.tags();
+    final all = await EntryRepository.instance.allEntries(includeDrafts: false);
     if (!mounted) return;
     setState(() {
       _entry = entry;
       _media = media;
+      _all = all;
+      _backlinks = entry == null ? const [] : WikiLinks.backlinks(entry, all);
       _tags = [
         for (final t in allTags)
           if (tagIds.contains(t.id)) t.name,
@@ -212,6 +226,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
   }
 
+  /// Переход по ссылке `[[…]]`: ищем запись по названию.
+  void _followLink(String target) {
+    final found = WikiLinks.resolve(target, _all);
+    if (found == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(trf('link_missing', {'name': target})),
+      ));
+      return;
+    }
+    widget.onOpen?.call(found);
+  }
+
   @override
   Widget build(BuildContext context) {
     final e = _entry;
@@ -299,6 +325,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       source: e.body!,
                       cards: true,
                       onToggleTodo: _toggleTodo,
+                      onLink: _followLink,
                       media: byId,
                       onOpenMedia: (group, index) =>
                           showMediaViewer(context, group, index),
@@ -321,6 +348,62 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: AudioPlayerBar(media: a),
+                      ),
+                  ],
+                  if (_backlinks.isNotEmpty) ...[
+                    const SizedBox(height: 22),
+                    Text(
+                      tr('backlinks'),
+                      style: TextStyle(
+                        fontFamily: AppTheme.bodyFont,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11.5,
+                        letterSpacing: 1,
+                        color: scheme.outline,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // Ссылка в тексте односторонняя, а помнить связь хочется с
+                    // обеих сторон — здесь видно, откуда на запись ссылались.
+                    for (final b in _backlinks)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Material(
+                          color: scheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(18),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => widget.onOpen?.call(b),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    Dates.dayMonth(b.entryDate),
+                                    style: TextStyle(
+                                      fontFamily: AppTheme.bodyFont,
+                                      fontSize: 11.5,
+                                      color: scheme.outline,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    WikiLinks.titleOf(b) ?? tr('entry_untitled'),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontFamily: AppTheme.displayFont,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14.5,
+                                      color: scheme.onSurface,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                   ],
                   if (_tags.isNotEmpty) ...[

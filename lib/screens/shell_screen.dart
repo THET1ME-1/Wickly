@@ -517,6 +517,7 @@ class _ShellScreenState extends State<ShellScreen> {
                       key: ValueKey(selected),
                       entryId: selected,
                       onTag: (tag) => _openSearch(tag: tag),
+                      onOpen: (e) => setState(() => _selectedId = e.id),
                       onEdit: (e) => Navigator.of(context).push(pageOrPanel(
                         context,
                         (_) => EditorScreen(entry: e, journalId: e.journalId),

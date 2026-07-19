@@ -193,6 +193,10 @@ class MarkdownLite {
   }
 
   static String _stripInline(String s) => s
+      // Ссылка на другую запись читается своим названием, скобки в выжимке
+      // ни к чему.
+      .replaceAllMapped(RegExp(r'\[\[([^\[\]\n]{1,120})\]\]'),
+          (m) => m.group(1)!)
       .replaceAll(RegExp(r'\*\*|__'), '')
       .replaceAll(RegExp(r'(?<!\w)[*_](?!\s)'), '')
       .replaceAll('`', '');
@@ -297,6 +301,10 @@ class MarkdownBody extends StatelessWidget {
   /// Сменить время темы по тапу: индекс темы в [blockTimes].
   final ValueChanged<int>? onEditTime;
 
+  /// Нажатие на ссылку `[[Другая запись]]`. Без обработчика ссылка рисуется,
+  /// но никуда не ведёт — так она выглядит в предпросмотре.
+  final void Function(String target)? onLink;
+
   const MarkdownBody({
     super.key,
     required this.source,
@@ -308,6 +316,7 @@ class MarkdownBody extends StatelessWidget {
     this.blockTimes = const [],
     this.entryDate,
     this.onEditTime,
+    this.onLink,
   });
 
   /// Показывать ли темы карточками. В читалке — да: запись из нескольких тем
@@ -521,6 +530,7 @@ class MarkdownBody extends StatelessWidget {
       case MdBlockKind.heading:
         return Text.rich(
           _inline(context, b.text,
+                        onLink: onLink,
               base: TextStyle(
                 fontFamily: AppTheme.displayFont,
                 fontWeight: FontWeight.w700,
@@ -543,6 +553,7 @@ class MarkdownBody extends StatelessWidget {
           ),
           child: Text.rich(
             _inline(context, b.text,
+                        onLink: onLink,
                 base: TextStyle(
                   fontFamily: AppTheme.bodyFont,
                   fontSize: fontSize,
@@ -586,6 +597,7 @@ class MarkdownBody extends StatelessWidget {
                 Expanded(
                   child: Text.rich(
                     _inline(context, b.text,
+                        onLink: onLink,
                         base: TextStyle(
                           fontFamily: AppTheme.bodyFont,
                           fontSize: fontSize,
@@ -624,14 +636,14 @@ class MarkdownBody extends StatelessWidget {
             ),
             Expanded(
               child: Text.rich(
-                _inline(context, b.text, base: _bodyStyle(context)),
+                _inline(context, b.text, base: _bodyStyle(context), onLink: onLink),
               ),
             ),
           ],
         );
 
       case MdBlockKind.paragraph:
-        return Text.rich(_inline(context, b.text, base: _bodyStyle(context)));
+        return Text.rich(_inline(context, b.text, base: _bodyStyle(context), onLink: onLink));
     }
   }
 
@@ -647,11 +659,13 @@ class MarkdownBody extends StatelessWidget {
     BuildContext context,
     String text, {
     required TextStyle base,
+    void Function(String target)? onLink,
   }) {
     final scheme = Theme.of(context).colorScheme;
-    final spans = <TextSpan>[];
+    final spans = <InlineSpan>[];
     final pattern = RegExp(
-      r'(\*\*[^*]+\*\*)|(__[^_]+__)|(\*[^*\n]+\*)|(`[^`]+`)'
+      r'(\[\[[^\[\]\n]{1,120}\]\])'
+      r'|(\*\*[^*]+\*\*)|(__[^_]+__)|(\*[^*\n]+\*)|(`[^`]+`)'
       r'|((?<![\w#])#[\p{L}\p{N}_-]{2,30})',
       unicode: true,
     );
@@ -662,7 +676,21 @@ class MarkdownBody extends StatelessWidget {
         spans.add(TextSpan(text: text.substring(index, m.start), style: base));
       }
       final token = m.group(0)!;
-      if (token.startsWith('**') || token.startsWith('__')) {
+      if (token.startsWith('[[')) {
+        // Ссылка на другую запись. Виджетом, а не распознавателем жестов:
+        // распознаватель в StatelessWidget некому освободить, а виджет ещё и
+        // подсвечивается под курсором.
+        final target = token.substring(2, token.length - 2).trim();
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.baseline,
+          baseline: TextBaseline.alphabetic,
+          child: WikiLinkSpan(
+            target: target,
+            style: base,
+            onTap: onLink == null ? null : () => onLink(target),
+          ),
+        ));
+      } else if (token.startsWith('**') || token.startsWith('__')) {
         spans.add(TextSpan(
           text: token.substring(2, token.length - 2),
           style: base.copyWith(fontWeight: FontWeight.w700),
@@ -693,5 +721,67 @@ class MarkdownBody extends StatelessWidget {
       spans.add(TextSpan(text: text.substring(index), style: base));
     }
     return TextSpan(children: spans, style: base);
+  }
+}
+
+/// Ссылка на другую запись внутри текста.
+///
+/// Виджетом, а не распознавателем жестов в `TextSpan`: распознаватель надо
+/// освобождать, а тут его некому — рендер живёт в `StatelessWidget`. Заодно
+/// ссылка подсвечивается под курсором, чего от текста на десктопе и ждут.
+class WikiLinkSpan extends StatefulWidget {
+  final String target;
+  final TextStyle style;
+  final VoidCallback? onTap;
+
+  const WikiLinkSpan({
+    super.key,
+    required this.target,
+    required this.style,
+    this.onTap,
+  });
+
+  @override
+  State<WikiLinkSpan> createState() => _WikiLinkSpanState();
+}
+
+class _WikiLinkSpanState extends State<WikiLinkSpan> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return MouseRegion(
+      cursor: widget.onTap == null
+          ? MouseCursor.defer
+          : SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          // Ссылка не переносится по строкам (это один виджет), поэтому
+          // длинное название режется: строка не должна уезжать за край.
+          constraints: const BoxConstraints(maxWidth: 260),
+          decoration: BoxDecoration(
+            color: _hover
+                ? scheme.secondaryContainer
+                : scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            widget.target,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: widget.style.copyWith(
+              color: _hover ? scheme.onSecondaryContainer : scheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -4,6 +4,45 @@
 library;
 
 const Map<String, Map<String, String>> editorStrings = {
+  // ------------------------ Ссылки между записями ------------------------
+  'link_entry': {
+    'ru': 'Ссылка на запись', 'en': 'Link to an entry',
+    'de': 'Link auf einen Eintrag', 'fr': 'Lien vers une entrée',
+    'es': 'Enlace a una anotación', 'it': 'Collegamento a una voce',
+    'pt': 'Link para uma anotação',
+  },
+  'link_search': {
+    'ru': 'Какая запись?', 'en': 'Which entry?', 'de': 'Welcher Eintrag?',
+    'fr': 'Quelle entrée ?', 'es': '¿Qué anotación?', 'it': 'Quale voce?',
+    'pt': 'Qual anotação?',
+  },
+  'link_nothing': {
+    'ru': 'Записей с названием пока нет — сослаться не на что.',
+    'en': 'No entries with a title yet — nothing to link to.',
+    'de': 'Noch keine Einträge mit Titel — es gibt nichts zu verlinken.',
+    'fr': 'Aucune entrée titrée pour l’instant — rien à lier.',
+    'es': 'Todavía no hay anotaciones con título: no hay a qué enlazar.',
+    'it': 'Non ci sono ancora voci con titolo: non c’è nulla da collegare.',
+    'pt': 'Ainda não há anotações com título — não há o que linkar.',
+  },
+  'link_missing': {
+    'ru': 'Записи «{name}» нет', 'en': 'No entry called “{name}”',
+    'de': 'Kein Eintrag „{name}“', 'fr': 'Aucune entrée « {name} »',
+    'es': 'No hay ninguna anotación «{name}»',
+    'it': 'Nessuna voce «{name}»', 'pt': 'Não há anotação “{name}”',
+  },
+  'backlinks': {
+    'ru': 'Ссылаются сюда', 'en': 'Linked from', 'de': 'Verweise hierher',
+    'fr': 'Renvois ici', 'es': 'Enlazan aquí', 'it': 'Rimandi qui',
+    'pt': 'Ligam para aqui',
+  },
+  'format_link': {
+    'ru': 'Ссылка на запись', 'en': 'Link to an entry',
+    'de': 'Eintrag verlinken', 'fr': 'Lier une entrée',
+    'es': 'Enlazar una anotación', 'it': 'Collega una voce',
+    'pt': 'Ligar uma anotação',
+  },
+
   // ----------------------------- Редактор -----------------------------
   'draft_saved': {
     'ru': 'Черновик · автосохранён', 'en': 'Draft · saved',

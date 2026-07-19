@@ -21,7 +21,9 @@ import '../utils/dates.dart';
 import '../utils/markdown_edit.dart';
 import '../widgets/audio_player_bar.dart';
 import '../widgets/context_chip.dart';
+import '../services/wiki_links.dart';
 import '../widgets/cover_sheet.dart';
+import '../widgets/entry_picker_sheet.dart';
 import '../widgets/journal_gate.dart';
 import '../widgets/markdown_controller.dart';
 import '../widgets/media_grid.dart';
@@ -177,6 +179,47 @@ class _EditorScreenState extends State<EditorScreen> {
     _scheduleSave();
   }
 
+  /// Ставит ссылку на другую запись: `[[Вечер у реки]]`.
+  ///
+  /// Ссылка живёт названием, а не id: так её видно в тексте, она переживает
+  /// экспорт и её можно поправить руками.
+  Future<void> _insertLink({int replaceBack = 0}) async {
+    final block = _active ?? _blocks.whereType<TextBlock>().firstOrNull;
+    if (block == null) return;
+    final title = await pickEntryLink(context, exceptId: _entry.id);
+    if (title == null || !mounted) return;
+
+    final controller = block.controller;
+    var text = controller.text;
+    var selection = controller.selection;
+    // Человек уже набрал «[[» — заменяем их, а не дописываем вторые.
+    if (replaceBack > 0 && selection.isCollapsed) {
+      final start = (selection.start - replaceBack).clamp(0, text.length);
+      text = text.replaceRange(start, selection.start, '');
+      selection = TextSelection.collapsed(offset: start);
+    }
+    final result =
+        MarkdownEdit.insert(text, selection, '${WikiLinks.token(title)} ');
+    controller.value = TextEditingValue(
+      text: result.text,
+      selection: result.selection,
+    );
+    block.focus.requestFocus();
+  }
+
+  /// Набранные подряд две скобки открывают выбор записи — как в Obsidian.
+  void _watchWikiTrigger(TextBlock block) {
+    final c = block.controller;
+    final sel = c.selection;
+    if (!sel.isCollapsed || sel.start < 2) return;
+    if (c.text.substring(sel.start - 2, sel.start) != '[[') return;
+    _active = block;
+    // Из слушателя контроллера всплывать листом нельзя — ждём кадр.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _insertLink(replaceBack: 2);
+    });
+  }
+
   @override
   void dispose() {
     _autosave?.cancel();
@@ -190,6 +233,7 @@ class _EditorScreenState extends State<EditorScreen> {
   /// Каждый текстовый блок сам сообщает о правках и о том, что он в фокусе.
   void _watch(TextBlock block) {
     block.controller.addListener(_onChanged);
+    block.controller.addListener(() => _watchWikiTrigger(block));
     block.title.addListener(_onChanged);
     block.focus.addListener(() {
       if (block.focus.hasFocus) _active = block;
@@ -751,6 +795,7 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
             _Toolbar(
               onFormat: _format,
+              onLink: _insertLink,
               onPhoto: _addPhotos,
               onCamera: _takePhoto,
               onVideo: _addVideo,
@@ -1038,9 +1083,11 @@ class _Toolbar extends StatelessWidget {
   final VoidCallback onVoice;
   final VoidCallback onPlace;
   final VoidCallback onMood;
+  final VoidCallback onLink;
 
   const _Toolbar({
     required this.onFormat,
+    required this.onLink,
     required this.onPhoto,
     required this.onCamera,
     required this.onVideo,
@@ -1096,6 +1143,11 @@ class _Toolbar extends StatelessWidget {
                 icon: Icons.format_quote_rounded,
                 tooltip: tr('format_quote'),
                 onTap: () => onFormat('> ', prefix: true),
+              ),
+              _Btn(
+                icon: Icons.link_rounded,
+                tooltip: tr('format_link'),
+                onTap: onLink,
               ),
               const _ToolDivider(),
               _Btn(
