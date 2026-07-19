@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../data/app_prefs.dart';
 import '../data/journal_lock.dart';
 import '../data/journal_repository.dart';
 import '../models/entry.dart';
 import '../widgets/journal_editor_sheet.dart';
 import '../widgets/journal_gate.dart';
+import 'journal_screen.dart';
 import 'journals_screen.dart';
 
 /// Дневники с настоящими данными.
@@ -41,26 +41,41 @@ class _JournalsContainerState extends State<JournalsContainer> {
 
   Future<void> _create() async {
     await showJournalEditor(context, sort: _tiles.length);
+    // Новый дневник могли сразу завести под паролем.
+    await JournalLock.refresh();
     await _load();
   }
 
+  /// Правка дневника — тоже за замком: иначе долгий тап по запертой обложке
+  /// открывал настройки, где замок снимается тумблером.
   Future<void> _edit(Journal journal) async {
+    if (!await openJournalGate(context, journal)) return;
+    if (!mounted) return;
     await showJournalEditor(context, journal: journal);
     // Замок могли включить или снять прямо сейчас — список запертых обновляем
     // до перезагрузки, иначе выборки отработают по старому.
-    await JournalLock.refresh(armed: AppPrefs.instance.hasPin);
+    await JournalLock.refresh();
     await _load();
   }
 
-  /// Запертый дневник спрашивает PIN. Раньше замок был только значком.
+  /// Открывает дневник: его записи, а не его настройки. Запертый сначала
+  /// спрашивает свой пароль.
   Future<void> _open(Journal journal) async {
     if (!await openJournalGate(context, journal)) return;
     if (!mounted) return;
     if (widget.onPick != null) {
       widget.onPick!(journal);
-    } else {
-      await _edit(journal);
+      return;
     }
+    // Пароль мог только что появиться (у старого дневника его не было) —
+    // берём дневник заново, чтобы экран не держал устаревшую копию.
+    final fresh =
+        await JournalRepository.instance.getById(journal.id) ?? journal;
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => JournalScreen(journal: fresh)),
+    );
+    await _load();
   }
 
   @override

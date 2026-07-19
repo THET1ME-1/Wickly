@@ -8,6 +8,8 @@ import '../theme/app_theme.dart';
 import '../theme/feedback.dart';
 import '../data/app_prefs.dart';
 import '../data/entry_repository.dart';
+import '../data/journal_lock.dart';
+import '../data/journal_repository.dart';
 import '../data/media_repository.dart';
 import '../l10n/strings.dart';
 import '../models/entry.dart';
@@ -23,6 +25,7 @@ import '../widgets/update_sheet.dart';
 import '../utils/dates.dart';
 import '../widgets/day_sheet.dart';
 import '../widgets/entry_card.dart';
+import '../widgets/journal_gate.dart';
 import 'calendar_screen.dart';
 import 'catalog_manager_screen.dart';
 import 'editor_screen.dart';
@@ -62,11 +65,18 @@ class _ShellScreenState extends State<ShellScreen> {
 
   StreamSubscription<Uri?>? _widgetTaps;
 
+  /// Замки дневников меняются мимо базы (пароль ввели — данные те же), поэтому
+  /// на их тик выборки пересобираются вручную.
+  StreamSubscription<void>? _lockChanges;
+
   @override
   void initState() {
     super.initState();
     _listenToWidget();
     _checkForUpdate();
+    _lockChanges = JournalLock.changes.listen((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   /// Тихая проверка обновления при запуске: приложение раздаётся мимо магазина,
@@ -99,6 +109,7 @@ class _ShellScreenState extends State<ShellScreen> {
   @override
   void dispose() {
     _widgetTaps?.cancel();
+    _lockChanges?.cancel();
     super.dispose();
   }
 
@@ -158,6 +169,18 @@ class _ShellScreenState extends State<ShellScreen> {
   }
 
   Future<void> _openEntry(Entry entry) async {
+    // Запись запертого дневника лежит в ленте под блюром: сперва пароль, а за
+    // ним сразу сама запись — ради неё на карточку и нажали. Проверка здесь, а
+    // не в ленте, закрывает заодно лист дня и воспоминания: они открывают
+    // записи этим же путём.
+    if (JournalLock.isHidden(entry.journalId)) {
+      final journal =
+          await JournalRepository.instance.getById(entry.journalId);
+      if (!mounted || journal == null) return;
+      if (!await openJournalGate(context, journal)) return;
+      if (!mounted) return;
+    }
+
     await Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ReaderScreen(
         entryId: entry.id,
@@ -386,31 +409,42 @@ class _Body extends StatelessWidget {
 
     switch (tab) {
       case ShellTab.feed:
-        return FutureBuilder<List<EntryCardItem>>(
-          future: FeedService.decorate(entries),
-          builder: (context, snapshot) {
-            final items = snapshot.data ?? const <EntryCardItem>[];
-            final memories = items
-                .where((i) =>
-                    i.entry.entryDate.month == now.month &&
-                    i.entry.entryDate.day == now.day &&
-                    i.entry.entryDate.year != now.year)
-                .toList();
-            return FeedView(
-              data: FeedData(
-                items: items,
-                streak: StatsService.streak(entries, now: now),
-                memories: memories,
-                period: Dates.monthYear(now),
-                lastWeek: FeedService.lastWeek(entries, now),
-                now: now,
-              ),
-              onWrite: onWrite,
-              onOpenEntry: onOpenEntry,
-              onSearch: onSearch,
-              onMenu: onSettings,
-              onOpenMemories: onMemories,
-              onOpenStreak: onStats,
+        // Записи запертых дневников приходят отдельным потоком и живут только
+        // в ленте — под блюром и с замком. Серия, виджет, карта и медиа
+        // считаются по списку без них.
+        return StreamBuilder<List<Entry>>(
+          stream: EntryRepository.instance.watchLockedEntries(),
+          builder: (context, lockedSnapshot) {
+            final feed =
+                FeedService.withLocked(entries, lockedSnapshot.data ?? const []);
+            return FutureBuilder<List<EntryCardItem>>(
+              future: FeedService.decorate(feed),
+              builder: (context, snapshot) {
+                final items = snapshot.data ?? const <EntryCardItem>[];
+                final memories = items
+                    .where((i) =>
+                        !i.locked &&
+                        i.entry.entryDate.month == now.month &&
+                        i.entry.entryDate.day == now.day &&
+                        i.entry.entryDate.year != now.year)
+                    .toList();
+                return FeedView(
+                  data: FeedData(
+                    items: items,
+                    streak: StatsService.streak(entries, now: now),
+                    memories: memories,
+                    period: Dates.monthYear(now),
+                    lastWeek: FeedService.lastWeek(entries, now),
+                    now: now,
+                  ),
+                  onWrite: onWrite,
+                  onOpenEntry: onOpenEntry,
+                  onSearch: onSearch,
+                  onMenu: onSettings,
+                  onOpenMemories: onMemories,
+                  onOpenStreak: onStats,
+                );
+              },
             );
           },
         );

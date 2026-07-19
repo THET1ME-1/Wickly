@@ -224,93 +224,96 @@ const Map<String, Map<String, String>> catalogStrings = {
   },
 
   // ---------------------- Встроенные эмоции ----------------------
+  // Эмоции и действия — подписи на кнопках и в списках, а не слова посреди
+  // фразы, поэтому все с заглавной. Так они выглядят как имена, а не как
+  // обрывок предложения.
   'emo_calm': {
-    'ru': 'спокойствие', 'en': 'calm', 'de': 'Ruhe', 'fr': 'calme',
-    'es': 'calma', 'it': 'calma', 'pt': 'calma',
+    'ru': 'Спокойствие', 'en': 'Calm', 'de': 'Ruhe', 'fr': 'Calme',
+    'es': 'Calma', 'it': 'Calma', 'pt': 'Calma',
   },
   'emo_joy': {
-    'ru': 'радость', 'en': 'joy', 'de': 'Freude', 'fr': 'joie',
-    'es': 'alegría', 'it': 'gioia', 'pt': 'alegria',
+    'ru': 'Радость', 'en': 'Joy', 'de': 'Freude', 'fr': 'Joie',
+    'es': 'Alegría', 'it': 'Gioia', 'pt': 'Alegria',
   },
   'emo_gratitude': {
-    'ru': 'благодарность', 'en': 'gratitude', 'de': 'Dankbarkeit',
-    'fr': 'gratitude', 'es': 'gratitud', 'it': 'gratitudine',
-    'pt': 'gratidão',
+    'ru': 'Благодарность', 'en': 'Gratitude', 'de': 'Dankbarkeit',
+    'fr': 'Gratitude', 'es': 'Gratitud', 'it': 'Gratitudine',
+    'pt': 'Gratidão',
   },
   'emo_inspiration': {
-    'ru': 'вдохновение', 'en': 'inspiration', 'de': 'Inspiration',
-    'fr': 'inspiration', 'es': 'inspiración', 'it': 'ispirazione',
-    'pt': 'inspiração',
+    'ru': 'Вдохновение', 'en': 'Inspiration', 'de': 'Inspiration',
+    'fr': 'Inspiration', 'es': 'Inspiración', 'it': 'Ispirazione',
+    'pt': 'Inspiração',
   },
   'emo_love': {
-    'ru': 'нежность', 'en': 'love', 'de': 'Zuneigung', 'fr': 'tendresse',
-    'es': 'cariño', 'it': 'tenerezza', 'pt': 'carinho',
+    'ru': 'Нежность', 'en': 'Love', 'de': 'Zuneigung', 'fr': 'Tendresse',
+    'es': 'Cariño', 'it': 'Tenerezza', 'pt': 'Carinho',
   },
   'emo_tired': {
-    'ru': 'усталость', 'en': 'tiredness', 'de': 'Müdigkeit', 'fr': 'fatigue',
-    'es': 'cansancio', 'it': 'stanchezza', 'pt': 'cansaço',
+    'ru': 'Усталость', 'en': 'Tiredness', 'de': 'Müdigkeit', 'fr': 'Fatigue',
+    'es': 'Cansancio', 'it': 'Stanchezza', 'pt': 'Cansaço',
   },
   'emo_anxiety': {
-    'ru': 'тревога', 'en': 'anxiety', 'de': 'Unruhe', 'fr': 'anxiété',
-    'es': 'ansiedad', 'it': 'ansia', 'pt': 'ansiedade',
+    'ru': 'Тревога', 'en': 'Anxiety', 'de': 'Unruhe', 'fr': 'Anxiété',
+    'es': 'Ansiedad', 'it': 'Ansia', 'pt': 'Ansiedade',
   },
   'emo_sad': {
-    'ru': 'грусть', 'en': 'sadness', 'de': 'Traurigkeit', 'fr': 'tristesse',
-    'es': 'tristeza', 'it': 'tristezza', 'pt': 'tristeza',
+    'ru': 'Грусть', 'en': 'Sadness', 'de': 'Traurigkeit', 'fr': 'Tristesse',
+    'es': 'Tristeza', 'it': 'Tristezza', 'pt': 'Tristeza',
   },
   'emo_angry': {
-    'ru': 'злость', 'en': 'anger', 'de': 'Ärger', 'fr': 'colère',
-    'es': 'enfado', 'it': 'rabbia', 'pt': 'raiva',
+    'ru': 'Злость', 'en': 'Anger', 'de': 'Ärger', 'fr': 'Colère',
+    'es': 'Enfado', 'it': 'Rabbia', 'pt': 'Raiva',
   },
 
   // --------------------- Встроенные действия ---------------------
   'act_friends': {
-    'ru': 'друзья', 'en': 'friends', 'de': 'Freunde', 'fr': 'amis',
-    'es': 'amigos', 'it': 'amici', 'pt': 'amigos',
+    'ru': 'Друзья', 'en': 'Friends', 'de': 'Freunde', 'fr': 'Amis',
+    'es': 'Amigos', 'it': 'Amici', 'pt': 'Amigos',
   },
   'act_family': {
-    'ru': 'семья', 'en': 'family', 'de': 'Familie', 'fr': 'famille',
-    'es': 'familia', 'it': 'famiglia', 'pt': 'família',
+    'ru': 'Семья', 'en': 'Family', 'de': 'Familie', 'fr': 'Famille',
+    'es': 'Familia', 'it': 'Famiglia', 'pt': 'Família',
   },
   'act_date': {
-    'ru': 'свидание', 'en': 'date', 'de': 'Date', 'fr': 'rendez-vous',
-    'es': 'cita', 'it': 'appuntamento', 'pt': 'encontro',
+    'ru': 'Свидание', 'en': 'Date', 'de': 'Date', 'fr': 'Rendez-vous',
+    'es': 'Cita', 'it': 'Appuntamento', 'pt': 'Encontro',
   },
   'act_sport': {
-    'ru': 'спорт', 'en': 'sport', 'de': 'Sport', 'fr': 'sport',
-    'es': 'deporte', 'it': 'sport', 'pt': 'esporte',
+    'ru': 'Спорт', 'en': 'Sport', 'de': 'Sport', 'fr': 'Sport',
+    'es': 'Deporte', 'it': 'Sport', 'pt': 'Esporte',
   },
   'act_walk': {
-    'ru': 'прогулка', 'en': 'a walk', 'de': 'Spaziergang', 'fr': 'balade',
-    'es': 'paseo', 'it': 'passeggiata', 'pt': 'caminhada',
+    'ru': 'Прогулка', 'en': 'A walk', 'de': 'Spaziergang', 'fr': 'Balade',
+    'es': 'Paseo', 'it': 'Passeggiata', 'pt': 'Caminhada',
   },
   'act_sleep': {
-    'ru': 'сон', 'en': 'sleep', 'de': 'Schlaf', 'fr': 'sommeil',
-    'es': 'sueño', 'it': 'sonno', 'pt': 'sono',
+    'ru': 'Сон', 'en': 'Sleep', 'de': 'Schlaf', 'fr': 'Sommeil',
+    'es': 'Sueño', 'it': 'Sonno', 'pt': 'Sono',
   },
   'act_cooking': {
-    'ru': 'готовка', 'en': 'cooking', 'de': 'Kochen', 'fr': 'cuisine',
-    'es': 'cocinar', 'it': 'cucinare', 'pt': 'cozinhar',
+    'ru': 'Готовка', 'en': 'Cooking', 'de': 'Kochen', 'fr': 'Cuisine',
+    'es': 'Cocinar', 'it': 'Cucinare', 'pt': 'Cozinhar',
   },
   'act_work': {
-    'ru': 'работа', 'en': 'work', 'de': 'Arbeit', 'fr': 'travail',
-    'es': 'trabajo', 'it': 'lavoro', 'pt': 'trabalho',
+    'ru': 'Работа', 'en': 'Work', 'de': 'Arbeit', 'fr': 'Travail',
+    'es': 'Trabajo', 'it': 'Lavoro', 'pt': 'Trabalho',
   },
   'act_shopping': {
-    'ru': 'покупки', 'en': 'shopping', 'de': 'Einkaufen', 'fr': 'courses',
-    'es': 'compras', 'it': 'spesa', 'pt': 'compras',
+    'ru': 'Покупки', 'en': 'Shopping', 'de': 'Einkaufen', 'fr': 'Courses',
+    'es': 'Compras', 'it': 'Spesa', 'pt': 'Compras',
   },
   'act_coffee': {
-    'ru': 'кофе', 'en': 'coffee', 'de': 'Kaffee', 'fr': 'café',
-    'es': 'café', 'it': 'caffè', 'pt': 'café',
+    'ru': 'Кофе', 'en': 'Coffee', 'de': 'Kaffee', 'fr': 'Café',
+    'es': 'Café', 'it': 'Caffè', 'pt': 'Café',
   },
   'act_movie': {
-    'ru': 'кино', 'en': 'a film', 'de': 'Kino', 'fr': 'ciné',
-    'es': 'cine', 'it': 'film', 'pt': 'cinema',
+    'ru': 'Кино', 'en': 'A film', 'de': 'Kino', 'fr': 'Ciné',
+    'es': 'Cine', 'it': 'Film', 'pt': 'Cinema',
   },
   'act_book': {
-    'ru': 'книга', 'en': 'a book', 'de': 'Buch', 'fr': 'livre',
-    'es': 'libro', 'it': 'libro', 'pt': 'livro',
+    'ru': 'Книга', 'en': 'A book', 'de': 'Buch', 'fr': 'Livre',
+    'es': 'Libro', 'it': 'Libro', 'pt': 'Livro',
   },
 
   // --------------------- Трекеры и привычки ---------------------

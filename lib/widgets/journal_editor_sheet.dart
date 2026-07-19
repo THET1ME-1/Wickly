@@ -6,6 +6,7 @@ import '../models/entry.dart';
 import '../theme/app_theme.dart';
 import '../theme/icon_keys.dart';
 import '../theme/wickly_design.dart';
+import 'journal_password_sheet.dart';
 import 'sheet_scaffold.dart';
 
 /// Заводит или правит дневник: имя, обложка, иконка и замок.
@@ -36,10 +37,43 @@ class _JournalEditorState extends State<_JournalEditor> {
   late String _icon = widget.journal?.icon ?? 'book';
   late bool _locked = widget.journal?.locked ?? false;
 
+  // Пароль правится здесь же, но в базу уходит только вместе с «Сохранить»:
+  // передумал на полпути — дневник остался прежним.
+  late String? _passHash = widget.journal?.passHash;
+  late String? _passSalt = widget.journal?.passSalt;
+
   @override
   void dispose() {
     _name.dispose();
     super.dispose();
+  }
+
+  /// Замок включают паролем: тумблер без пароля запирал бы дневник на дверь,
+  /// у которой нет ключа.
+  Future<void> _toggleLock(bool on) async {
+    if (!on) {
+      setState(() {
+        _locked = false;
+        _passHash = null;
+        _passSalt = null;
+      });
+      return;
+    }
+    if (_passHash != null) {
+      setState(() => _locked = true);
+      return;
+    }
+    await _askPassword();
+  }
+
+  Future<void> _askPassword() async {
+    final created = await askNewJournalPassword(context);
+    if (created == null || !mounted) return;
+    setState(() {
+      _locked = true;
+      _passHash = created.hash;
+      _passSalt = created.salt;
+    });
   }
 
   Future<void> _save() async {
@@ -49,9 +83,16 @@ class _JournalEditorState extends State<_JournalEditor> {
     final saved = widget.journal == null
         ? Journal.create(
             name: name, cover: _cover, icon: _icon, locked: _locked,
-            sort: widget.sort)
+            sort: widget.sort, passHash: _passHash, passSalt: _passSalt)
         : widget.journal!.copyWith(
-            name: name, cover: _cover, icon: _icon, locked: _locked);
+            name: name,
+            cover: _cover,
+            icon: _icon,
+            locked: _locked,
+            passHash: _passHash,
+            passSalt: _passSalt,
+            clearPass: _passHash == null,
+          );
     if (widget.journal == null) {
       await repo.insert(saved);
     } else {
@@ -195,7 +236,7 @@ class _JournalEditorState extends State<_JournalEditor> {
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: _locked,
-              onChanged: (v) => setState(() => _locked = v),
+              onChanged: _toggleLock,
               title: Text(tr('journal_lock'), style: _label(scheme)),
               subtitle: Text(
                 tr('journal_lock_sub'),
@@ -206,6 +247,15 @@ class _JournalEditorState extends State<_JournalEditor> {
                 ),
               ),
             ),
+            if (_locked && _passHash != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _askPassword,
+                  icon: const Icon(Icons.key_rounded, size: 18),
+                  label: Text(tr('journal_password_change')),
+                ),
+              ),
             const SizedBox(height: 8),
           ],
         ),

@@ -1,4 +1,5 @@
 import '../data/catalog_repository.dart';
+import '../data/journal_lock.dart';
 import '../data/journal_repository.dart';
 import '../data/media_repository.dart';
 import '../models/catalog.dart';
@@ -35,17 +36,42 @@ class FeedService {
 
     return [
       for (final e in entries)
-        EntryCardItem(
-          entry: e,
-          cover: _coverOf(e, byEntry[e.id]),
-          mediaCount: byEntry[e.id]?.length ?? 0,
-          tags: [
-            for (final id in tagLinks[e.id] ?? const <String>[])
-              if (tags[id] != null) tags[id]!.name,
-          ],
-          journalName: showJournal ? journals[e.journalId]?.name : null,
-        ),
+        if (JournalLock.isHidden(e.journalId))
+          // Запись запертого дневника: карточка есть, содержимого в ней нет.
+          // Вложения не подтягиваем вовсе — блюр закрывает картинку только на
+          // экране, а тянуть ради него расшифрованный файл во временный
+          // каталог незачем.
+          EntryCardItem(
+            entry: e,
+            locked: true,
+            journalName: journals[e.journalId]?.name,
+          )
+        else
+          EntryCardItem(
+            entry: e,
+            cover: _coverOf(e, byEntry[e.id]),
+            mediaCount: byEntry[e.id]?.length ?? 0,
+            tags: [
+              for (final id in tagLinks[e.id] ?? const <String>[])
+                if (tags[id] != null) tags[id]!.name,
+            ],
+            journalName: showJournal ? journals[e.journalId]?.name : null,
+          ),
     ];
+  }
+
+  /// Вклеивает записи запертых дневников в ленту тем же порядком, каким их
+  /// отдаёт база: закреплённое сверху, дальше по дате.
+  ///
+  /// Двумя выборками, а не одной: остальные вкладки (карта, медиа, серия,
+  /// виджет) живут на списке без запертых, и подмешивать их туда нельзя.
+  static List<Entry> withLocked(List<Entry> open, List<Entry> locked) {
+    if (locked.isEmpty) return open;
+    return [...open, ...locked]..sort((a, b) {
+        if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+        final byDate = b.entryDate.compareTo(a.entryDate);
+        return byDate != 0 ? byDate : b.createdAt.compareTo(a.createdAt);
+      });
   }
 
   /// Обложка записи: выбранная человеком, иначе первое наглядное вложение.

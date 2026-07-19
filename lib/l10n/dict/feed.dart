@@ -203,6 +203,129 @@ const Map<String, Map<String, String>> feedStrings = {
     'fr': 'protégé par mot de passe', 'es': 'con contraseña',
     'it': 'protetto da password', 'pt': 'com senha',
   },
+  'journal_empty_title': {
+    'ru': 'В этом дневнике пусто', 'en': 'This journal is empty',
+    'de': 'Dieses Tagebuch ist leer', 'fr': 'Ce journal est vide',
+    'es': 'Este diario está vacío', 'it': 'Questo diario è vuoto',
+    'pt': 'Este diário está vazio',
+  },
+  'journal_empty_sub': {
+    'ru': 'Первая запись начнётся отсюда', 'en': 'The first entry starts here',
+    'de': 'Der erste Eintrag beginnt hier',
+    'fr': 'La première entrée commence ici',
+    'es': 'La primera anotación empieza aquí',
+    'it': 'La prima voce inizia qui', 'pt': 'A primeira anotação começa aqui',
+  },
+  'journal_locked_entry': {
+    'ru': 'Запись под паролем', 'en': 'Password-protected entry',
+    'de': 'Eintrag mit Passwort', 'fr': 'Entrée protégée par mot de passe',
+    'es': 'Anotación con contraseña', 'it': 'Voce protetta da password',
+    'pt': 'Anotação com senha',
+  },
+  'journal_locked_tap': {
+    'ru': 'Нажмите, чтобы ввести пароль', 'en': 'Tap to enter the password',
+    'de': 'Tippen, um das Passwort einzugeben',
+    'fr': 'Touchez pour saisir le mot de passe',
+    'es': 'Toca para escribir la contraseña',
+    'it': 'Tocca per inserire la password', 'pt': 'Toque para digitar a senha',
+  },
+  'journal_password': {
+    'ru': 'Пароль дневника', 'en': 'Journal password',
+    'de': 'Tagebuch-Passwort', 'fr': 'Mot de passe du journal',
+    'es': 'Contraseña del diario', 'it': 'Password del diario',
+    'pt': 'Senha do diário',
+  },
+  'journal_password_new': {
+    'ru': 'Придумайте пароль', 'en': 'Create a password',
+    'de': 'Passwort ausdenken', 'fr': 'Choisissez un mot de passe',
+    'es': 'Cree una contraseña', 'it': 'Scegli una password',
+    'pt': 'Crie uma senha',
+  },
+  'journal_password_repeat': {
+    'ru': 'Повторите пароль', 'en': 'Repeat the password',
+    'de': 'Passwort wiederholen', 'fr': 'Répétez le mot de passe',
+    'es': 'Repita la contraseña', 'it': 'Ripeti la password',
+    'pt': 'Repita a senha',
+  },
+  'journal_password_enter': {
+    'ru': 'Введите пароль', 'en': 'Enter the password',
+    'de': 'Passwort eingeben', 'fr': 'Saisissez le mot de passe',
+    'es': 'Escriba la contraseña', 'it': 'Inserisci la password',
+    'pt': 'Digite a senha',
+  },
+  'journal_password_sub': {
+    'ru': 'Спросим при входе в этот дневник. Код приложения останется прежним.',
+    'en': 'We’ll ask for it when you open this journal. The app code stays as '
+        'it is.',
+    'de': 'Wir fragen danach beim Öffnen dieses Tagebuchs. Der App-Code bleibt '
+        'unverändert.',
+    'fr': 'Il sera demandé à l’ouverture de ce journal. Le code de '
+        'l’application ne change pas.',
+    'es': 'Se pedirá al abrir este diario. El código de la aplicación no '
+        'cambia.',
+    'it': 'Verrà chiesta all’apertura di questo diario. Il codice dell’app '
+        'resta lo stesso.',
+    'pt': 'Vamos pedi-la ao abrir este diário. O código do app continua o '
+        'mesmo.',
+  },
+  'journal_password_short': {
+    'ru': 'Не короче {n} символов', 'en': 'At least {n} characters',
+    'de': 'Mindestens {n} Zeichen', 'fr': 'Au moins {n} caractères',
+    'es': 'Al menos {n} caracteres', 'it': 'Almeno {n} caratteri',
+    'pt': 'Pelo menos {n} caracteres',
+  },
+  'journal_password_mismatch': {
+    'ru': 'Пароли не совпадают', 'en': 'The passwords don’t match',
+    'de': 'Die Passwörter stimmen nicht überein',
+    'fr': 'Les mots de passe ne correspondent pas',
+    'es': 'Las contraseñas no coinciden', 'it': 'Le password non coincidono',
+    'pt': 'As senhas não coincidem',
+  },
+  'journal_password_wrong': {
+    'ru': 'Неверный пароль', 'en': 'Wrong password', 'de': 'Falsches Passwort',
+    'fr': 'Mot de passe incorrect', 'es': 'Contraseña incorrecta',
+    'it': 'Password errata', 'pt': 'Senha incorreta',
+  },
+  'journal_password_change': {
+    'ru': 'Сменить пароль', 'en': 'Change password', 'de': 'Passwort ändern',
+    'fr': 'Changer le mot de passe', 'es': 'Cambiar la contraseña',
+    'it': 'Cambia password', 'pt': 'Alterar a senha',
+  },
+  'journal_forgot': {
+    'ru': 'Забыли пароль?', 'en': 'Forgot the password?',
+    'de': 'Passwort vergessen?', 'fr': 'Mot de passe oublié ?',
+    'es': '¿Olvidó la contraseña?', 'it': 'Password dimenticata?',
+    'pt': 'Esqueceu a senha?',
+  },
+  'journal_reset_msg': {
+    'ru': 'Снять пароль с дневника? Записи останутся на месте, новый пароль '
+        'задаётся в его настройках.',
+    'en': 'Remove the journal password? The entries stay; set a new password '
+        'in the journal’s settings.',
+    'de': 'Passwort des Tagebuchs entfernen? Die Einträge bleiben; ein neues '
+        'Passwort legst du in seinen Einstellungen an.',
+    'fr': 'Retirer le mot de passe du journal ? Les entrées restent ; le '
+        'nouveau mot de passe se définit dans ses réglages.',
+    'es': '¿Quitar la contraseña del diario? Las anotaciones quedan; la nueva '
+        'contraseña se pone en sus ajustes.',
+    'it': 'Togliere la password del diario? Le voci restano; la nuova password '
+        'si imposta nelle sue impostazioni.',
+    'pt': 'Remover a senha do diário? As anotações ficam; a nova senha é '
+        'definida nos ajustes dele.',
+  },
+  'journal_unlock': {
+    'ru': 'Открыть', 'en': 'Unlock', 'de': 'Öffnen', 'fr': 'Ouvrir',
+    'es': 'Abrir', 'it': 'Apri', 'pt': 'Abrir',
+  },
+  'journal_password_missing': {
+    'ru': 'У этого дневника ещё нет своего пароля — придумайте его сейчас',
+    'en': 'This journal has no password of its own yet — create one now',
+    'de': 'Dieses Tagebuch hat noch kein eigenes Passwort — jetzt anlegen',
+    'fr': 'Ce journal n’a pas encore son mot de passe — créez-le maintenant',
+    'es': 'Este diario aún no tiene su contraseña: créela ahora',
+    'it': 'Questo diario non ha ancora una password propria: creala ora',
+    'pt': 'Este diário ainda não tem senha própria — crie uma agora',
+  },
   'search_hint': {
     'ru': 'Искать по дневнику', 'en': 'Search your journal',
     'de': 'Im Tagebuch suchen', 'fr': 'Chercher dans le journal',

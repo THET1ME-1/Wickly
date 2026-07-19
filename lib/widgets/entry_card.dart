@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
 import '../l10n/strings.dart';
@@ -25,12 +27,17 @@ class EntryCardItem {
   /// иначе метка «Личное» на каждой карточке лишний шум.
   final String? journalName;
 
+  /// Запись из запертого дневника: карточка стоит в ленте на своём месте, но
+  /// под блюром и с замком. Открывается вводом пароля дневника.
+  final bool locked;
+
   const EntryCardItem({
     required this.entry,
     this.cover,
     this.mediaCount = 0,
     this.tags = const [],
     this.journalName,
+    this.locked = false,
   });
 }
 
@@ -55,9 +62,14 @@ class EntryCard extends StatelessWidget {
     return PressableScale(
       child: Card(
         margin: EdgeInsets.zero,
+        // Запертая карточка размывается целиком, и размытие не должно
+        // выползать за её углы на соседей.
+        clipBehavior: item.locked ? Clip.antiAlias : Clip.none,
         child: InkWell(
           onTap: onTap,
-          child: Column(
+          child: _behindLock(
+            context,
+            Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (hasCover) _cover(context),
@@ -149,8 +161,74 @@ class EntryCard extends StatelessWidget {
               ),
             ],
           ),
+          ),
         ),
       ),
+    );
+  }
+
+  /// Карточка запертого дневника: то же содержимое, но прочесть нельзя.
+  ///
+  /// Показываем именно карточку, а не пустоту: раньше заметка, написанная в
+  /// запертый дневник, исчезала из ленты насовсем, и человек не мог понять,
+  /// сохранилась она вообще или нет. Вложений у такой карточки нет — блюр
+  /// закрывает картинку только на экране, а тянуть ради него расшифрованный
+  /// файл во временный каталог незачем (их не даёт `FeedService`).
+  Widget _behindLock(BuildContext context, Widget content) {
+    if (!item.locked) return content;
+    final scheme = Theme.of(context).colorScheme;
+
+    return Stack(
+      children: [
+        ImageFiltered(
+          // `decal` вместо `clamp`: у края размытие иначе размазывает крайний
+          // пиксель полосой, и карточка выглядит грязной, а не закрытой.
+          imageFilter: ui.ImageFilter.blur(
+              sigmaX: 9, sigmaY: 9, tileMode: TileMode.decal),
+          child: content,
+        ),
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock_rounded, size: 16, color: scheme.primary),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        item.journalName ?? tr('journal_locked_entry'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: AppTheme.displayFont,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  tr('journal_locked_tap'),
+                  style: TextStyle(
+                    fontFamily: AppTheme.bodyFont,
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

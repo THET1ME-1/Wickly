@@ -53,6 +53,41 @@ class EntryRepository {
     return stream.asyncMap(_decodeRows);
   }
 
+  /// Записи одного дневника — для его собственного экрана. Порядок как в
+  /// ленте: закреплённое сверху, дальше по дате.
+  Future<List<Entry>> byJournal(String journalId) async {
+    if (!Db.isReady) return const [];
+    final rows = await _db.query(
+      'SELECT $_cols FROM entries WHERE ${_where(journalId: journalId)} '
+      'ORDER BY pinned DESC, entry_date DESC, created_at DESC',
+      [journalId],
+    );
+    return _decodeRows(rows);
+  }
+
+  /// Записи запертых дневников — только для ленты, которая рисует их под
+  /// блюром с замком.
+  ///
+  /// Мимо [_decodeRows]: тот как раз и вырезает запертое из всех остальных
+  /// выборок (поиск, карта, медиа, статистика, экспорт), и это остаётся так.
+  /// Лента же обязана показать, что запись есть: раньше заметка, написанная в
+  /// запертый дневник, не отображалась нигде — человек не мог её ни найти, ни
+  /// открыть.
+  Stream<List<Entry>> watchLockedEntries() {
+    if (!Db.isReady) return Stream.value(const <Entry>[]);
+    return _db
+        .watch('SELECT $_cols FROM entries WHERE ${_where()} '
+            'ORDER BY pinned DESC, entry_date DESC, created_at DESC')
+        .asyncMap((rows) async {
+      final closed = JournalLock.hiddenJournalIds;
+      if (closed.isEmpty) return const <Entry>[];
+      final mine = rows
+          .where((r) => closed.contains(r['journal_id'] as String?))
+          .toList();
+      return Future.wait(mine.map(_decode));
+    });
+  }
+
   /// Живой поток одной записи (экран чтения обновляется сам после правок).
   Stream<Entry?> watchEntry(String id) {
     if (!Db.isReady) return Stream.value(null);

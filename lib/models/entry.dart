@@ -41,6 +41,15 @@ class Journal {
   final int sort;
   final DateTime createdAt;
 
+  /// Пароль дневника: солёный хэш и соль. Сам пароль никуда не пишется.
+  ///
+  /// Лежат в зашифрованном `enc` рядом с именем — плейнтекстом остаётся только
+  /// флаг [locked], по которому строится гейт. Пароль у каждого дневника свой и
+  /// с кодом приложения не связан: код впускает в приложение, пароль — в один
+  /// дневник, и повторять одно и то же дважды незачем.
+  final String? passHash;
+  final String? passSalt;
+
   const Journal({
     required this.id,
     required this.name,
@@ -50,7 +59,15 @@ class Journal {
     this.locked = false,
     this.sort = 0,
     required this.createdAt,
+    this.passHash,
+    this.passSalt,
   });
+
+  /// Замок стоит и есть чем открывать. Дневник с флагом, но без пароля остался
+  /// от версий, где замок спрашивал код приложения, — такой попросит придумать
+  /// пароль при первом входе.
+  bool get hasPassword =>
+      passHash != null && passHash!.isNotEmpty && passSalt != null;
 
   factory Journal.create({
     required String name,
@@ -59,6 +76,8 @@ class Journal {
     String? cover,
     bool locked = false,
     int sort = 0,
+    String? passHash,
+    String? passSalt,
   }) =>
       Journal(
         id: _uuid.v4(),
@@ -69,6 +88,8 @@ class Journal {
         locked: locked,
         sort: sort,
         createdAt: DateTime.now(),
+        passHash: passHash,
+        passSalt: passSalt,
       );
 
   /// Структурные колонки (без приватного текста).
@@ -84,7 +105,11 @@ class Journal {
         'created_at': createdAt.millisecondsSinceEpoch,
       };
 
-  Map<String, Object?> toPayload() => {'name': name};
+  Map<String, Object?> toPayload() => {
+        'name': name,
+        if (passHash != null) 'pass': passHash,
+        if (passSalt != null) 'salt': passSalt,
+      };
 
   factory Journal.fromStorage(
     Map<String, Object?> row,
@@ -101,6 +126,8 @@ class Journal {
         sort: (row['sort'] as int?) ?? 0,
         createdAt:
             DateTime.fromMillisecondsSinceEpoch((row['created_at'] as int?) ?? 0),
+        passHash: payload['pass'] as String?,
+        passSalt: payload['salt'] as String?,
       );
 
   Journal copyWith({
@@ -110,6 +137,11 @@ class Journal {
     String? cover,
     bool? locked,
     int? sort,
+    String? passHash,
+    String? passSalt,
+    // Снятие замка стирает пароль, поэтому нужен явный сброс: `passHash: null`
+    // в именованном параметре неотличим от «не трогать».
+    bool clearPass = false,
   }) =>
       Journal(
         id: id,
@@ -120,6 +152,8 @@ class Journal {
         locked: locked ?? this.locked,
         sort: sort ?? this.sort,
         createdAt: createdAt,
+        passHash: clearPass ? null : (passHash ?? this.passHash),
+        passSalt: clearPass ? null : (passSalt ?? this.passSalt),
       );
 }
 

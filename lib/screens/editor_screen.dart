@@ -21,6 +21,7 @@ import '../utils/markdown_edit.dart';
 import '../widgets/audio_player_bar.dart';
 import '../widgets/context_chip.dart';
 import '../widgets/cover_sheet.dart';
+import '../widgets/journal_gate.dart';
 import '../widgets/markdown_controller.dart';
 import '../widgets/media_grid.dart';
 import '../widgets/media_viewer.dart';
@@ -166,6 +167,11 @@ class _EditorScreenState extends State<EditorScreen> {
       ),
     );
     if (picked == null || !mounted) return;
+    // В запертый дневник тоже по паролю: иначе запись уезжала бы туда, откуда
+    // её потом не достать — она сразу уходит под замок.
+    final target = _journals.firstWhere((j) => j.id == picked);
+    if (!await openJournalGate(context, target)) return;
+    if (!mounted) return;
     await AppPrefs.instance.setLastJournal(picked);
     setState(() {
       _entry = _entry.copyWith(journalId: picked);
