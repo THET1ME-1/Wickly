@@ -144,6 +144,11 @@ class Dates {
     };
   }
 
+  /// Один ли это календарный день — тема записи могла появиться в другой день,
+  /// и тогда у неё показывают не только время, но и дату.
+  static bool sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
   static DateTime _midnight(DateTime d) => DateTime(d.year, d.month, d.day);
 
   static String _capitalize(String s) =>

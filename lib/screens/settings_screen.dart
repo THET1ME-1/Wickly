@@ -160,6 +160,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Смена кода: сначала подтверждаем старый, потом задаём новый.
+  Future<void> _changePin() async {
+    final ok = await Navigator.of(context).push<bool>(MaterialPageRoute(
+      builder: (_) => LockScreen(
+        mode: LockMode.confirmPin,
+        onUnlocked: () => Navigator.of(context).pop(true),
+      ),
+    ));
+    if (ok != true || !mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => LockScreen(
+        mode: LockMode.setPin,
+        onUnlocked: () => Navigator.of(context).pop(),
+      ),
+    ));
+    if (mounted) setState(() {});
+  }
+
   Future<void> _pickLanguage() async {
     final scheme = Theme.of(context).colorScheme;
     final current = LocaleController.instance.code;
@@ -304,6 +322,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (mounted) setState(() {});
                   },
                 ),
+              ),
+            ],
+            // Смена кода: подтвердить старый, задать новый.
+            if (prefs.hasPin) ...[
+              const SettingsDivider(),
+              SettingsRow(
+                icon: Icons.password_rounded,
+                title: tr('lock_change'),
+                onTap: _changePin,
+                trailing: chevron(),
               ),
             ],
             // Через сколько запирать после ухода в фон. Настройка была в

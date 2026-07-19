@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:cryptography/cryptography.dart';
 import 'package:meta/meta.dart';
 
 import 'sync_service.dart';
@@ -59,6 +58,12 @@ class P2pService {
   /// Сколько ждём вторую сторону: дольше человек всё равно не держит экран.
   static const handshakeTimeout = Duration(seconds: 30);
 
+  /// Потолок размера кадра. Длину пакета объявляет другая сторона (первые 4
+  /// байта), и без предела любой в сети мог бы объявить до 4 ГБ и складывать
+  /// их нам в память до расшифровки — мгновенный OOM. 512 МБ с запасом
+  /// покрывает даже первую синхронизацию большого дневника с фото.
+  static const _maxFrame = 512 * 1024 * 1024;
+
   /// Поднимает приём на этом устройстве.
   static Future<P2pHost> host({
     required String phrase,
@@ -71,13 +76,11 @@ class P2pService {
       // Порт занят другим приложением или прошлым запуском — берём любой.
       server = await ServerSocket.bind(InternetAddress.anyIPv4, 0);
     }
-    final key = await SyncService.keyFromPhrase(phrase);
-    return P2pHost._(server, key, phrase, await localAddress());
+    return P2pHost._(server, phrase, await localAddress());
   }
 
   /// Подключается к устройству из приглашения и делает обмен.
   static Future<MergeReport> connect(PairInvite invite) async {
-    final key = await SyncService.keyFromPhrase(invite.phrase);
     final socket = await Socket.connect(
       invite.host,
       invite.port,
@@ -85,11 +88,12 @@ class P2pService {
     );
     try {
       final outgoing = await SyncService.buildPacket();
-      final sealed = await SyncService.sealPacket(outgoing, key);
+      final sealed = await SyncService.sealForPhrase(outgoing, invite.phrase);
       writeFrame(socket, sealed);
 
       final incoming = await readFrame(socket).timeout(handshakeTimeout);
-      final packet = await SyncService.openPacket(incoming, key);
+      final packet =
+          await SyncService.openWithPhrase(incoming, invite.phrase);
       return SyncService.applyPacket(packet);
     } finally {
       socket.destroy();
@@ -138,6 +142,9 @@ class P2pService {
       if (expected == null && buffer.length >= 4) {
         final bytes = buffer.toBytes();
         expected = ByteData.sublistView(bytes, 0, 4).getUint32(0);
+        if (expected > _maxFrame) {
+          throw const SocketException('Кадр слишком велик');
+        }
         buffer
           ..clear()
           ..add(bytes.sublist(4));
@@ -153,11 +160,10 @@ class P2pService {
 /// Поднятый приём: показывает приглашение и ждёт вторую сторону.
 class P2pHost {
   final ServerSocket _server;
-  final SecretKey _key;
   final String phrase;
   final String address;
 
-  P2pHost._(this._server, this._key, this.phrase, this.address);
+  P2pHost._(this._server, this.phrase, this.address);
 
   int get port => _server.port;
 
@@ -170,11 +176,11 @@ class P2pHost {
     try {
       final incoming =
           await P2pService.readFrame(socket).timeout(P2pService.handshakeTimeout);
-      final packet = await SyncService.openPacket(incoming, _key);
+      final packet = await SyncService.openWithPhrase(incoming, phrase);
       final report = await SyncService.applyPacket(packet);
 
       final outgoing = await SyncService.buildPacket();
-      final sealed = await SyncService.sealPacket(outgoing, _key);
+      final sealed = await SyncService.sealForPhrase(outgoing, phrase);
       P2pService.writeFrame(socket, sealed);
       await socket.flush();
       return report;

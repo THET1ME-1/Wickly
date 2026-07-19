@@ -74,6 +74,51 @@ class _ReaderScreenState extends State<ReaderScreen> {
     setState(() => _entry = updated);
   }
 
+  /// Меняет время появления темы — прямо при чтении, в том числе на другой
+  /// день. Пишем в тот же список [Entry.blockTimes], которым живёт редактор:
+  /// индекс темы у читалки и редактора один и тот же
+  /// (см. [MarkdownLite.readUnits]).
+  Future<void> _editBlockTime(int index) async {
+    final e = _entry;
+    if (e == null) return;
+    final times = List<int>.of(e.blockTimes);
+    final current = index < times.length
+        ? DateTime.fromMillisecondsSinceEpoch(times[index])
+        : e.entryDate;
+
+    final date = await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(current),
+    );
+    if (!mounted) return;
+    final at = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time?.hour ?? current.hour,
+      time?.minute ?? current.minute,
+    );
+
+    // Недостающие времена до этой темы — это время записи (то же, что читалка
+    // и редактор подставляют как fallback), поэтому смысл записи не меняется.
+    while (times.length <= index) {
+      times.add(e.entryDate.millisecondsSinceEpoch);
+    }
+    times[index] = at.millisecondsSinceEpoch;
+
+    Haptics.commit();
+    final updated = e.copyWith(blockTimes: times);
+    await EntryRepository.instance.update(updated);
+    if (mounted) setState(() => _entry = updated);
+  }
+
   /// Отметка пункта чеклиста прямо в читалке.
   Future<void> _toggleTodo(String newBody) async {
     Haptics.tap();
@@ -251,6 +296,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       media: byId,
                       onOpenMedia: (group, index) =>
                           showMediaViewer(context, group, index),
+                      // Время появления каждой темы, с возможностью сменить.
+                      blockTimes: e.blockTimes,
+                      entryDate: e.entryDate,
+                      onEditTime: _editBlockTime,
                     ),
                   if (looseVisual.isNotEmpty) ...[
                     const SizedBox(height: 14),

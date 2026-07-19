@@ -65,27 +65,27 @@ Future<void> main() async {
   await on(phone, () => Schema.ensureSeeds(phone, 'Личное'));
   await on(laptop, () => Schema.ensureSeeds(laptop, 'Личное'));
 
-  final key = await SyncService.keyFromPhrase('море-лампа-кедр-ветер');
+  const phrase = 'море-лампа-кедр-ветер';
+  const otherPhrase = 'море-лампа-кедр-сокол';
   final entries = EntryRepository.instance;
 
   print('\n— Фраза сопряжения —');
-  final k2 = await SyncService.keyFromPhrase('  Море Лампа Кедр Ветер  ');
-  _check('регистр и пробелы во фразе не важны',
-      (await key.extractBytes()).toString() ==
-          (await k2.extractBytes()).toString());
-  final other = await SyncService.keyFromPhrase('море-лампа-кедр-сокол');
-  _check('другая фраза даёт другой ключ',
-      (await key.extractBytes()).toString() !=
-          (await other.extractBytes()).toString());
-  _check('сгенерированная фраза из четырёх слов',
-      SyncService.generatePhrase().split('-').length == 4);
+  _check('сгенерированная фраза из шести слов',
+      SyncService.generatePhrase().split('-').length == 6);
   // Повтор слова путает на слух и режет число сочетаний.
   var allDistinct = true;
   for (var i = 0; i < 50; i++) {
     final words = SyncService.generatePhrase().split('-');
-    if (words.toSet().length != 4) allDistinct = false;
+    if (words.toSet().length != 6) allDistinct = false;
   }
   _check('слова во фразе не повторяются', allDistinct);
+  // Соль случайна на пакет: один и тот же пакет под одной фразой даёт разные
+  // байты — предвычислить ключ по фразе нельзя.
+  final s1 = await SyncService.sealForPhrase({'a': 1}, phrase);
+  final s2 = await SyncService.sealForPhrase({'a': 1}, phrase);
+  _check('соль случайна на каждый пакет', s1.toString() != s2.toString());
+  _check('свой пакет открывается своей фразой',
+      (await SyncService.openWithPhrase(s1, phrase))['a'] == 1);
 
   print('\n— Первый обмен —');
   final e1 = Entry.create(
@@ -93,17 +93,17 @@ Future<void> main() async {
   await on(phone, () => entries.insert(e1));
 
   final packet = await on(phone, () => SyncService.buildPacket());
-  final sealed = await SyncService.sealPacket(packet, key);
-  final opened = await SyncService.openPacket(sealed, key);
+  final sealed = await SyncService.sealForPhrase(packet, phrase);
+  final opened = await SyncService.openWithPhrase(sealed, phrase);
   final report = await on(laptop, () => SyncService.applyPacket(opened));
   _check('пакет доехал', report.rows > 0);
   _check('запись видна на ноутбуке',
       (await on(laptop, () => entries.getById(e1.id)))?.title == 'С телефона');
 
-  print('\n— Чужим ключом не открыть —');
+  print('\n— Чужой фразой не открыть —');
   var rejected = false;
   try {
-    await SyncService.openPacket(sealed, other);
+    await SyncService.openWithPhrase(sealed, otherPhrase);
   } catch (_) {
     rejected = true;
   }
@@ -181,8 +181,8 @@ Future<void> main() async {
       journalId: Schema.defaultJournalId, title: 'Только на телефоне');
   await on(phone, () => entries.insert(e4));
 
-  final laptopBytes = await SyncService.sealPacket(
-      await on(laptop, () => SyncService.buildPacket()), key);
+  final laptopBytes = await SyncService.sealForPhrase(
+      await on(laptop, () => SyncService.buildPacket()), phrase);
 
   final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
   final received = server.first.then((socket) async {
@@ -204,7 +204,7 @@ Future<void> main() async {
   await server.close();
   await on(laptop,
       () async => SyncService.applyPacket(
-          await SyncService.openPacket(sealedFromPhone, key)));
+          await SyncService.openWithPhrase(sealedFromPhone, phrase)));
 
   _check('телефон принял пакет по сети', clientReport.rows > 0);
   _check('запись ноутбука приехала на телефон',

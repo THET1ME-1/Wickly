@@ -149,6 +149,56 @@ void main() {
     EditorDocument.adopt(blocks, const [], newBlock: TextBlock.new);
     expect(blocks.length, 1);
   });
+
+  _blockTimeAlignment();
+}
+
+/// Читалка ([MarkdownLite.readUnits]) и редактор ([EditorDocument.parse]) режут
+/// запись одинаково, поэтому индекс темы у них общий — а значит и время из
+/// `Entry.blockTimes` попадёт в ту же тему. Если нарезки разойдутся, время
+/// показывалось бы (и записывалось) не туда: этот инвариант и стережём.
+void _blockTimeAlignment() {
+  // Как выглядит блок редактора: пустой хвост отмечаем отдельно — читалка его
+  // не рисует, но он не должен сдвигать индексы видимых тем.
+  String edDesc(EditorBlock b) => switch (b) {
+        MediaBlock() => 'media',
+        TextBlock(:final title, :final controller) =>
+          title.text.isEmpty && controller.text.isEmpty
+              ? 'empty'
+              : 'text:${title.text}',
+      };
+  String unitDesc(ReadUnit u) => u.isMedia ? 'media' : 'text:${u.title ?? ''}';
+
+  group('Индекс темы у читалки и редактора совпадает', () {
+    const bodies = [
+      '## Утро\nКофе и планы.\n## Вечер\nДошли до моста.',
+      'Просто текст без темы.',
+      'Вступление.\n## Тема\nтекст темы',
+      '## A\n![](media:x)\n## B\nтекст',
+      'текст\n![](media:a)\n![](media:b)\nещё текст',
+      '![](media:a)\nпосле фото',
+      '## Только заголовок',
+      'хвост с фото\n![](media:a)',
+    ];
+
+    for (final body in bodies) {
+      test(body.replaceAll('\n', ' ⏎ '), () {
+        final ed = EditorDocument.parse(body).map(edDesc).toList();
+        final units = MarkdownLite.readUnits(body).map(unitDesc).toList();
+
+        // Каждая видимая единица редактора стоит в читалке на том же индексе.
+        for (var i = 0; i < ed.length; i++) {
+          if (ed[i] == 'empty') continue;
+          expect(i < units.length, isTrue,
+              reason: 'тема $i из редактора потерялась в читалке: $body');
+          expect(units[i], ed[i],
+              reason: 'разъехались темы на индексе $i: $body');
+        }
+        // А пустых тем читалка не плодит.
+        expect(units, isNot(contains('empty')));
+      });
+    }
+  });
 }
 
 void _reorderTests() {

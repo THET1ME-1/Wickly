@@ -76,6 +76,11 @@ class _VoiceSheetState extends State<_VoiceSheet> {
   String? _speechLocale;
 
   String? _audioPath;
+
+  /// Записанное приложили к записи — тогда файл забирает редактор, и стирать
+  /// его в [dispose] нельзя. Иначе (закрыли лист крестиком) сырой голос из
+  /// временного каталога надо удалить: `clearTemp` его не трогает.
+  bool _accepted = false;
   Duration _elapsed = Duration.zero;
   Timer? _ticker;
 
@@ -94,6 +99,11 @@ class _VoiceSheetState extends State<_VoiceSheet> {
     _ticker?.cancel();
     _speech.cancel();
     _recorderOrNull?.dispose();
+    // Записал, но не приложил — не оставляем сырой голос в кэше.
+    final path = _audioPath;
+    if (!_accepted && path != null) {
+      File(path).delete().ignore();
+    }
     super.dispose();
   }
 
@@ -282,6 +292,8 @@ class _VoiceSheetState extends State<_VoiceSheet> {
   }
 
   void _accept() {
+    // Файл уходит редактору — снимаем метку «брошено», чтобы dispose его не стёр.
+    if (!_dictation) _accepted = true;
     Navigator.of(context).pop(VoiceResult(
       transcript: _dictation && _transcript.trim().isNotEmpty
           ? _transcript.trim()

@@ -336,6 +336,16 @@ class _ShellScreenState extends State<ShellScreen> {
   }
 }
 
+/// Вложения только видимых записей. Поток `watchAll` замок дневника не
+/// фильтрует (media не знает про журналы), поэтому фото скрытых записей и
+/// запертых дневников отсекаем здесь — по списку записей, который замок уже
+/// отфильтровал.
+List<Media> _visibleMedia(List<Media>? media, List<Entry> entries) {
+  if (media == null || media.isEmpty) return const <Media>[];
+  final visible = {for (final e in entries) e.id};
+  return media.where((m) => visible.contains(m.entryId)).toList();
+}
+
 /// Тело вкладки. Вынесено отдельно, чтобы каждая вкладка сама достраивала свои
 /// данные и лента не пересчитывала карту.
 class _Body extends StatelessWidget {
@@ -458,7 +468,9 @@ class _Body extends StatelessWidget {
           stream: MediaRepository.instance.watchAll(),
           builder: (context, snapshot) => MapView(
             places: groupIntoPlaces(entries),
-            covers: coversByEntry(snapshot.data ?? const <Media>[]),
+            // Только вложения видимых записей: поток media замок не фильтрует,
+            // и без этого фото скрытой/запертой записи всплыло бы на карте.
+            covers: coversByEntry(_visibleMedia(snapshot.data, entries)),
             onSearch: onSearch,
             onOpenPlace: (place) => onOpenEntry(place.latest),
           ),
@@ -468,7 +480,10 @@ class _Body extends StatelessWidget {
         return StreamBuilder<List<Media>>(
           stream: MediaRepository.instance.watchAll(),
           builder: (context, snapshot) {
-            final media = snapshot.data ?? const <Media>[];
+            // Замок не действует на поток media сам по себе: отсекаем
+            // вложения скрытых записей и запертых дневников по видимым записям,
+            // иначе галерея показывала бы их плитками в обход замка.
+            final media = _visibleMedia(snapshot.data, entries);
             return MediaView(
               media: media,
               onSearch: onSearch,

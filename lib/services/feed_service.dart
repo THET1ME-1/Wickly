@@ -1,4 +1,5 @@
 import '../data/catalog_repository.dart';
+import '../data/journal_repository.dart';
 import '../data/media_repository.dart';
 import '../models/catalog.dart';
 import '../models/entry.dart';
@@ -20,6 +21,13 @@ class FeedService {
         await CatalogRepository.instance.allLinks('entry_tags', 'tag_id');
     final tags = {for (final t in await CatalogRepository.instance.tags()) t.id: t};
 
+    // Имя дневника показываем на карточке, только когда дневников больше
+    // одного: иначе одинаковая метка на каждой записи — лишний шум.
+    final journals = {
+      for (final j in await JournalRepository.instance.all()) j.id: j,
+    };
+    final showJournal = journals.length > 1;
+
     final byEntry = <String, List<Media>>{};
     for (final m in media) {
       (byEntry[m.entryId] ??= []).add(m);
@@ -35,6 +43,7 @@ class FeedService {
             for (final id in tagLinks[e.id] ?? const <String>[])
               if (tags[id] != null) tags[id]!.name,
           ],
+          journalName: showJournal ? journals[e.journalId]?.name : null,
         ),
     ];
   }

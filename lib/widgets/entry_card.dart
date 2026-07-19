@@ -21,11 +21,16 @@ class EntryCardItem {
   final int mediaCount;
   final List<String> tags;
 
+  /// Имя дневника записи. Заполняется, только когда дневников больше одного, —
+  /// иначе метка «Личное» на каждой карточке лишний шум.
+  final String? journalName;
+
   const EntryCardItem({
     required this.entry,
     this.cover,
     this.mediaCount = 0,
     this.tags = const [],
+    this.journalName,
   });
 }
 
@@ -65,6 +70,31 @@ class EntryCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Из какого дневника запись — когда их несколько. Над
+                    // заголовком, чтобы читалось и на карточке с обложкой.
+                    if (item.journalName != null) ...[
+                      Row(
+                        children: [
+                          Icon(Icons.menu_book_rounded,
+                              size: 13, color: scheme.primary),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              item.journalName!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: AppTheme.bodyFont,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: scheme.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                    ],
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

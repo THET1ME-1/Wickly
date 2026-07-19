@@ -339,6 +339,7 @@ class _PlaceCard extends StatelessWidget {
                     child: MediaThumb(
                       media: cover,
                       coverKey: CoverPalette.forSeed(place.latest.id),
+                      emptyIcon: Icons.place_rounded,
                     ),
                   ),
                 ),

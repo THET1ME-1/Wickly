@@ -440,6 +440,61 @@ class _EditorScreenState extends State<EditorScreen> {
     _scheduleSave();
   }
 
+  /// Смена времени появления темы — тап по времени в шапке блока. Как и у даты
+  /// записи, спрашиваем и день, и время: тему можно поставить задним числом.
+  Future<void> _editBlockTime(TextBlock block) async {
+    final current = block.createdAt ?? _entry.entryDate;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(current),
+    );
+    if (!mounted) return;
+    setState(() {
+      block.createdAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time?.hour ?? current.hour,
+        time?.minute ?? current.minute,
+      );
+      _dirty = true;
+    });
+    _scheduleSave();
+  }
+
+  /// Время темы в шапке блока: тап открывает смену.
+  Widget _blockTime(TextBlock block, ColorScheme scheme) {
+    final at = block.createdAt!;
+    final label = Dates.sameDay(at, _entry.entryDate)
+        ? Dates.time(at)
+        : '${Dates.dayMonth(at)}, ${Dates.time(at)}';
+    return Padding(
+      padding: const EdgeInsets.only(left: 8, top: 1),
+      child: InkWell(
+        onTap: () => _editBlockTime(block),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: AppTheme.bodyFont,
+              fontSize: 11.5,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Выбор обложки: выключить, взять фото из записи или подобрать по теме.
   Future<void> _pickCover() async {
     await _save();
@@ -757,19 +812,9 @@ class _EditorScreenState extends State<EditorScreen> {
                     ),
                     // Когда появилась эта тема. У записи целиком время своё,
                     // но темы пишутся в разные заходы, и по ним видно, что
-                    // утреннее, а что вечернее.
-                    if (block.createdAt != null)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8, top: 3),
-                        child: Text(
-                          Dates.time(block.createdAt!),
-                          style: TextStyle(
-                            fontFamily: AppTheme.bodyFont,
-                            fontSize: 11.5,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
+                    // утреннее, а что вечернее. Тап — сменить, в том числе на
+                    // другой день (тогда рядом со временем встаёт и дата).
+                    if (block.createdAt != null) _blockTime(block, scheme),
                     // Ручка переноса. Удержание на самой карточке тоже
                     // работает, но внутри текста длинный тап забирает
                     // выделение — иначе текст нельзя было бы выделить.

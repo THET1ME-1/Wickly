@@ -83,14 +83,29 @@ class UpdateService {
 
   /// Скачивает APK по ссылке во временный файл, дёргая [onProgress] (0..1).
   /// Возвращает путь к файлу или null при ошибке.
+  /// Куда вообще позволено ходить за APK. Ссылка на ассет приходит из ответа
+  /// API, то есть недоверенная: если её подменят на чужой хост, мы не должны
+  /// скачивать и запускать установщик для произвольного файла из интернета.
+  static bool _trustedApkHost(Uri uri) {
+    if (uri.scheme != 'https') return false;
+    final host = uri.host.toLowerCase();
+    return host == 'github.com' ||
+        host == 'api.github.com' ||
+        host.endsWith('.githubusercontent.com');
+  }
+
   static Future<String?> downloadApk(
     String url, {
     void Function(double progress)? onProgress,
   }) async {
     try {
+      final uri = Uri.parse(url);
+      // Только HTTPS и только GitHub: иначе подменённый ответ увёл бы установку
+      // на APK с сервера атакующего.
+      if (!_trustedApkHost(uri)) return null;
       final client = HttpClient()
         ..connectionTimeout = const Duration(seconds: 20);
-      final request = await client.getUrl(Uri.parse(url));
+      final request = await client.getUrl(uri);
       request.headers.set(HttpHeaders.userAgentHeader, 'Wickly-Updater');
       final response = await request.close(); // редиректы следуются по умолчанию
       if (response.statusCode != 200) {

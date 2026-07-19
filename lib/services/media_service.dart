@@ -161,9 +161,26 @@ class MediaService {
     return RegExp(r'^[a-z0-9]{1,5}$').hasMatch(ext) ? ext : 'jpg';
   }
 
+  /// Предел на число пикселей, которое соглашаемся раскодировать (~60 Мп).
+  /// «Декомпресс-бомба» — маленький файл, разворачивающийся в гигапиксельный
+  /// кадр, — иначе кладёт процесс на превью/размерах. Размеры берём из
+  /// заголовка, не разворачивая всё изображение.
+  static const _maxPixels = 60 * 1000 * 1000;
+
+  static bool _tooLarge(Uint8List bytes) {
+    try {
+      final info = img.findDecoderForData(bytes)?.startDecode(bytes);
+      if (info == null) return false; // формат неизвестен — решит сам decode
+      return info.width * info.height > _maxPixels;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Размеры кадра. Формат может оказаться незнакомым (HEIC с айфона) —
   /// тогда сетка возьмёт пропорции по умолчанию.
   static (int, int)? _sizeOf(Uint8List bytes) {
+    if (_tooLarge(bytes)) return null;
     try {
       final decoded = img.decodeImage(bytes);
       if (decoded == null) return null;
@@ -174,6 +191,7 @@ class MediaService {
   }
 
   static Future<String?> _makeThumb(Uint8List bytes) async {
+    if (_tooLarge(bytes)) return null;
     try {
       final decoded = img.decodeImage(bytes);
       if (decoded == null) return null;

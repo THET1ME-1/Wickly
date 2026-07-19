@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'markdown_lite.dart';
 
 /// Поле ввода, которое подсвечивает разметку прямо во время набора.
 ///
@@ -47,14 +48,23 @@ class MarkdownEditingController extends TextEditingController {
       }
     }
 
-    addLinePrefix(
-      _heading,
-      (_) => base.copyWith(
-        fontFamily: AppTheme.displayFont,
-        fontWeight: FontWeight.w700,
-        fontSize: (base.fontSize ?? 15) + 4,
-      ),
-    );
+    // Заголовок в поле показываем по уровню, той же лесенкой, что и читалка:
+    // `## ` в наборе должен быть заметно крупнее текста, а не на пару пунктов.
+    for (final m in _heading.allMatches(text)) {
+      final level = m.group(1)!.length;
+      final lineEnd = text.indexOf('\n', m.end);
+      final end = lineEnd < 0 ? text.length : lineEnd;
+      spans.add(_Styled(m.start, m.end, marker));
+      spans.add(_Styled(
+        m.end,
+        end,
+        base.copyWith(
+          fontFamily: AppTheme.displayFont,
+          fontWeight: FontWeight.w700,
+          fontSize: MarkdownLite.headingSize(level, base.fontSize ?? 15),
+        ),
+      ));
+    }
     addLinePrefix(_todo, (_) => base);
     addLinePrefix(_bullet, (_) => base);
     addLinePrefix(

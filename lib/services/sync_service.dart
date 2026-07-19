@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:crypto/crypto.dart' as hash;
 import 'package:cryptography/cryptography.dart';
 import 'package:sqlite_crdt/sqlite_crdt.dart';
 
 import '../data/crypto.dart';
 import '../data/db.dart';
 import '../data/media_store.dart';
+import '../data/schema.dart';
 
 /// Что приехало при слиянии.
 class MergeReport {
@@ -93,9 +93,19 @@ class SyncService {
     final changeset = <String, List<Map<String, Object?>>>{};
     var rowCount = 0;
     for (final entry in raw.entries) {
-      final rows = (entry.value as List)
-          .map((r) => _decodeRow((r as Map).cast<String, Object?>()))
-          .toList();
+      // Имя таблицы и имена колонок из пакета уходят в `merge` сырой
+      // интерполяцией в SQL. Пропускаем только известные таблицы и строки,
+      // где все ключи — обычные идентификаторы: чужое устройство не должно
+      // мочь ни писать в произвольную таблицу, ни ломать структуру запроса.
+      if (!Schema.knownTables.contains(entry.key)) continue;
+      final rows = <Map<String, Object?>>[];
+      for (final r in (entry.value as List)) {
+        final row = (r as Map).cast<String, Object?>();
+        if (row.keys.every(_isSafeColumn)) {
+          rows.add(_decodeRow(row));
+        }
+      }
+      if (rows.isEmpty) continue;
       changeset[entry.key] = rows;
       rowCount += rows.length;
     }
@@ -104,51 +114,86 @@ class SyncService {
     return MergeReport(rows: rowCount, files: fileCount);
   }
 
-  /// Пакет в зашифрованные байты: то, что кладётся в файл или уходит в сокет.
-  static Future<List<int>> sealPacket(
-    Map<String, Object?> packet,
-    SecretKey key,
-  ) =>
-      Crypto.instance
-          .encryptBytesWith(utf8.encode(jsonEncode(packet)), key);
+  /// Длина соли (байт), которую кладём в начало пакета.
+  static const _saltLen = 16;
 
-  static Future<Map<String, Object?>> openPacket(
-    List<int> sealed,
-    SecretKey key,
+  /// Пакет в зашифрованные байты: то, что кладётся в файл или уходит в сокет.
+  ///
+  /// Формат: `соль(16) ‖ nonce‖ciphertext‖mac`. Соль СЛУЧАЙНА на каждый пакет и
+  /// едет открыто рядом с шифртекстом — так ключ каждого пакета свой, и общую
+  /// радужную таблицу «все фразы → ключ» построить нельзя. Обе стороны знают
+  /// фразу, соль берут из принятого пакета.
+  static Future<List<int>> sealForPhrase(
+    Map<String, Object?> packet,
+    String phrase,
   ) async {
-    final clear = await Crypto.instance.decryptBytesWith(sealed, key);
+    final salt = SecretKeyData.random(length: _saltLen).bytes;
+    final key = await _phraseKey(phrase, salt);
+    final body = await Crypto.instance
+        .encryptBytesWith(utf8.encode(jsonEncode(packet)), key);
+    return [...salt, ...body];
+  }
+
+  static Future<Map<String, Object?>> openWithPhrase(
+    List<int> sealed,
+    String phrase,
+  ) async {
+    if (sealed.length <= _saltLen) {
+      throw const FormatException('Пакет короче соли');
+    }
+    final salt = sealed.sublist(0, _saltLen);
+    final key = await _phraseKey(phrase, salt);
+    final clear =
+        await Crypto.instance.decryptBytesWith(sealed.sublist(_saltLen), key);
     return (jsonDecode(utf8.decode(clear)) as Map).cast<String, Object?>();
   }
 
-  /// Ключ пары устройств из фразы сопряжения.
-  ///
-  /// Соль привязана к самой фразе, а не случайна: обе стороны должны получить
-  /// один ключ, зная только фразу, и никакого канала для обмена солью нет.
-  static Future<SecretKey> keyFromPhrase(String phrase) {
-    final normalized = phrase.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '-');
-    final salt = hash.sha256.convert(utf8.encode('wickly-pair:$normalized')).bytes;
+  /// Ключ пары устройств из фразы сопряжения и соли пакета (PBKDF2).
+  static Future<SecretKey> _phraseKey(String phrase, List<int> salt) {
+    final normalized =
+        phrase.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '-');
     return Crypto.keyFromPassphrase(normalized, salt);
   }
 
-  /// Фраза сопряжения: четыре слова, которые легко продиктовать вслух.
+  /// Фраза сопряжения: шесть разных слов, которые легко продиктовать вслух.
   ///
-  /// Слова разные: повтор и на слух путает, и уменьшает и без того небольшое
-  /// число сочетаний.
+  /// Слова разные (повтор путает на слух) и берутся из большого словаря: пара
+  /// слов из полутора десятков давала лишь ~15 бит — весь набор ключей можно
+  /// было перебрать. Шесть слов из этого словаря — свыше сорока бит.
   static String generatePhrase() {
-    final random = SecretKeyData.random(length: 32).bytes;
+    final random = SecretKeyData.random(length: 64).bytes;
     final pool = [..._words];
     final picked = <String>[];
-    for (var i = 0; picked.length < 4 && i < random.length; i++) {
-      picked.add(pool.removeAt(random[i] % pool.length));
+    for (var i = 0; picked.length < 6 && i < random.length; i++) {
+      // Два байта на слово — индекс равномернее по большому словарю.
+      final idx = ((random[i] << 8) | random[(i + 32) % random.length]) %
+          pool.length;
+      picked.add(pool.removeAt(idx));
     }
     return picked.join('-');
   }
 
-  /// Небольшой словарь коротких слов без похожих написаний.
+  /// Словарь коротких, разных на слух слов для фразы сопряжения.
   static const _words = [
     'море', 'лампа', 'кедр', 'ветер', 'сокол', 'мост', 'дюна', 'клён',
     'парус', 'янтарь', 'иней', 'фитиль', 'озеро', 'горн', 'вереск', 'смола',
+    'река', 'гора', 'туча', 'берег', 'камень', 'песок', 'волна', 'поле',
+    'роса', 'гром', 'радуга', 'закат', 'рассвет', 'тропа', 'маяк', 'якорь',
+    'весло', 'лодка', 'компас', 'карта', 'флаг', 'узел', 'мачта', 'каюта',
+    'перо', 'свиток', 'книга', 'буква', 'слово', 'строка', 'глава', 'чернила',
+    'кремень', 'уголь', 'пламя', 'искра', 'свеча', 'зола', 'дым', 'пепел',
+    'барс', 'рысь', 'выдра', 'бобр', 'филин', 'аист', 'журавль', 'чайка',
+    'ворон', 'грач', 'синица', 'снегирь', 'дуб', 'ясень', 'липа', 'рябина',
+    'осина', 'берёза', 'сосна', 'пихта', 'тополь', 'верба', 'калина', 'ольха',
+    'гранит', 'мрамор', 'кварц', 'агат', 'опал', 'топаз', 'оникс', 'нефрит',
+    'овёс', 'ячмень', 'гречка', 'хмель', 'солод', 'руда', 'молот', 'клинок',
+    'ножны', 'копьё', 'щит', 'шлем', 'кольчуга', 'колос', 'сноп', 'жнивьё',
   ];
+
+  /// Имя колонки — обычный идентификатор. Всё прочее (пробелы, скобки,
+  /// запятые) в имени означало бы попытку инъекции в SQL при слиянии.
+  static final _columnName = RegExp(r'^[A-Za-z_][A-Za-z0-9_]*$');
+  static bool _isSafeColumn(String name) => _columnName.hasMatch(name);
 
   /// Колонки CRDT, которые в базе — логические часы, а в JSON — строки.
   static const _clockColumns = {'hlc', 'modified'};

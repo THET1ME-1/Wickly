@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
@@ -13,6 +14,8 @@ import '../data/entry_repository.dart';
 import '../l10n/strings.dart';
 import '../data/system_pause.dart';
 import '../services/export_service.dart';
+import '../services/import_service.dart';
+import '../services/import_runner.dart';
 import '../theme/app_theme.dart';
 import '../theme/wickly_design.dart';
 import '../utils/dates.dart';
@@ -152,7 +155,12 @@ class _ExportScreenState extends State<ExportScreen> {
 
   Future<void> _backup() async {
     final phrase = await _askPassphrase(creating: true);
-    if (phrase == null || phrase.length < 4) return;
+    if (phrase == null) return;
+    // Короткую фразу перебирают офлайн — просим подлиннее.
+    if (phrase.length < 8) {
+      _snack(tr('backup_phrase_hint'));
+      return;
+    }
     await _run(() async {
       final bytes = await BackupService.create(
         dbPath: await AppDatabase.instance.filePath,
@@ -192,6 +200,96 @@ class _ExportScreenState extends State<ExportScreen> {
           SnackBar(content: Text(tr('backup_restored'))),
         );
       }
+    });
+  }
+
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Импорт бэкапа другого дневника: Diaro (zip/xml) или StoryPad (json).
+  ///
+  /// Файл разбираем сразу, тяжёлую запись в базу — под общим оверлеем занятости.
+  /// Фото StoryPad лежат отдельной папкой, поэтому её спрашиваем дополнительно.
+  Future<void> _import() async {
+    final picked = await SystemPause.shield(() => FilePicker.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: const ['zip', 'json', 'xml', 'mydiary'],
+        ));
+    final path = picked?.files.single.path;
+    if (path == null || !mounted) return;
+    final lower = path.toLowerCase();
+
+    // .mydiary — zip под AES-паролем: без пароля не распаковать.
+    if (lower.endsWith('.mydiary')) {
+      _snack(tr('import_encrypted'));
+      return;
+    }
+
+    ImportBundle bundle;
+    Future<List<int>?> Function(String)? resolver;
+    try {
+      final file = File(path);
+      if (lower.endsWith('.zip')) {
+        final archive = ZipDecoder().decodeBytes(await file.readAsBytes());
+        final xmls = archive.files
+            .where((f) => f.isFile && f.name.toLowerCase().endsWith('.xml'))
+            .toList();
+        if (xmls.isEmpty) {
+          _snack(tr('import_unsupported'));
+          return;
+        }
+        bundle =
+            ImportService.parseDiaro(utf8.decode(xmls.first.content as List<int>));
+        // Фото, если они вложены в архив, — по имени файла.
+        final byName = <String, ArchiveFile>{};
+        for (final f in archive.files) {
+          if (f.isFile) byName[f.name.split('/').last] = f;
+        }
+        resolver = (name) async {
+          final f = byName[name.split('/').last];
+          return f == null ? null : (f.content as List<int>);
+        };
+      } else if (lower.endsWith('.xml')) {
+        bundle = ImportService.parseDiaro(await file.readAsString());
+      } else if (lower.endsWith('.json')) {
+        bundle = ImportService.parseStoryPad(await file.readAsString());
+      } else {
+        _snack(tr('import_unsupported'));
+        return;
+      }
+    } catch (_) {
+      _snack(tr('import_unsupported'));
+      return;
+    }
+
+    if (bundle.isEmpty) {
+      _snack(tr('import_nothing'));
+      return;
+    }
+
+    // Фото есть в разметке, но резолвера ещё нет (StoryPad) — спросим папку.
+    if (resolver == null && bundle.mediaCount > 0 && mounted) {
+      _snack(tr('import_pick_photos'));
+      final dir =
+          await SystemPause.shield(() => FilePicker.getDirectoryPath());
+      if (dir != null) {
+        resolver = (name) async {
+          for (final p in ['$dir/$name', '$dir/images/$name']) {
+            final f = File(p);
+            if (await f.exists()) return f.readAsBytes();
+          }
+          return null;
+        };
+      }
+    }
+
+    if (!mounted) return;
+    await _run(() async {
+      final report = await ImportRunner.run(bundle, mediaBytes: resolver);
+      _snack(trf('import_done', {'n': report.entries}));
     });
   }
 
@@ -243,6 +341,18 @@ class _ExportScreenState extends State<ExportScreen> {
                   subtitle: tr('print_sub'),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: _busy ? null : _print,
+                ),
+              ]),
+              const SizedBox(height: 18),
+              SettingsSection(tr('import_title')),
+              SettingsGroup([
+                SettingsRow(
+                  icon: Icons.move_to_inbox_rounded,
+                  title: tr('import_row'),
+                  subtitle: tr('import_row_sub'),
+                  trailing:
+                      Icon(Icons.chevron_right_rounded, color: scheme.outline),
+                  onTap: _busy ? null : _import,
                 ),
               ]),
               const SizedBox(height: 18),

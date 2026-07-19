@@ -22,12 +22,19 @@ class MediaThumb extends StatefulWidget {
   /// Значок поверх превью: «плёнка» у видео, «волна» у аудио.
   final bool showKindBadge;
 
+  /// Что рисовать, когда вложения нет вовсе. На крупной карточке градиент
+  /// работает обложкой и уместен, а в мелком превью рядом с текстом врёт:
+  /// выглядит как фото, которое есть, но не загрузилось. Значок говорит
+  /// правду — снимка не было.
+  final IconData? emptyIcon;
+
   const MediaThumb({
     super.key,
     this.media,
     this.coverKey,
     this.fit = BoxFit.cover,
     this.showKindBadge = true,
+    this.emptyIcon,
   });
 
   @override
@@ -99,6 +106,13 @@ class _MediaThumbState extends State<MediaThumb> {
         alignment: Alignment.center,
         child: Icon(Icons.movie_rounded,
             color: scheme.onSurfaceVariant, size: 26),
+      );
+    } else if (m == null && widget.emptyIcon != null) {
+      layer = Container(
+        color: scheme.surfaceContainerHighest,
+        alignment: Alignment.center,
+        child: Icon(widget.emptyIcon,
+            color: scheme.onSurfaceVariant, size: 22),
       );
     } else if (_broken) {
       layer = Container(

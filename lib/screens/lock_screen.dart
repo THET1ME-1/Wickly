@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -31,6 +33,12 @@ class LockScreen extends StatefulWidget {
   /// Вызывается, когда код принят (или задан).
   final VoidCallback onUnlocked;
 
+  /// Снять замок, когда человек забыл код. Задаётся только у главного замка
+  /// (`unlock`): там показывается «Забыли код?». PIN не шифрует записи — они
+  /// лежат под ключом системного хранилища, — поэтому снятие замка ничего не
+  /// теряет, только убирает барьер.
+  final Future<void> Function()? onForgot;
+
   /// «Сейчас» для часов. Снаружи задаётся только в снимках экранов, чтобы
   /// картинка не менялась каждую минуту.
   final DateTime? now;
@@ -39,6 +47,7 @@ class LockScreen extends StatefulWidget {
     super.key,
     this.mode = LockMode.unlock,
     required this.onUnlocked,
+    this.onForgot,
     this.now,
   });
 
@@ -55,10 +64,26 @@ class _LockScreenState extends State<LockScreen>
   String? _error;
   bool _busy = false;
 
+  /// Перебор кода: после нескольких промахов вводить нельзя до истечения паузы.
+  /// Пауза растёт, чтобы 10 000 комбинаций нельзя было перебрать вручную.
+  int _attempts = 0;
+  DateTime? _lockedUntil;
+  Timer? _tick;
+
+  /// Показываем ли подтверждение снятия замка («Забыли код?»).
+  bool _confirmingReset = false;
+
   late final AnimationController _shake = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 420),
   );
+
+  /// Идёт ли сейчас пауза после серии промахов.
+  bool get _blocked =>
+      _lockedUntil != null && DateTime.now().isBefore(_lockedUntil!);
+
+  int get _waitLeft =>
+      _lockedUntil == null ? 0 : _lockedUntil!.difference(DateTime.now()).inSeconds + 1;
 
   @override
   void initState() {
@@ -70,6 +95,7 @@ class _LockScreenState extends State<LockScreen>
 
   @override
   void dispose() {
+    _tick?.cancel();
     _shake.dispose();
     super.dispose();
   }
@@ -105,6 +131,10 @@ class _LockScreenState extends State<LockScreen>
   }
 
   void _tap(String digit) {
+    if (_blocked) {
+      setState(() => _error = trf('lock_wait', {'n': _waitLeft}));
+      return;
+    }
     if (_entered.length >= _length) return;
     setState(() {
       _entered += digit;
@@ -142,6 +172,9 @@ class _LockScreenState extends State<LockScreen>
     }
 
     if (AppPrefs.instance.checkPin(pin)) {
+      _attempts = 0;
+      _lockedUntil = null;
+      _tick?.cancel();
       widget.onUnlocked();
     } else {
       _reject(tr('lock_wrong'));
@@ -150,10 +183,38 @@ class _LockScreenState extends State<LockScreen>
 
   void _reject(String message) {
     Haptics.warn();
-      _shake.forward(from: 0);
+    _shake.forward(from: 0);
+    _attempts++;
+    // После пяти промахов — растущая пауза (15с, 30, 60, …) с потолком 15 мин:
+    // 10 000 кодов вручную так не перебрать.
+    if (_attempts >= 5) {
+      final over = (_attempts - 5).clamp(0, 6);
+      final secs = (15 << over).clamp(15, 900);
+      _lockedUntil = DateTime.now().add(Duration(seconds: secs));
+      _startCountdown();
+    }
     setState(() {
       _entered = '';
-      _error = message;
+      _error = _blocked ? trf('lock_wait', {'n': _waitLeft}) : message;
+    });
+  }
+
+  /// Тикает, пока идёт пауза после промахов, и обновляет обратный отсчёт.
+  /// По времени, а не отложенным таймером на всю паузу: висящий таймер пережил
+  /// бы виджет и уронил бы golden-тесты жалобой на pending timers.
+  void _startCountdown() {
+    _tick?.cancel();
+    _tick = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      if (_blocked) {
+        setState(() => _error = trf('lock_wait', {'n': _waitLeft}));
+      } else {
+        t.cancel();
+        setState(() => _error = null);
+      }
     });
   }
 
@@ -200,7 +261,7 @@ class _LockScreenState extends State<LockScreen>
                     size: 28,
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 Text(
                   _caption,
                   style: text.bodyMedium?.copyWith(
@@ -226,6 +287,56 @@ class _LockScreenState extends State<LockScreen>
                       ? _biometrics
                       : null,
                 ),
+                // «Забыли код?» — только у главного замка. Снятие не теряет
+                // записи (PIN их не шифрует), но требует явного подтверждения.
+                if (widget.mode == LockMode.unlock && widget.onForgot != null)
+                  Padding(
+                    padding: EdgeInsets.zero,
+                    child: _confirmingReset
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 28),
+                            child: Column(
+                              children: [
+                                Text(
+                                  tr('lock_reset_msg'),
+                                  textAlign: TextAlign.center,
+                                  style: text.bodySmall?.copyWith(
+                                      color: scheme.onSurfaceVariant),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    TextButton(
+                                      onPressed: () => setState(
+                                          () => _confirmingReset = false),
+                                      child: Text(tr('cancel')),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () async {
+                                        setState(
+                                            () => _confirmingReset = false);
+                                        await widget.onForgot!();
+                                      },
+                                      child: Text(tr('lock_reset_do')),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          )
+                        : TextButton(
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(0, 32),
+                              tapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () =>
+                                setState(() => _confirmingReset = true),
+                            child: Text(tr('lock_forgot')),
+                          ),
+                  ),
                 const Spacer(),
               ],
             ),

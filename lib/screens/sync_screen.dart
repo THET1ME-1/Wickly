@@ -101,18 +101,17 @@ class _SyncScreenState extends State<SyncScreen> {
       _status = null;
     });
     try {
-      final key = await SyncService.keyFromPhrase(_phrase);
       final folder = Directory(path);
 
       var merged = 0;
       for (final file in SyncFolder.foreignPackets(folder, Db.crdt.nodeId)) {
-        final packet =
-            await SyncService.openPacket(await file.readAsBytes(), key);
+        final packet = await SyncService.openWithPhrase(
+            await file.readAsBytes(), _phrase);
         merged += (await SyncService.applyPacket(packet)).rows;
       }
 
-      final sealed = await SyncService.sealPacket(
-          await SyncService.buildPacket(), key);
+      final sealed = await SyncService.sealForPhrase(
+          await SyncService.buildPacket(), _phrase);
       await SyncFolder.writePacket(folder, sealed, Db.crdt.nodeId);
 
       if (mounted) {

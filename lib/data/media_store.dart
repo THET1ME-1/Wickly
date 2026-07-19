@@ -37,9 +37,23 @@ class MediaStore {
 
   Future<String> path(String name) async => '${(await _mediaDir()).path}/$name';
 
+  /// Допустимое имя файла хранилища: 32 hex (префикс SHA-256) + короткое
+  /// расширение. Имя приходит и извне — из пакета синка и из чужого бэкапа, —
+  /// поэтому всё, что не этот формат (пути с `..`, разделителями, абсолютные),
+  /// отвергаем: иначе `path(name)` уводит запись за пределы каталога media
+  /// (Zip Slip / path traversal).
+  static final _validName = RegExp(r'^[0-9a-f]{32}\.[a-z0-9]{1,5}$');
+
+  /// Санитайз расширения: только буквы/цифры до 5 символов, иначе `bin`.
+  /// Без этого расширение вроде `b/c`, пришедшее из странного пути пикера,
+  /// уводило бы имя файла в подкаталог.
+  static String _safeExt(String ext) =>
+      RegExp(r'^[a-z0-9]{1,5}$').hasMatch(ext) ? ext : 'bin';
+
   /// Кладёт байты в хранилище зашифрованными. Возвращает имя файла.
   Future<String> put(Uint8List bytes, {required String ext}) async {
-    final name = '${hash.sha256.convert(bytes).toString().substring(0, 32)}.$ext';
+    final name =
+        '${hash.sha256.convert(bytes).toString().substring(0, 32)}.${_safeExt(ext)}';
     final file = File(await path(name));
     if (!file.existsSync()) {
       await file.writeAsBytes(await Crypto.instance.encryptBytes(bytes));
@@ -99,9 +113,13 @@ class MediaStore {
     return file.readAsBytes();
   }
 
-  /// Кладёт сырые байты, приехавшие с другого устройства.
+  /// Кладёт сырые байты, приехавшие с другого устройства или из бэкапа.
+  ///
+  /// Имя недоверенное (задаёт отправитель пакета / автор архива), поэтому его
+  /// проверяем: только формат хранилища, никаких `..`/разделителей пути.
   Future<void> writeRaw(String name, List<int> bytes) async {
     if (!isReady) return;
+    if (!_validName.hasMatch(name)) return; // path traversal — молча отклоняем
     final file = File(await path(name));
     if (file.existsSync()) return; // имя — хэш содержимого, перезапись не нужна
     await file.writeAsBytes(bytes, flush: true);

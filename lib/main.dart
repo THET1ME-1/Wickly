@@ -96,11 +96,12 @@ class WicklyApp extends StatelessWidget {
             ],
             // Размер текста — общий множитель поверх темы: дневник читают
             // подолгу, и это единственная настройка типографики, которую мы
-            // отдаём наружу.
+            // отдаём наружу. Замок оборачивает весь навигатор, чтобы прятать и
+            // открытую поверх ленты заметку, а не только её.
             builder: (context, child) => MediaQuery.withClampedTextScaling(
               minScaleFactor: prefs.textScale,
               maxScaleFactor: prefs.textScale,
-              child: child ?? const SizedBox.shrink(),
+              child: AppLock(child: child ?? const SizedBox.shrink()),
             ),
             home: const WicklyGate(),
           );

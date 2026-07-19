@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/media.dart';
 import '../theme/app_theme.dart';
+import '../utils/dates.dart';
 import 'audio_player_bar.dart';
 import 'media_grid.dart';
 
@@ -69,6 +70,17 @@ class MarkdownLite {
   /// Как вложение записывается в текст. Формат нарочно похож на markdown:
   /// экспорт превращает его в обычную картинку, а не в мусор.
   static String mediaToken(String mediaId) => '![](media:$mediaId)';
+
+  /// Размер заголовка по его уровню — один на всё приложение: поле ввода,
+  /// читалка и заголовок темы должны показывать `#`/`##`/`###` одинаково.
+  /// Заголовок должен явно читаться крупнее тела, иначе `## ` (его ставит
+  /// кнопка и им же хранится тема) отличается от текста лишь на пару пунктов и
+  /// выглядит «тем же размером».
+  static double headingSize(int level, double base) => switch (level) {
+        1 => base + 8,
+        2 => base + 5,
+        _ => base + 2,
+      };
 
   /// Разбирает текст на блоки построчно.
   static List<MdBlock> parse(String source) {
@@ -184,6 +196,77 @@ class MarkdownLite {
       .replaceAll(RegExp(r'\*\*|__'), '')
       .replaceAll(RegExp(r'(?<!\w)[*_](?!\s)'), '')
       .replaceAll('`', '');
+
+  /// Нарезает запись на темы для читалки: карточка с заголовком и текстом либо
+  /// сетка вложений.
+  ///
+  /// Граница темы — заголовок второго уровня (`## `) или пачка вложений, ровно
+  /// как режет запись редактор ([EditorDocument.parse]). Поэтому порядковый
+  /// номер темы совпадает с индексом её времени в `Entry.blockTimes`, и время,
+  /// показанное при чтении, не разъезжается с тем, что задано в редакторе
+  /// (тексты в базу приходят уже собранными и обрезанными, без ведущих пустых
+  /// строк, — а только они могли бы сдвинуть нумерацию). Строки `MdBlock`
+  /// хранят исходный номер, поэтому чеклист внутри темы правится по всему тексту.
+  static List<ReadUnit> readUnits(String source) {
+    final blocks = parse(source);
+    final units = <ReadUnit>[];
+    var body = <MdBlock>[];
+    String? title;
+
+    void flush() {
+      if (body.isEmpty && title == null) return;
+      units.add(ReadUnit(title: title, blocks: body));
+      body = [];
+      title = null;
+    }
+
+    for (var i = 0; i < blocks.length; i++) {
+      final b = blocks[i];
+      if (b.kind == MdBlockKind.heading && b.level == 2) {
+        flush();
+        title = b.text;
+        continue;
+      }
+      if (b.kind == MdBlockKind.media) {
+        final ids = <String>[];
+        while (i < blocks.length && blocks[i].kind == MdBlockKind.media) {
+          final id = blocks[i].mediaId;
+          if (id != null) ids.add(id);
+          i++;
+        }
+        i--;
+        flush();
+        units.add(ReadUnit(mediaIds: ids));
+        continue;
+      }
+      body.add(b);
+    }
+    flush();
+    return units;
+  }
+}
+
+/// Одна тема записи для читалки — карточка текста или сетка вложений.
+///
+/// Держит уже разобранные строки ([blocks]) с их исходными номерами, чтобы
+/// чеклист правился по всему тексту записи, а не по обрезку темы.
+class ReadUnit {
+  /// Заголовок темы. `null` — тема без заголовка (обычный абзац).
+  final String? title;
+
+  /// Строки текста темы. Пусто у сетки вложений.
+  final List<MdBlock> blocks;
+
+  /// Id вложений сетки. Непусто → это [isMedia].
+  final List<String> mediaIds;
+
+  const ReadUnit({
+    this.title,
+    this.blocks = const [],
+    this.mediaIds = const [],
+  });
+
+  bool get isMedia => mediaIds.isNotEmpty;
 }
 
 /// Рендер размеченного текста записи.
@@ -202,6 +285,18 @@ class MarkdownBody extends StatelessWidget {
   /// Открыть просмотр вложения.
   final void Function(List<Media> group, int index)? onOpenMedia;
 
+  /// Времена тем (unix ms) в порядке нарезки [MarkdownLite.readUnits] — подпись
+  /// под заголовком темы. Работает только с [cards].
+  final List<int> blockTimes;
+
+  /// Время записи. Им подписываются темы без своего времени, и по нему видно,
+  /// что тема из другого дня (тогда показывается и дата). `null` — времена не
+  /// показываем вовсе.
+  final DateTime? entryDate;
+
+  /// Сменить время темы по тапу: индекс темы в [blockTimes].
+  final ValueChanged<int>? onEditTime;
+
   const MarkdownBody({
     super.key,
     required this.source,
@@ -210,6 +305,9 @@ class MarkdownBody extends StatelessWidget {
     this.media = const {},
     this.onOpenMedia,
     this.cards = false,
+    this.blockTimes = const [],
+    this.entryDate,
+    this.onEditTime,
   });
 
   /// Показывать ли темы карточками. В читалке — да: запись из нескольких тем
@@ -218,29 +316,18 @@ class MarkdownBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: cards ? _cardChildren(context) : _flatChildren(context),
+    );
+  }
+
+  /// Текст без карточек: блоки подряд, как в превью и в старых местах.
+  List<Widget> _flatChildren(BuildContext context) {
     final blocks = MarkdownLite.parse(source);
     final children = <Widget>[];
-    // Накопитель текущей темы: собирается до следующего заголовка второго
-    // уровня или до вложений.
-    var section = <Widget>[];
-    String? sectionTitle;
-
-    void flushSection() {
-      if (section.isEmpty && sectionTitle == null) return;
-      children.add(_section(context, sectionTitle, section));
-      section = [];
-      sectionTitle = null;
-    }
-
     for (var i = 0; i < blocks.length; i++) {
       final b = blocks[i];
-
-      if (cards && b.kind == MdBlockKind.heading && b.level == 2) {
-        flushSection();
-        sectionTitle = b.text;
-        continue;
-      }
-
       // Идущие подряд вложения собираем в одну сетку: человек вставил их в
       // одно место, значит и смотреть их надо вместе.
       if (b.kind == MdBlockKind.media) {
@@ -252,39 +339,74 @@ class MarkdownBody extends StatelessWidget {
         }
         i--;
         if (group.isEmpty) continue;
-        // Фотографии показываем во всю ширину, а не внутри карточки темы:
-        // рамка вокруг снимка только мешает смотреть.
-        flushSection();
         children.add(Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: _mediaGroup(context, group),
         ));
         continue;
       }
-
-      final widget = Padding(
+      children.add(Padding(
         padding:
             EdgeInsets.only(bottom: b.kind == MdBlockKind.divider ? 14 : 8),
         child: _block(context, b),
-      );
-      if (cards) {
-        section.add(widget);
-      } else {
-        children.add(widget);
-      }
+      ));
     }
-    flushSection();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: children,
-    );
+    return children;
   }
 
-  /// Одна тема: заголовок и текст в скруглённой карточке.
-  Widget _section(BuildContext context, String? title, List<Widget> body) {
+  /// Читалка: каждая тема — своя карточка со своим временем.
+  List<Widget> _cardChildren(BuildContext context) {
+    final units = MarkdownLite.readUnits(source);
+    final children = <Widget>[];
+    for (var index = 0; index < units.length; index++) {
+      final u = units[index];
+      if (u.isMedia) {
+        // Фотографии показываем во всю ширину, а не внутри карточки темы:
+        // рамка вокруг снимка только мешает смотреть.
+        final group = <Media>[];
+        for (final id in u.mediaIds) {
+          final m = media[id];
+          if (m != null) group.add(m);
+        }
+        if (group.isEmpty) continue;
+        children.add(Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: _mediaGroup(context, group),
+        ));
+        continue;
+      }
+      if (u.title == null && u.blocks.isEmpty) continue;
+      final body = [
+        for (final b in u.blocks)
+          Padding(
+            padding:
+                EdgeInsets.only(bottom: b.kind == MdBlockKind.divider ? 14 : 8),
+            child: _block(context, b),
+          ),
+      ];
+      children.add(_section(context, u.title, body, index: index));
+    }
+    return children;
+  }
+
+  /// Одна тема: заголовок, время и текст в скруглённой карточке.
+  Widget _section(
+    BuildContext context,
+    String? title,
+    List<Widget> body, {
+    required int index,
+  }) {
     final scheme = Theme.of(context).colorScheme;
     if (title == null && body.isEmpty) return const SizedBox.shrink();
+
+    final hasTitle = title != null && title.isNotEmpty;
+    // Тема без своего времени берёт время записи — так же, как редактор
+    // подставляет ему `fallback`.
+    final at = entryDate == null
+        ? null
+        : (index < blockTimes.length
+            ? DateTime.fromMillisecondsSinceEpoch(blockTimes[index])
+            : entryDate);
 
     return Container(
       width: double.infinity,
@@ -298,21 +420,69 @@ class MarkdownBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (title != null && title.isNotEmpty) ...[
-            Text(
-              title,
-              style: TextStyle(
-                fontFamily: AppTheme.displayFont,
-                fontWeight: FontWeight.w600,
-                fontSize: fontSize + 2,
-                letterSpacing: -0.2,
-                color: scheme.onSurface,
-              ),
+          if (hasTitle || at != null) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (hasTitle)
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontFamily: AppTheme.displayFont,
+                        // Заголовок темы — это `## `, поэтому и размер как у
+                        // заголовка второго уровня: тема должна читаться крупнее
+                        // текста, а не сливаться с ним.
+                        fontWeight: FontWeight.w700,
+                        fontSize: MarkdownLite.headingSize(2, fontSize),
+                        letterSpacing: -0.3,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                  )
+                else
+                  const Spacer(),
+                if (at != null) _time(context, at, index),
+              ],
             ),
             const SizedBox(height: 8),
           ],
           ...body,
         ],
+      ),
+    );
+  }
+
+  /// Время появления темы. Тап открывает смену — в том числе на другой день,
+  /// который тогда и показывается рядом со временем.
+  Widget _time(BuildContext context, DateTime at, int index) {
+    final scheme = Theme.of(context).colorScheme;
+    final label = Dates.sameDay(at, entryDate!)
+        ? Dates.time(at)
+        : '${Dates.dayMonth(at)}, ${Dates.time(at)}';
+    final text = Text(
+      label,
+      style: TextStyle(
+        fontFamily: AppTheme.bodyFont,
+        fontSize: 11.5,
+        color: scheme.onSurfaceVariant,
+      ),
+    );
+    if (onEditTime == null) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 8, top: 1),
+        child: text,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: InkWell(
+        onTap: () => onEditTime!(index),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: text,
+        ),
       ),
     );
   }
@@ -355,11 +525,7 @@ class MarkdownBody extends StatelessWidget {
               base: TextStyle(
                 fontFamily: AppTheme.displayFont,
                 fontWeight: FontWeight.w700,
-                fontSize: switch (b.level) {
-                  1 => fontSize + 7,
-                  2 => fontSize + 4,
-                  _ => fontSize + 2,
-                },
+                fontSize: MarkdownLite.headingSize(b.level, fontSize),
                 letterSpacing: -0.3,
                 color: scheme.onSurface,
               )),

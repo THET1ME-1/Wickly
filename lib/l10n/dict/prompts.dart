@@ -641,6 +641,58 @@ const Map<String, Map<String, String>> promptStrings = {
         'com a chave do aparelho — por isso abre num telefone novo.',
   },
 
+  'import_title': {
+    'ru': 'Импорт из других дневников', 'en': 'Import from other journals',
+    'de': 'Aus anderen Tagebüchern importieren', 'fr': 'Importer d’autres journaux',
+    'es': 'Importar de otros diarios', 'it': 'Importa da altri diari',
+    'pt': 'Importar de outros diários',
+  },
+  'import_row': {
+    'ru': 'Выбрать файл бэкапа', 'en': 'Choose a backup file',
+    'de': 'Backup-Datei wählen', 'fr': 'Choisir un fichier de sauvegarde',
+    'es': 'Elegir archivo de copia', 'it': 'Scegli un file di backup',
+    'pt': 'Escolher arquivo de backup',
+  },
+  'import_row_sub': {
+    'ru': 'Diaro, StoryPad', 'en': 'Diaro, StoryPad', 'de': 'Diaro, StoryPad',
+    'fr': 'Diaro, StoryPad', 'es': 'Diaro, StoryPad', 'it': 'Diaro, StoryPad',
+    'pt': 'Diaro, StoryPad',
+  },
+  'import_done': {
+    'ru': 'Перенесено записей: {n}', 'en': 'Imported {n} entries',
+    'de': '{n} Einträge importiert', 'fr': '{n} entrées importées',
+    'es': '{n} entradas importadas', 'it': '{n} voci importate',
+    'pt': '{n} anotações importadas',
+  },
+  'import_nothing': {
+    'ru': 'В файле не нашлось записей', 'en': 'No entries found in the file',
+    'de': 'Keine Einträge in der Datei', 'fr': 'Aucune entrée dans le fichier',
+    'es': 'No hay entradas en el archivo', 'it': 'Nessuna voce nel file',
+    'pt': 'Nenhuma anotação no arquivo',
+  },
+  'import_unsupported': {
+    'ru': 'Формат файла не распознан', 'en': 'Unrecognized file format',
+    'de': 'Dateiformat nicht erkannt', 'fr': 'Format de fichier non reconnu',
+    'es': 'Formato de archivo no reconocido', 'it': 'Formato file non riconosciuto',
+    'pt': 'Formato de arquivo não reconhecido',
+  },
+  'import_encrypted': {
+    'ru': 'Этот бэкап зашифрован паролем — импорт такого пока не поддержан',
+    'en': 'This backup is password-encrypted — not supported yet',
+    'de': 'Dieses Backup ist passwortverschlüsselt — noch nicht unterstützt',
+    'fr': 'Cette sauvegarde est chiffrée par mot de passe — pas encore prise en charge',
+    'es': 'Esta copia está cifrada con contraseña — aún no compatible',
+    'it': 'Questo backup è cifrato con password — non ancora supportato',
+    'pt': 'Este backup está cifrado com senha — ainda não suportado',
+  },
+  'import_pick_photos': {
+    'ru': 'Выбрать папку с фото (можно пропустить)',
+    'en': 'Pick the photos folder (optional)',
+    'de': 'Fotoordner wählen (optional)', 'fr': 'Choisir le dossier photos (facultatif)',
+    'es': 'Elegir carpeta de fotos (opcional)', 'it': 'Scegli la cartella foto (facoltativo)',
+    'pt': 'Escolher pasta de fotos (opcional)',
+  },
+
   'sync_manual': {
     'ru': 'Ввести руками', 'en': 'Enter by hand', 'de': 'Manuell eingeben',
     'fr': 'Saisir à la main', 'es': 'Escribir a mano',

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:archive/archive.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -269,6 +270,16 @@ class BackupService {
   static const _manifest = 'manifest.json';
   static const _dbName = 'wickly.db';
 
+  /// Метка формата v2 («WBK2») в начале файла. За ней — случайная соль, потом
+  /// шифртекст. Старые бэкапы метки не имеют (шли сразу с шифртекста при общей
+  /// для всех соли), поэтому по её наличию и различаем формат при восстановлении.
+  static const _magicV2 = [0x57, 0x42, 0x4B, 0x32];
+  static const _saltLen = 16;
+
+  /// Соль старого формата — одна на всех. Оставлена только чтобы открывать
+  /// бэкапы, сделанные до перехода на случайную соль.
+  static final List<int> _legacySalt = utf8.encode('wickly-backup-v1');
+
   /// Собирает бэкап. [dbPath] — путь к файлу базы, [passphrase] — фраза,
   /// которой его потом открывать.
   static Future<Uint8List> create({
@@ -304,9 +315,13 @@ class BackupService {
         ArchiveFile(_manifest, manifestBytes.length, manifestBytes));
 
     final zipped = ZipEncoder().encode(archive);
-    final salt = utf8.encode('wickly-backup-v1');
+    // Соль случайна на каждый бэкап и едет в файле: без этого одну таблицу
+    // «фраза → ключ» можно было предвычислить на всех пользователей сразу.
+    final rnd = Random.secure();
+    final salt = List<int>.generate(_saltLen, (_) => rnd.nextInt(256));
     final key = await Crypto.keyFromPassphrase(passphrase, salt);
-    return Crypto.instance.encryptBytesWith(zipped, key);
+    final body = await Crypto.instance.encryptBytesWith(zipped, key);
+    return Uint8List.fromList([..._magicV2, ...salt, ...body]);
   }
 
   /// Раскрывает бэкап: кладёт базу и вложения на место.
@@ -318,10 +333,33 @@ class BackupService {
     required String passphrase,
     required String dbPath,
   }) async {
-    final salt = utf8.encode('wickly-backup-v1');
+    // v2 — «WBK2» ‖ соль ‖ шифртекст; старый формат — сразу шифртекст с общей
+    // солью. По метке в начале и решаем, как выводить ключ.
+    final List<int> salt;
+    final List<int> body;
+    if (sealed.length > _magicV2.length + _saltLen &&
+        _startsWith(sealed, _magicV2)) {
+      salt = sealed.sublist(_magicV2.length, _magicV2.length + _saltLen);
+      body = sealed.sublist(_magicV2.length + _saltLen);
+    } else {
+      salt = _legacySalt;
+      body = sealed;
+    }
     final key = await Crypto.keyFromPassphrase(passphrase, salt);
-    final zipped = await Crypto.instance.decryptBytesWith(sealed, key);
+    final zipped = await Crypto.instance.decryptBytesWith(body, key);
     final archive = ZipDecoder().decodeBytes(zipped);
+    return _restoreArchive(archive, dbPath);
+  }
+
+  static bool _startsWith(List<int> data, List<int> prefix) {
+    if (data.length < prefix.length) return false;
+    for (var i = 0; i < prefix.length; i++) {
+      if (data[i] != prefix[i]) return false;
+    }
+    return true;
+  }
+
+  static Future<String?> _restoreArchive(Archive archive, String dbPath) async {
 
     String? mediaKey;
     for (final file in archive.files) {

@@ -17,6 +17,25 @@ class Schema {
   /// Стабильный id дневника по умолчанию (на него ссылаются первые записи).
   static const defaultJournalId = 'default';
 
+  /// Таблицы, которые вообще есть в базе. Пакет синхронизации приходит от
+  /// другого устройства и задаёт имена таблиц сам; прежде чем отдать changeset
+  /// в `merge` (который вставляет имя таблицы в SQL сырой интерполяцией),
+  /// чужие имена сверяем с этим списком — иначе пир может писать в любую
+  /// таблицу или подсунуть имя-инъекцию.
+  static const knownTables = {
+    'journals',
+    'entries',
+    'media',
+    'tags',
+    'entry_tags',
+    'emotions',
+    'activities',
+    'entry_emotions',
+    'entry_activities',
+    'trackers',
+    'tracker_logs',
+  };
+
   // CREATE TABLE идёт через CrdtTableExecutor: он сам дописывает в таблицу
   // CRDT-колонки (is_deleted, hlc, node_id, modified).
   static Future<void> onCreate(CrdtTableExecutor db, int version) async {
