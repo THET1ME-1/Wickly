@@ -138,19 +138,19 @@ class DeskToday extends StatelessWidget {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      for (final on in data.lastWeek) ...[
+                      for (var i = 0; i < data.lastWeek.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 5),
                         Expanded(
                           child: Container(
                             height: 6,
                             decoration: BoxDecoration(
-                              color: on
+                              color: data.lastWeek[i]
                                   ? scheme.primary
                                   : scheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(3),
                             ),
                           ),
                         ),
-                        if (on != data.lastWeek.last) const SizedBox(width: 5),
                       ],
                     ],
                   ),
@@ -173,14 +173,19 @@ class DeskToday extends StatelessWidget {
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 160),
                             height: 34,
+                            alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: MoodPalette.color(context, m)
-                                  .withValues(alpha: data.mood == m ? 1 : 0.45),
+                                  .withValues(alpha: data.mood == m ? 1 : 0.4),
                               borderRadius: BorderRadius.circular(12),
-                              border: data.mood == m
-                                  ? Border.all(color: scheme.onSurface, width: 2)
-                                  : null,
                             ),
+                            // Отмеченная ступень — галочка внутри цвета:
+                            // жирная рамка поверх зелёного читается как ошибка.
+                            child: data.mood == m
+                                ? Icon(Icons.check_rounded,
+                                    size: 17,
+                                    color: MoodPalette.on(context, m))
+                                : null,
                           ),
                         ),
                       ),
@@ -280,9 +285,11 @@ class _Ring extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final part = streak.best <= 0
+    // Пустая серия рисуется ровным приглушённым кольцом: обрезок дуги в 5%
+    // выглядит поломкой, а не нулём.
+    final part = streak.current <= 0 || streak.best <= 0
         ? 0.0
-        : (streak.current / streak.best).clamp(0.05, 1.0);
+        : (streak.current / streak.best).clamp(0.08, 1.0);
 
     return Container(
       width: 58,
@@ -316,7 +323,7 @@ class _Ring extends StatelessWidget {
               fontFamily: AppTheme.displayFont,
               fontWeight: FontWeight.w800,
               fontSize: 17,
-              color: scheme.primary,
+              color: streak.current <= 0 ? scheme.outline : scheme.primary,
             ),
           ),
         ),

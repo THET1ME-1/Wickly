@@ -46,6 +46,18 @@ class Dates {
   static String dayWithWeekday(DateTime d) =>
       '${dayMonth(d)}, ${DateFormat('EEEE', _loc).format(d)}';
 
+  /// «31 дня» / «30 дней» — форма после «из»: числительные на 1 (кроме 11)
+  /// требуют родительного единственного, остальные — множественного.
+  static String daysOf(int n) => switch (_loc) {
+        'ru' => '$n ${n % 10 == 1 && n % 100 != 11 ? 'дня' : 'дней'}',
+        'de' => '$n Tagen',
+        'fr' => '$n jours',
+        'es' => '$n días',
+        'it' => '$n giorni',
+        'pt' => '$n dias',
+        _ => '$n days',
+      };
+
   /// «8 200» — число с разрядами, чтобы крупная цифра читалась с одного
   /// взгляда.
   static String grouped(int n) {

@@ -168,6 +168,7 @@ void main() {
                 onSelectDay: (_) {},
                 onChangeMonth: (_) {},
                 dayEntries: Samples.feedItems().take(2).toList(),
+                onSearch: () {},
               ),
             ),
           ],

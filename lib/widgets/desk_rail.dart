@@ -382,7 +382,9 @@ class _Label extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(12, 22, 12, 8),
+        // По левому краю строк ниже: подпись и метка дневника стоят в одной
+        // вертикали, иначе раздел «съезжает» влево.
+        padding: const EdgeInsets.fromLTRB(16, 22, 16, 8),
         child: Text(
           text.toUpperCase(),
           style: TextStyle(

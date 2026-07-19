@@ -556,6 +556,8 @@ class _ShellScreenState extends State<ShellScreen> {
         dayEntries: snapshot.data ?? const [],
         onOpenEntry: (item) => _openEntry(item.entry),
         onWriteOnDay: (day) => _write(date: day),
+        onSearch: _openSearch,
+        onMenu: () => _openScreen(const SettingsScreen()),
       ),
     );
   }

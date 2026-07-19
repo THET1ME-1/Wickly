@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../data/app_prefs.dart';
 import '../l10n/strings.dart';
@@ -97,6 +98,7 @@ class _FeedViewState extends State<FeedView> {
       MediaQuery.sizeOf(context).width - (wide ? 260 : 0),
       AppPrefs.instance.feedColumns,
     );
+    final grid = AppPrefs.instance.feedGrid;
 
     return Scaffold(
       floatingActionButton: wide
@@ -119,6 +121,12 @@ class _FeedViewState extends State<FeedView> {
               automaticallyImplyLeading: false,
               backgroundColor: scheme.surface,
               surfaceTintColor: Colors.transparent,
+              // Тонкая линия отделяет панель инструментов от доски: без неё
+              // карточки при прокрутке наезжают прямо на заголовок.
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Container(height: 1, color: scheme.outlineVariant),
+              ),
               title: Row(
                 children: [
                   Expanded(
@@ -164,6 +172,16 @@ class _FeedViewState extends State<FeedView> {
                     ),
                   ),
                   _SearchBox(onTap: widget.onSearch),
+                  const SizedBox(width: 10),
+                  // Кладка или список по дням: на доске видно много и сразу,
+                  // списком — читается хронология.
+                  _ViewToggle(
+                    grid: grid,
+                    onChanged: (v) async {
+                      await AppPrefs.instance.setFeedGrid(v);
+                      if (mounted) setState(() {});
+                    },
+                  ),
                   const SizedBox(width: 6),
                   IconButton(
                     icon: const Icon(Icons.more_vert_rounded),
@@ -292,20 +310,21 @@ class _FeedViewState extends State<FeedView> {
             // переносятся, как плитки на столе. Заголовок дня туда не ложится
             // (в дне обычно одна запись — ряд из неё выглядел бы пустым),
             // поэтому дату несёт сама карточка.
-            if (wide)
+            if (wide && grid)
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(WicklyDesign.deskPad, 12,
                     WicklyDesign.deskPad, 28),
-                sliver: SliverGrid.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    // На мониторе шаг между карточками крупнее телефонного:
-                    // плитки должны читаться как отдельные, а не как полосы.
-                    crossAxisSpacing: WicklyDesign.gapDesk,
-                    mainAxisSpacing: WicklyDesign.gapDesk,
-                    mainAxisExtent: WicklyDesign.feedTileHeight(context),
-                  ),
-                  itemCount: data.items.length,
+                // Кладка, а не ровные плитки: карточка растёт под своё
+                // содержимое — запись с фотографией выше, строчка о созвоне
+                // ниже. Ровная сетка одинаковых прямоугольников читается как
+                // таблица, а доска должна выглядеть доской.
+                sliver: SliverMasonryGrid.count(
+                  crossAxisCount: columns,
+                  // На мониторе шаг между карточками крупнее телефонного:
+                  // плитки должны читаться как отдельные, а не как полосы.
+                  crossAxisSpacing: WicklyDesign.gapDesk,
+                  mainAxisSpacing: WicklyDesign.gapDesk,
+                  childCount: data.items.length,
                   itemBuilder: (context, i) {
                     final item = data.items[i];
                     return Reveal(
@@ -328,6 +347,7 @@ class _FeedViewState extends State<FeedView> {
                     day: group.day,
                     mood: group.mood,
                     now: data.now,
+                    wide: wide,
                   ),
                 ),
                 SliverList.separated(
@@ -337,8 +357,10 @@ class _FeedViewState extends State<FeedView> {
                   itemBuilder: (context, i) {
                     final item = group.items[i];
                     return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: WicklyDesign.screenPad),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: wide
+                              ? WicklyDesign.deskPad
+                              : WicklyDesign.screenPad),
                       child: Reveal(
                         group: _revealed,
                         id: item.entry.id,
@@ -467,6 +489,54 @@ class _SearchBoxState extends State<_SearchBox> {
   }
 }
 
+/// Переключатель вида ленты: кладка или список по дням.
+class _ViewToggle extends StatelessWidget {
+  final bool grid;
+  final ValueChanged<bool> onChanged;
+
+  const _ViewToggle({required this.grid, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    Widget item(IconData icon, bool on, String tip) => Tooltip(
+          message: tip,
+          child: InkWell(
+            onTap: () => onChanged(icon == Icons.grid_view_rounded),
+            child: Container(
+              width: 38,
+              height: 38,
+              color: on ? scheme.secondaryContainer : Colors.transparent,
+              alignment: Alignment.center,
+              child: Icon(
+                icon,
+                size: 18,
+                color: on ? scheme.onSecondaryContainer : scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: scheme.outlineVariant),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            item(Icons.grid_view_rounded, grid, tr('view_grid')),
+            item(Icons.view_agenda_rounded, !grid, tr('view_list')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Шапка ленты: серия и «в этот день». Столбиком на телефоне, в ряд на
 /// широком окне.
 class _HeaderCards extends StatelessWidget {
@@ -507,7 +577,16 @@ class _DayHeader extends StatelessWidget {
   final int? mood;
   final DateTime now;
 
-  const _DayHeader({required this.day, this.mood, required this.now});
+  /// На широком окне поля крупнее — заголовок дня должен стоять по одной
+  /// вертикали с карточками.
+  final bool wide;
+
+  const _DayHeader({
+    required this.day,
+    this.mood,
+    required this.now,
+    this.wide = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -520,8 +599,11 @@ class _DayHeader extends StatelessWidget {
         : Dates.dayShort(day);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          WicklyDesign.screenPad, 22, WicklyDesign.screenPad, 12),
+      padding: EdgeInsets.fromLTRB(
+          wide ? WicklyDesign.deskPad : WicklyDesign.screenPad,
+          22,
+          wide ? WicklyDesign.deskPad : WicklyDesign.screenPad,
+          12),
       child: Row(
         children: [
           Expanded(

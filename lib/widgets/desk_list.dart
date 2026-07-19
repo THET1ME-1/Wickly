@@ -281,7 +281,7 @@ class _DayBar extends StatelessWidget {
   }
 }
 
-class _Row extends StatelessWidget {
+class _Row extends StatefulWidget {
   final EntryCardItem item;
   final bool on;
   final VoidCallback onTap;
@@ -289,15 +289,31 @@ class _Row extends StatelessWidget {
   const _Row({required this.item, required this.on, required this.onTap});
 
   @override
+  State<_Row> createState() => _RowState();
+}
+
+class _RowState extends State<_Row> {
+  bool _hover = false;
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final item = widget.item;
+    final on = widget.on;
     final e = item.entry;
     final snippet = MarkdownLite.strip(e.body);
 
-    return Material(
-      color: on ? scheme.surfaceContainerHigh : Colors.transparent,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: Material(
+      color: on
+          ? scheme.surfaceContainerHigh
+          : _hover
+              ? scheme.surfaceContainer
+              : Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: widget.onTap,
         child: Container(
           decoration: BoxDecoration(
             border: Border(
@@ -377,6 +393,7 @@ class _Row extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

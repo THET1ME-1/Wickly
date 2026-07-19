@@ -68,6 +68,7 @@ dependencies:
   intl: ^0.20.2                # даты и числа по локали
   meta: ^1.17.0               # @visibleForTesting в чистом Dart (без Flutter)
   crypto: ^3.0.7              # хэши медиа-файлов
+  flutter_staggered_grid_view: ^0.7.0 # доска записей на широком окне
 
 dev_dependencies:
   flutter_test:

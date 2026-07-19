@@ -497,10 +497,10 @@ const Map<String, Map<String, String>> coreStrings = {
     'pt': 'com data anterior, sem quebrar a ordem',
   },
   'month_written': {
-    'ru': 'записано {a} из {b} дней', 'en': 'written {a} of {b} days',
-    'de': '{a} von {b} Tagen beschrieben', 'fr': '{a} jours sur {b} écrits',
-    'es': 'escritos {a} de {b} días', 'it': 'scritti {a} giorni su {b}',
-    'pt': 'escritos {a} de {b} dias',
+    'ru': 'записано {a} из {b}', 'en': 'written {a} of {b}',
+    'de': '{a} von {b} beschrieben', 'fr': '{a} jours écrits sur {b}',
+    'es': 'escritos {a} de {b}', 'it': 'scritti {a} su {b}',
+    'pt': 'escritos {a} de {b}',
   },
   'month_words': {
     'ru': 'слов за месяц', 'en': 'words this month', 'de': 'Wörter im Monat',
@@ -593,6 +593,17 @@ const Map<String, Map<String, String>> coreStrings = {
     'de': 'Menü ausklappen', 'fr': 'Déployer le menu',
     'es': 'Expandir el menú', 'it': 'Espandi il menu',
     'pt': 'Expandir o menu',
+  },
+  'view_grid': {
+    'ru': 'Кладкой', 'en': 'As a board', 'de': 'Als Pinnwand',
+    'fr': 'En tableau', 'es': 'En tablero', 'it': 'A bacheca',
+    'pt': 'Em quadro',
+  },
+  'view_list': {
+    'ru': 'Списком по дням', 'en': 'As a list by day',
+    'de': 'Als Liste nach Tagen', 'fr': 'En liste par jour',
+    'es': 'En lista por días', 'it': 'A elenco per giorni',
+    'pt': 'Em lista por dias',
   },
   'feed_columns': {
     'ru': 'Записей в ряду', 'en': 'Entries per row',

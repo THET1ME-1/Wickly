@@ -46,13 +46,14 @@ class EntryCardItem {
 /// Две формы: с обложкой (когда в записи есть фото или видео) и без неё —
 /// тогда карточка живёт текстом и пилюлями контекста. Так лента дышит и не
 /// превращается в ровный список одинаковых плашек.
-class EntryCard extends StatelessWidget {
+class EntryCard extends StatefulWidget {
   final EntryCardItem item;
   final VoidCallback? onTap;
 
-  /// Плитка сетки на широком окне: карточка живёт в ряду с соседями и заполняет
-  /// отведённую ей высоту, поэтому обложка тянется, а текст режется. В ленте
-  /// телефона карточка, наоборот, растёт под своё содержимое.
+  /// Карточка доски на широком окне. Высоту не выравниваем: доска —
+  /// кладка, и карточка растёт под своё содержимое, как в ленте телефона.
+  /// Отличия от телефонной: обложка держит пропорцию 16:10, а не фиксированную
+  /// высоту, и на карточке стоит дата — заголовков дня в доске нет.
   final bool tile;
 
   const EntryCard({
@@ -63,15 +64,55 @@ class EntryCard extends StatelessWidget {
   });
 
   @override
+  State<EntryCard> createState() => _EntryCardState();
+
+  /// Когда записано. В ленте телефона записи стоят под заголовком дня, и
+  /// хватает времени; в сетке заголовков дня нет, поэтому там и дата.
+  static String whenOf(Entry e, {bool withDate = false}) => withDate
+      ? '${Dates.dayMonth(e.entryDate)}, ${Dates.time(e.entryDate)}'
+      : Dates.time(e.entryDate);
+
+  /// Короткая выжимка текста записи — для карточек воспоминаний и поиска.
+  static String previewOf(Entry e) {
+    final body = MarkdownLite.strip(e.body);
+    if (body.isEmpty) return tr('entry_untitled');
+    return body.length <= 90 ? body : '${body.substring(0, 90)}…';
+  }
+
+  /// Заголовок записи для карточки и списка: свой, иначе первая строка текста.
+  static String titleOf(Entry e) {
+    final t = e.title?.trim();
+    if (t != null && t.isNotEmpty) return t;
+    final body = MarkdownLite.strip(e.body);
+    if (body.isNotEmpty) {
+      return body.length <= 42 ? body : '${body.substring(0, 42)}…';
+    }
+    return tr('entry_untitled');
+  }
+}
+
+class _EntryCardState extends State<EntryCard> {
+  /// Курсор на карточке — на десктопе без отклика непонятно, что она живая.
+  bool _hover = false;
+
+  EntryCardItem get item => widget.item;
+  bool get tile => widget.tile;
+  VoidCallback? get onTap => widget.onTap;
+
+  @override
   Widget build(BuildContext context) {
     final e = item.entry;
     final scheme = Theme.of(context).colorScheme;
     final hasCover = item.cover != null;
     final snippet = MarkdownLite.strip(e.body);
 
-    return PressableScale(
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: PressableScale(
       child: Card(
         margin: EdgeInsets.zero,
+        color: _hover ? scheme.surfaceContainerHighest : null,
         // Обрезка по форме карточки: по ней скругляется обложка, и она же не
         // даёт размытию запертой записи выползти за углы на соседей.
         clipBehavior: Clip.antiAlias,
@@ -81,22 +122,18 @@ class EntryCard extends StatelessWidget {
             context,
             Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: tile ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // В плитке обложка забирает всё, что осталось от текста, —
-              // иначе у карточек в ряду разъезжаются низы.
-              if (hasCover && tile) Expanded(child: _cover(context)),
-              if (hasCover && !tile) _cover(context),
-              // Плитка без обложки: текст сверху, пилюли контекста прижаты к
-              // низу — иначе половина карточки остаётся пустой.
-              if (tile && !hasCover)
-                Expanded(child: _body(context, snippet, hasCover, scheme))
-              else
-                _body(context, snippet, hasCover, scheme),
+              if (hasCover)
+                tile
+                    ? AspectRatio(aspectRatio: 16 / 10, child: _cover(context))
+                    : _cover(context),
+              _body(context, snippet, hasCover, scheme),
             ],
           ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -147,7 +184,7 @@ class EntryCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            titleOf(e),
+                            EntryCard.titleOf(e),
                             // Три строки: заголовок записи — главное, что
                             // человек ищет глазами в ленте. В плитке две:
                             // высота у неё общая с соседями.
@@ -189,7 +226,7 @@ class EntryCard extends StatelessWidget {
                       ),
                     ],
                     if (!hasCover) ...[
-                      if (tile) const Spacer() else const SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       _chips(context),
                     ],
                   ],
@@ -363,29 +400,8 @@ class EntryCard extends StatelessWidget {
     );
   }
 
-  /// Когда записано. В ленте телефона записи стоят под заголовком дня, и
-  /// хватает времени; в сетке заголовков дня нет, поэтому там и дата.
-  String _when(Entry e) => tile
-      ? '${Dates.dayMonth(e.entryDate)}, ${Dates.time(e.entryDate)}'
-      : Dates.time(e.entryDate);
+  String _when(Entry e) => EntryCard.whenOf(e, withDate: tile);
 
-  /// Короткая выжимка текста записи — для карточек воспоминаний и поиска.
-  static String previewOf(Entry e) {
-    final body = MarkdownLite.strip(e.body);
-    if (body.isEmpty) return tr('entry_untitled');
-    return body.length <= 90 ? body : '${body.substring(0, 90)}…';
-  }
-
-  /// Заголовок записи для карточки и списка: свой, иначе первая строка текста.
-  static String titleOf(Entry e) {
-    final t = e.title?.trim();
-    if (t != null && t.isNotEmpty) return t;
-    final body = MarkdownLite.strip(e.body);
-    if (body.isNotEmpty) {
-      return body.length <= 42 ? body : '${body.substring(0, 42)}…';
-    }
-    return tr('entry_untitled');
-  }
 }
 
 /// Тёмная метка поверх обложки (время, «+5»).

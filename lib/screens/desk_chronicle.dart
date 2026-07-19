@@ -33,6 +33,9 @@ class DeskChronicle extends StatelessWidget {
   final void Function(EntryCardItem item)? onOpenEntry;
   final ValueChanged<DateTime>? onWriteOnDay;
 
+  final VoidCallback? onSearch;
+  final VoidCallback? onMenu;
+
   const DeskChronicle({
     super.key,
     required this.data,
@@ -43,6 +46,8 @@ class DeskChronicle extends StatelessWidget {
     this.dayEntries = const [],
     this.onOpenEntry,
     this.onWriteOnDay,
+    this.onSearch,
+    this.onMenu,
   });
 
   @override
@@ -52,9 +57,14 @@ class DeskChronicle extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Padding(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _toolbar(context),
+              Expanded(
+                child: Padding(
             padding: const EdgeInsets.fromLTRB(
-                WicklyDesign.deskPad, 20, WicklyDesign.deskPad, 20),
+                WicklyDesign.deskPad, 16, WicklyDesign.deskPad, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -68,6 +78,9 @@ class DeskChronicle extends StatelessWidget {
               ],
             ),
           ),
+              ),
+            ],
+          ),
         ),
         Container(
           width: 340,
@@ -78,6 +91,72 @@ class DeskChronicle extends StatelessWidget {
           child: _day(context),
         ),
       ],
+    );
+  }
+
+  /// Панель инструментов: месяц с итогом строкой и поиск — та же, что у ленты,
+  /// чтобы хроника не выглядела другим приложением.
+  Widget _toolbar(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final days = DateTime(data.month.year, data.month.month + 1, 0).day;
+    final written = data.writtenDays
+        .where((k) => k ~/ 100 == data.month.year * 100 + data.month.month)
+        .length;
+    final avg = data.summary.daysWithMood == 0 ? null : data.summary.average;
+
+    return Container(
+      height: 88,
+      padding: const EdgeInsets.symmetric(horizontal: WicklyDesign.deskPad),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  Dates.monthYear(data.month),
+                  style: TextStyle(
+                    fontFamily: AppTheme.displayFont,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 26,
+                    letterSpacing: -0.5,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  [
+                    trf('month_written',
+                        {'a': '$written', 'b': Dates.daysOf(days)}),
+                    if (avg != null)
+                      '${tr('mood_average')} — '
+                          '${tr(MoodPalette.labelKey(avg.round())).toLowerCase()}',
+                  ].join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppTheme.bodyFont,
+                    fontSize: 13,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onSearch != null)
+            _SearchBox(onTap: onSearch!),
+          const SizedBox(width: 6),
+          IconButton(
+            icon: const Icon(Icons.more_vert_rounded),
+            tooltip: tr('settings'),
+            onPressed: onMenu,
+          ),
+        ],
+      ),
     );
   }
 
@@ -484,6 +563,76 @@ class _DayCell extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+/// Строка поиска в шапке хроники — форма та же, что в ленте.
+class _SearchBox extends StatefulWidget {
+  final VoidCallback onTap;
+  const _SearchBox({required this.onTap});
+
+  @override
+  State<_SearchBox> createState() => _SearchBoxState();
+}
+
+class _SearchBoxState extends State<_SearchBox> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          width: 300,
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: _hover
+                ? scheme.surfaceContainerHighest
+                : scheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: _hover ? scheme.outline : scheme.outlineVariant,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.search_rounded,
+                  size: 18, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  tr('search_hint'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppTheme.bodyFont,
+                    fontSize: 13.5,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              Text(
+                'Ctrl F',
+                style: TextStyle(
+                  fontFamily: AppTheme.bodyFont,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.outline,
+                ),
+              ),
+            ],
           ),
         ),
       ),
