@@ -304,8 +304,8 @@ class _ExportScreenState extends State<ExportScreen> {
       body: Stack(
         children: [
           ListView(
-            padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 4,
-                WicklyDesign.screenPad, 28),
+            padding: EdgeInsets.fromLTRB(WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 4,
+                WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 28),
             children: [
               Reveal(child: _BookCard(onTap: _busy ? null : _book)),
               const SizedBox(height: 18),

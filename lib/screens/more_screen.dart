@@ -37,7 +37,7 @@ class MoreScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(tr('tab_more'))),
       body: GridView.count(
-        crossAxisCount: 2,
+        crossAxisCount: WicklyDesign.gridColumns(context, 260),
         padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 8,
             WicklyDesign.screenPad, 24),
         crossAxisSpacing: WicklyDesign.gapCards,

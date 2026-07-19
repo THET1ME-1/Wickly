@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/app_prefs.dart';
 import '../l10n/strings.dart';
 import '../theme/app_theme.dart';
+import '../theme/wickly_design.dart';
 import '../widgets/appearance_card.dart';
 import '../widgets/settings_scaffold.dart';
 import 'settings_screen.dart';
@@ -28,7 +29,8 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(tr('appearance'))),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        padding: EdgeInsets.fromLTRB(WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 4,
+            WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 24),
         children: [
           SettingsSection(tr('theme')),
           const AppearanceCard(presets: kWicklyPresets),
@@ -65,6 +67,48 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
               ),
             ),
           ]),
+
+          // Только на широком окне: на телефоне лента всегда в одну колонку,
+          // и выбирать там нечего.
+          if (WicklyDesign.isWide(context)) ...[
+            SettingsSection(tr('desktop')),
+            SettingsGroup([
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tr('feed_columns'),
+                      style: TextStyle(
+                        fontFamily: AppTheme.bodyFont,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SegmentedButton<int>(
+                      showSelectedIcon: false,
+                      segments: [
+                        ButtonSegment(
+                          value: 0,
+                          label: Text(tr('feed_columns_auto')),
+                        ),
+                        for (var n = 2; n <= 6; n++)
+                          ButtonSegment(value: n, label: Text('$n')),
+                      ],
+                      selected: {AppPrefs.instance.feedColumns},
+                      onSelectionChanged: (v) async {
+                        await AppPrefs.instance.setFeedColumns(v.first);
+                        if (mounted) setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ]),
+          ],
 
           SettingsSection(tr('start_screen')),
           SettingsGroup([

@@ -137,8 +137,8 @@ class _SyncScreenState extends State<SyncScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(tr('sync'))),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 4,
-            WicklyDesign.screenPad, 28),
+        padding: EdgeInsets.fromLTRB(WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 4,
+            WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 28),
         children: [
           _ModeTabs(
             mode: _mode,

@@ -251,8 +251,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 16,
-                  WicklyDesign.screenPad, 32),
+              padding: EdgeInsets.fromLTRB(WicklyDesign.sidePad(context, column: WicklyDesign.readWidth), 16,
+                  WicklyDesign.sidePad(context, column: WicklyDesign.readWidth), 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

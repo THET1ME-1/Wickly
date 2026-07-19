@@ -74,8 +74,8 @@ class _SearchViewState extends State<SearchView> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 8,
-                  WicklyDesign.screenPad, 8),
+              padding: EdgeInsets.fromLTRB(WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 8,
+                  WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 8),
               child: Row(
                 children: [
                   IconButton(

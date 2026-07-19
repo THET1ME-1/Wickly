@@ -50,7 +50,9 @@ class JournalsView extends StatelessWidget {
         ],
       ),
       body: GridView.count(
-        crossAxisCount: 2,
+        // На широком окне обложки становятся в ряд по ширине, а не по две:
+        // растянутая на полстола карточка дневника выглядит нелепо.
+        crossAxisCount: WicklyDesign.gridColumns(context, 280),
         padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 8,
             WicklyDesign.screenPad, 28),
         crossAxisSpacing: WicklyDesign.gapCards,

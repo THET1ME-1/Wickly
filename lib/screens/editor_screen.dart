@@ -674,8 +674,8 @@ class _EditorScreenState extends State<EditorScreen> {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 6,
-                    WicklyDesign.screenPad, 12),
+                padding: EdgeInsets.fromLTRB(WicklyDesign.sidePad(context, column: WicklyDesign.readWidth), 6,
+                    WicklyDesign.sidePad(context, column: WicklyDesign.readWidth), 12),
                 children: [
                   _contextChips(),
                   const SizedBox(height: 14),

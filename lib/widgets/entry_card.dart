@@ -50,7 +50,17 @@ class EntryCard extends StatelessWidget {
   final EntryCardItem item;
   final VoidCallback? onTap;
 
-  const EntryCard({super.key, required this.item, this.onTap});
+  /// Плитка сетки на широком окне: карточка живёт в ряду с соседями и заполняет
+  /// отведённую ей высоту, поэтому обложка тянется, а текст режется. В ленте
+  /// телефона карточка, наоборот, растёт под своё содержимое.
+  final bool tile;
+
+  const EntryCard({
+    super.key,
+    required this.item,
+    this.onTap,
+    this.tile = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -71,9 +81,34 @@ class EntryCard extends StatelessWidget {
             context,
             Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: tile ? MainAxisSize.max : MainAxisSize.min,
             children: [
-              if (hasCover) _cover(context),
-              Padding(
+              // В плитке обложка забирает всё, что осталось от текста, —
+              // иначе у карточек в ряду разъезжаются низы.
+              if (hasCover && tile) Expanded(child: _cover(context)),
+              if (hasCover && !tile) _cover(context),
+              // Плитка без обложки: текст сверху, пилюли контекста прижаты к
+              // низу — иначе половина карточки остаётся пустой.
+              if (tile && !hasCover)
+                Expanded(child: _body(context, snippet, hasCover, scheme))
+              else
+                _body(context, snippet, hasCover, scheme),
+            ],
+          ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _body(
+    BuildContext context,
+    String snippet,
+    bool hasCover,
+    ColorScheme scheme,
+  ) {
+    final e = item.entry;
+    return Padding(
                 padding: EdgeInsets.fromLTRB(
                     WicklyDesign.gapInside,
                     hasCover ? 12 : WicklyDesign.gapInside,
@@ -114,8 +149,9 @@ class EntryCard extends StatelessWidget {
                           child: Text(
                             _title(e),
                             // Три строки: заголовок записи — главное, что
-                            // человек ищет глазами в ленте.
-                            maxLines: 3,
+                            // человек ищет глазами в ленте. В плитке две:
+                            // высота у неё общая с соседями.
+                            maxLines: tile ? 2 : 3,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontFamily: AppTheme.displayFont,
@@ -142,7 +178,7 @@ class EntryCard extends StatelessWidget {
                       const SizedBox(height: 5),
                       Text(
                         snippet,
-                        maxLines: hasCover ? 2 : 3,
+                        maxLines: hasCover ? 2 : (tile ? 4 : 3),
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: AppTheme.bodyFont,
@@ -153,18 +189,12 @@ class EntryCard extends StatelessWidget {
                       ),
                     ],
                     if (!hasCover) ...[
-                      const SizedBox(height: 10),
+                      if (tile) const Spacer() else const SizedBox(height: 10),
                       _chips(context),
                     ],
                   ],
                 ),
-              ),
-            ],
-          ),
-          ),
-        ),
-      ),
-    );
+              );
   }
 
   /// Карточка запертого дневника: то же содержимое, но прочесть нельзя.
@@ -236,7 +266,7 @@ class EntryCard extends StatelessWidget {
   Widget _cover(BuildContext context) {
     final e = item.entry;
     return SizedBox(
-      height: WicklyDesign.feedCoverHeight,
+      height: tile ? null : WicklyDesign.feedCoverHeight,
       width: double.infinity,
       child: Stack(
         fit: StackFit.expand,
@@ -259,7 +289,7 @@ class EntryCard extends StatelessWidget {
           Positioned(
             left: 12,
             top: 12,
-            child: _Badge(label: Dates.time(e.entryDate)),
+            child: _Badge(label: _when(e)),
           ),
           if (e.mood != null)
             Positioned(
@@ -311,7 +341,7 @@ class EntryCard extends StatelessWidget {
       spacing: 7,
       runSpacing: 7,
       children: [
-        pill(Text(Dates.time(e.entryDate), style: style())),
+        pill(Text(_when(e), style: style())),
         if (e.place != null)
           pill(Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.place_rounded, size: 13, color: scheme.onSurfaceVariant),
@@ -332,6 +362,12 @@ class EntryCard extends StatelessWidget {
       ],
     );
   }
+
+  /// Когда записано. В ленте телефона записи стоят под заголовком дня, и
+  /// хватает времени; в сетке заголовков дня нет, поэтому там и дата.
+  String _when(Entry e) => tile
+      ? '${Dates.dayMonth(e.entryDate)}, ${Dates.time(e.entryDate)}'
+      : Dates.time(e.entryDate);
 
   /// Короткая выжимка текста записи — для карточек воспоминаний и поиска.
   static String previewOf(Entry e) {

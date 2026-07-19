@@ -442,6 +442,37 @@ const Map<String, Map<String, String>> coreStrings = {
     'fr': 'Taille du texte', 'es': 'Tamaño del texto',
     'it': 'Dimensione del testo', 'pt': 'Tamanho do texto',
   },
+
+  // ---------------------------- Десктоп ----------------------------
+  'desktop': {
+    'ru': 'Широкое окно', 'en': 'Wide window', 'de': 'Breites Fenster',
+    'fr': 'Fenêtre large', 'es': 'Ventana ancha', 'it': 'Finestra larga',
+    'pt': 'Janela larga',
+  },
+  'rail_collapse': {
+    'ru': 'Свернуть меню', 'en': 'Collapse the menu',
+    'de': 'Menü einklappen', 'fr': 'Réduire le menu',
+    'es': 'Contraer el menú', 'it': 'Comprimi il menu',
+    'pt': 'Recolher o menu',
+  },
+  'rail_expand': {
+    'ru': 'Развернуть меню', 'en': 'Expand the menu',
+    'de': 'Menü ausklappen', 'fr': 'Déployer le menu',
+    'es': 'Expandir el menú', 'it': 'Espandi il menu',
+    'pt': 'Expandir o menu',
+  },
+  'feed_columns': {
+    'ru': 'Записей в ряду', 'en': 'Entries per row',
+    'de': 'Einträge pro Reihe', 'fr': 'Entrées par rangée',
+    'es': 'Anotaciones por fila', 'it': 'Voci per riga',
+    'pt': 'Anotações por linha',
+  },
+  'feed_columns_auto': {
+    'ru': 'По ширине окна', 'en': 'Fit the window',
+    'de': 'Nach Fensterbreite', 'fr': 'Selon la largeur',
+    'es': 'Según el ancho', 'it': 'In base alla larghezza',
+    'pt': 'Conforme a largura',
+  },
   'text_size_sample': {
     'ru': 'Дошли до старого моста, вода ещё тёплая.',
     'en': 'We walked to the old bridge, the water was still warm.',

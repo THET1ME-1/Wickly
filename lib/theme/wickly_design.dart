@@ -32,6 +32,54 @@ class WicklyDesign {
   /// Высота обложки в карточке ленты.
   static const double feedCoverHeight = 132;
 
+  // ------------------------- Телефон и десктоп -------------------------
+  //
+  // Широкое окно — не растянутый телефон. С этой ширины нижняя панель уходит
+  // вбок рельсом, лента раскладывается плиткой, а текст перестаёт тянуться во
+  // всю ширину монитора: строка в полтора метра не читается.
+
+  /// Ширина, с которой интерфейс становится десктопным.
+  static const double wide = 900;
+
+  /// Ширина колонки, в которой удобно читать и писать.
+  static const double readWidth = 780;
+
+  /// Ширина, дальше которой не растягиваются экраны-списки (настройки, поиск).
+  static const double listWidth = 960;
+
+  static bool isWide(BuildContext context) =>
+      MediaQuery.sizeOf(context).width >= wide;
+
+  /// Боковое поле экрана-колонки. На телефоне это обычные 16, на широком окне
+  /// поле разрастается и держит колонку читаемой: строка во весь монитор
+  /// теряется — глаз не находит начало следующей.
+  static double sidePad(BuildContext context, {double column = readWidth}) {
+    final w = MediaQuery.sizeOf(context).width;
+    if (w < wide) return screenPad;
+    final side = (w - column) / 2;
+    return side > screenPad ? side : screenPad;
+  }
+
+  /// Сколько карточек в ряду ленты. `preferred` — выбор человека в настройках,
+  /// 0 значит «по ширине окна».
+  static int feedColumns(double bodyWidth, int preferred) {
+    if (preferred > 0) return preferred.clamp(2, 6);
+    return (bodyWidth / 380).floor().clamp(2, 6);
+  }
+
+  /// Сколько колонок влезет в сетку с плиткой шириной [tileWidth].
+  /// На телефоне всегда две — макет рисовался под них.
+  static int gridColumns(BuildContext context, double tileWidth) {
+    final w = MediaQuery.sizeOf(context).width;
+    if (w < wide) return 2;
+    return (w / tileWidth).floor().clamp(2, 8);
+  }
+
+  /// Высота плитки ленты. Растёт вместе с размером шрифта: иначе на крупном
+  /// тексте заголовок с описанием не влезают в карточку.
+  static double feedTileHeight(BuildContext context) =>
+      252 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.5);
+
   // ----------------------------- Появление -----------------------------
   //
   // Правило одно на всё приложение:

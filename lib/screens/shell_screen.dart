@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/feedback.dart';
+import '../theme/wickly_design.dart';
 import '../data/app_prefs.dart';
 import '../data/entry_repository.dart';
 import '../data/journal_lock.dart';
@@ -279,8 +280,109 @@ class _ShellScreenState extends State<ShellScreen> {
         ),
       ];
 
+  /// Пункты навигации — одни и те же для нижней панели телефона и бокового
+  /// рельса десктопа.
+  List<({IconData icon, IconData active, String label})> get _tabs => [
+        (
+          icon: Icons.view_agenda_outlined,
+          active: Icons.view_agenda_rounded,
+          label: tr('tab_feed')
+        ),
+        (
+          icon: Icons.calendar_month_outlined,
+          active: Icons.calendar_month_rounded,
+          label: tr('tab_calendar')
+        ),
+        (
+          icon: Icons.map_outlined,
+          active: Icons.map_rounded,
+          label: tr('tab_map')
+        ),
+        (
+          icon: Icons.grid_view_outlined,
+          active: Icons.grid_view_rounded,
+          label: tr('tab_media')
+        ),
+        (
+          icon: Icons.more_horiz_rounded,
+          active: Icons.more_horiz_rounded,
+          label: tr('tab_more')
+        ),
+      ];
+
+  void _selectTab(int i) {
+    Haptics.tap();
+    setState(() => _tab = ShellTab.values[i]);
+  }
+
+  /// Боковой рельс широкого окна. Сворачивается до одних значков и помнит
+  /// выбор: на ноутбуке с лентой в шесть колонок подписи занимают место,
+  /// которое хочется отдать записям.
+  Widget _rail(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final extended = AppPrefs.instance.railExtended;
+
+    return NavigationRail(
+      extended: extended,
+      minWidth: 76,
+      minExtendedWidth: 216,
+      backgroundColor: scheme.surface,
+      indicatorColor: scheme.secondaryContainer,
+      groupAlignment: -0.9,
+      // Подписи под значками нужны только сложенному рельсу: у развёрнутого
+      // они и так стоят рядом (и Flutter запрещает сочетать их с extended).
+      labelType:
+          extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+      selectedIndex: _tab.index,
+      onDestinationSelected: _selectTab,
+      leading: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Column(
+          children: [
+            IconButton(
+              icon: Icon(
+                  extended ? Icons.menu_open_rounded : Icons.menu_rounded),
+              tooltip: tr(extended ? 'rail_collapse' : 'rail_expand'),
+              onPressed: () async {
+                Haptics.tap();
+                await AppPrefs.instance.setRailExtended(!extended);
+                if (mounted) setState(() {});
+              },
+            ),
+            const SizedBox(height: 10),
+            if (extended)
+              FloatingActionButton.extended(
+                heroTag: 'rail-write',
+                onPressed: _write,
+                icon: const Icon(Icons.edit_rounded),
+                label: Text(tr('write')),
+              )
+            else
+              FloatingActionButton(
+                heroTag: 'rail-write',
+                onPressed: _write,
+                tooltip: tr('write'),
+                child: const Icon(Icons.edit_rounded),
+              ),
+          ],
+        ),
+      ),
+      destinations: [
+        for (final t in _tabs)
+          NavigationRailDestination(
+            icon: Icon(t.icon),
+            selectedIcon: Icon(t.active),
+            label: Text(t.label),
+            padding: const EdgeInsets.symmetric(vertical: 2),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final wide = WicklyDesign.isWide(context);
+
     return Scaffold(
       body: StreamBuilder<List<Entry>>(
         stream: EntryRepository.instance.watchEntries(),
@@ -291,7 +393,7 @@ class _ShellScreenState extends State<ShellScreen> {
           // Вкладка не «рождается», она сменяет предыдущую: проявление с
           // коротким подъёмом, без сдвига вбок — вкладки не соседние экраны,
           // а разные взгляды на одно и то же.
-          return AnimatedSwitcher(
+          final body = AnimatedSwitcher(
             duration: const Duration(milliseconds: 220),
             switchInCurve: AppTheme.emphasizedDecelerate,
             transitionBuilder: (child, animation) => FadeTransition(
@@ -320,41 +422,36 @@ class _ShellScreenState extends State<ShellScreen> {
             onSettings: () => _openScreen(const SettingsScreen()),
             ),
           );
+
+          // Широкое окно: навигация уезжает вбок, экран остаётся под неё.
+          if (!wide) return body;
+          return Row(
+            children: [
+              _rail(context),
+              VerticalDivider(
+                width: 1,
+                thickness: 1,
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+              Expanded(child: body),
+            ],
+          );
         },
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab.index,
-        onDestinationSelected: (i) {
-          Haptics.tap();
-          setState(() => _tab = ShellTab.values[i]);
-        },
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.view_agenda_outlined),
-            selectedIcon: const Icon(Icons.view_agenda_rounded),
-            label: tr('tab_feed'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.calendar_month_outlined),
-            selectedIcon: const Icon(Icons.calendar_month_rounded),
-            label: tr('tab_calendar'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.map_outlined),
-            selectedIcon: const Icon(Icons.map_rounded),
-            label: tr('tab_map'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.grid_view_outlined),
-            selectedIcon: const Icon(Icons.grid_view_rounded),
-            label: tr('tab_media'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.more_horiz_rounded),
-            label: tr('tab_more'),
-          ),
-        ],
-      ),
+      bottomNavigationBar: wide
+          ? null
+          : NavigationBar(
+              selectedIndex: _tab.index,
+              onDestinationSelected: _selectTab,
+              destinations: [
+                for (final t in _tabs)
+                  NavigationDestination(
+                    icon: Icon(t.icon),
+                    selectedIcon: Icon(t.active),
+                    label: t.label,
+                  ),
+              ],
+            ),
     );
   }
 }

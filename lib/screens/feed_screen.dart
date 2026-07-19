@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/app_prefs.dart';
 import '../l10n/strings.dart';
 import '../models/entry.dart';
 import '../services/stats_service.dart';
@@ -83,13 +84,22 @@ class _FeedViewState extends State<FeedView> {
     final scheme = Theme.of(context).colorScheme;
     final data = widget.data;
     final groups = _groupByDay(data.items);
+    // На широком окне записи ложатся сеткой, а «написать» живёт в боковом
+    // рельсе — второй такой же кнопке над лентой там делать нечего.
+    final wide = WicklyDesign.isWide(context);
+    final columns = WicklyDesign.feedColumns(
+      MediaQuery.sizeOf(context).width - (wide ? 260 : 0),
+      AppPrefs.instance.feedColumns,
+    );
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: widget.onWrite,
-        icon: const Icon(Icons.edit_rounded),
-        label: Text(tr('write')),
-      ),
+      floatingActionButton: wide
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: widget.onWrite,
+              icon: const Icon(Icons.edit_rounded),
+              label: Text(tr('write')),
+            ),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -166,61 +176,94 @@ class _FeedViewState extends State<FeedView> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 10,
                     WicklyDesign.screenPad, 0),
-                child: Column(
-                  children: [
-                    Reveal(
-                      child: _StreakCard(
-                        streak: data.streak,
-                        lastWeek: data.lastWeek,
-                        onTap: widget.onOpenStreak,
-                      ),
+                // Серия и воспоминание: на телефоне одна под другой, на
+                // широком окне рядом — иначе шапка съедает половину экрана
+                // раньше первой записи.
+                child: _HeaderCards(
+                  wide: wide,
+                  streak: Reveal(
+                    child: _StreakCard(
+                      streak: data.streak,
+                      lastWeek: data.lastWeek,
+                      onTap: widget.onOpenStreak,
                     ),
-                    if (data.memories.isNotEmpty) ...[
-                      const SizedBox(height: WicklyDesign.gapCards),
-                      Reveal(
-                        delay: const Duration(milliseconds: 70),
-                        child: _MemoryCard(
-                          item: data.memories.first,
-                          onTap: widget.onOpenMemories,
+                  ),
+                  memory: data.memories.isEmpty
+                      ? null
+                      : Reveal(
+                          delay: const Duration(milliseconds: 70),
+                          child: _MemoryCard(
+                            item: data.memories.first,
+                            onTap: widget.onOpenMemories,
+                          ),
                         ),
-                      ),
-                    ],
-                  ],
                 ),
               ),
             ),
 
-            for (final group in groups) ...[
-              SliverToBoxAdapter(
-                child: _DayHeader(
-                  day: group.day,
-                  mood: group.mood,
-                  now: data.now,
-                ),
-              ),
-              SliverList.separated(
-                itemCount: group.items.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: WicklyDesign.gapCards),
-                itemBuilder: (context, i) {
-                  final item = group.items[i];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: WicklyDesign.screenPad),
-                    child: Reveal(
+            // Сетка вместо дней: на широком окне записи стоят рядами и
+            // переносятся, как плитки на столе. Заголовок дня туда не ложится
+            // (в дне обычно одна запись — ряд из неё выглядел бы пустым),
+            // поэтому дату несёт сама карточка.
+            if (wide)
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 12,
+                    WicklyDesign.screenPad, 28),
+                sliver: SliverGrid.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    crossAxisSpacing: WicklyDesign.gapCards,
+                    mainAxisSpacing: WicklyDesign.gapCards,
+                    mainAxisExtent: WicklyDesign.feedTileHeight(context),
+                  ),
+                  itemCount: data.items.length,
+                  itemBuilder: (context, i) {
+                    final item = data.items[i];
+                    return Reveal(
                       group: _revealed,
                       id: item.entry.id,
-                      delay: Duration(milliseconds: 40 * (i < 4 ? i : 4)),
+                      delay: WicklyDesign.revealDelay(i),
                       child: EntryCard(
                         item: item,
+                        tile: true,
                         onTap: () => widget.onOpenEntry?.call(item.entry),
                       ),
-                    ),
-                  );
-                },
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 18)),
-            ],
+                    );
+                  },
+                ),
+              )
+            else
+              for (final group in groups) ...[
+                SliverToBoxAdapter(
+                  child: _DayHeader(
+                    day: group.day,
+                    mood: group.mood,
+                    now: data.now,
+                  ),
+                ),
+                SliverList.separated(
+                  itemCount: group.items.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: WicklyDesign.gapCards),
+                  itemBuilder: (context, i) {
+                    final item = group.items[i];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: WicklyDesign.screenPad),
+                      child: Reveal(
+                        group: _revealed,
+                        id: item.entry.id,
+                        delay: Duration(milliseconds: 40 * (i < 4 ? i : 4)),
+                        child: EntryCard(
+                          item: item,
+                          onTap: () => widget.onOpenEntry?.call(item.entry),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 18)),
+              ],
             const SliverToBoxAdapter(child: SizedBox(height: 96)),
           ],
         ],
@@ -259,6 +302,40 @@ class _DayGroup {
         .toList();
     if (moods.isEmpty) return null;
     return (moods.reduce((a, b) => a + b) / moods.length).round();
+  }
+}
+
+/// Шапка ленты: серия и «в этот день». Столбиком на телефоне, в ряд на
+/// широком окне.
+class _HeaderCards extends StatelessWidget {
+  final bool wide;
+  final Widget streak;
+  final Widget? memory;
+
+  const _HeaderCards({required this.wide, required this.streak, this.memory});
+
+  @override
+  Widget build(BuildContext context) {
+    if (memory == null) return streak;
+    if (!wide) {
+      return Column(
+        children: [
+          streak,
+          const SizedBox(height: WicklyDesign.gapCards),
+          memory!,
+        ],
+      );
+    }
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: streak),
+          const SizedBox(width: WicklyDesign.gapCards),
+          Expanded(child: memory!),
+        ],
+      ),
+    );
   }
 }
 

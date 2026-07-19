@@ -36,6 +36,8 @@ class AppPrefs extends ChangeNotifier {
   static const _kCoverBanner = 'cover_banner';
   static const _kUpdateCheckedAt = 'update_checked_at';
   static const _kSkippedUpdate = 'update_skipped';
+  static const _kRailExtended = 'desktop_rail_extended';
+  static const _kFeedColumns = 'desktop_feed_columns';
 
   SharedPreferences? _p;
 
@@ -64,6 +66,8 @@ class AppPrefs extends ChangeNotifier {
   bool _coverBanner = true;
   int _updateCheckedAt = 0;
   String _skippedUpdate = '';
+  bool _railExtended = true;
+  int _feedColumns = 0;
 
   bool get onboarded => _onboarded;
   bool get hasPin => _pinHash != null && _pinHash!.isNotEmpty;
@@ -114,6 +118,12 @@ class AppPrefs extends ChangeNotifier {
   /// Версия, от которой человек отмахнулся кнопкой «Позже».
   String get skippedUpdate => _skippedUpdate;
 
+  /// Развёрнут ли боковой рельс на широком окне (с подписями).
+  bool get railExtended => _railExtended;
+
+  /// Сколько карточек в ряду ленты на широком окне. 0 — по ширине окна.
+  int get feedColumns => _feedColumns;
+
   Future<void> load() async {
     final p = _p = await SharedPreferences.getInstance();
     _onboarded = p.getBool(_kOnboarded) ?? false;
@@ -141,6 +151,8 @@ class AppPrefs extends ChangeNotifier {
     _autoContext = p.getBool(_kAutoContext) ?? true;
     _coverBanner = p.getBool(_kCoverBanner) ?? true;
     _updateCheckedAt = p.getInt(_kUpdateCheckedAt) ?? 0;
+    _railExtended = p.getBool(_kRailExtended) ?? true;
+    _feedColumns = p.getInt(_kFeedColumns) ?? 0;
     _skippedUpdate = p.getString(_kSkippedUpdate) ?? '';
     notifyListeners();
   }
@@ -274,6 +286,18 @@ class AppPrefs extends ChangeNotifier {
   Future<void> setDeviceName(String v) async {
     _deviceName = v;
     await _p?.setString(_kDeviceName, v);
+    notifyListeners();
+  }
+
+  Future<void> setRailExtended(bool v) async {
+    _railExtended = v;
+    await _p?.setBool(_kRailExtended, v);
+    notifyListeners();
+  }
+
+  Future<void> setFeedColumns(int v) async {
+    _feedColumns = v;
+    await _p?.setInt(_kFeedColumns, v);
     notifyListeners();
   }
 

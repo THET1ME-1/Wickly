@@ -105,8 +105,8 @@ class _HabitScreenState extends State<HabitScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 4,
-                  WicklyDesign.screenPad, 28),
+              padding: EdgeInsets.fromLTRB(WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 4,
+                  WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 28),
               children: [
                 Reveal(child: _todayCard(scheme, tint, doneToday)),
                 const SizedBox(height: WicklyDesign.gapCards),

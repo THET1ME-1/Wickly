@@ -90,8 +90,8 @@ class TrackersView extends StatelessWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 4,
-            WicklyDesign.screenPad, 28),
+        padding: EdgeInsets.fromLTRB(WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 4,
+            WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 28),
         children: [
           Text(
             tr('today').toUpperCase(),
@@ -105,7 +105,7 @@ class TrackersView extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           GridView.count(
-            crossAxisCount: 2,
+            crossAxisCount: WicklyDesign.gridColumns(context, 240),
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: WicklyDesign.gapCards,

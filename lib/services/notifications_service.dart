@@ -56,10 +56,16 @@ class NotificationsService {
       },
     );
     // Холодный старт по тапу: колбэк выше в этом случае не приходит.
-    final launch = await _plugin.getNotificationAppLaunchDetails();
-    if (launch?.didNotificationLaunchApp == true &&
-        launch?.notificationResponse?.payload == _writePayload) {
-      pendingWrite = true;
+    // На десктопе этого метода у плагина нет — и раньше он валил весь запуск
+    // напоминаний исключением.
+    try {
+      final launch = await _plugin.getNotificationAppLaunchDetails();
+      if (launch?.didNotificationLaunchApp == true &&
+          launch?.notificationResponse?.payload == _writePayload) {
+        pendingWrite = true;
+      }
+    } on UnimplementedError {
+      // Приложение с уведомления тут не запускают.
     }
     _ready = true;
   }

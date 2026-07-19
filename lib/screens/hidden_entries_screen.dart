@@ -65,8 +65,8 @@ class _HiddenEntriesScreenState extends State<HiddenEntriesScreen> {
               subtitle: tr('hidden_empty_sub'),
             )
           : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 8,
-                  WicklyDesign.screenPad, 24),
+              padding: EdgeInsets.fromLTRB(WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 8,
+                  WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 24),
               itemCount: _items.length,
               separatorBuilder: (_, _) =>
                   const SizedBox(height: WicklyDesign.gapCards),

@@ -82,8 +82,8 @@ class MemoriesView extends StatelessWidget {
               subtitle: tr('memories_empty_sub'),
             )
           : ListView(
-              padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 4,
-                  WicklyDesign.screenPad, 28),
+              padding: EdgeInsets.fromLTRB(WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 4,
+                  WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 28),
               children: [
                 Reveal(
                   child: _BigMemory(

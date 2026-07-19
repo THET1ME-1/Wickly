@@ -26,6 +26,9 @@ class Harness {
   /// Размер экрана телефона, на котором рисовался макет.
   static const Size phone = Size(390, 844);
 
+  /// Окно на ноутбуке — по нему проверяем десктопную раскладку.
+  static const Size desktop = Size(1440, 900);
+
   static bool _fontsLoaded = false;
 
   /// Грузит фирменные шрифты ДНК и шрифт иконок. Без этого `flutter_test`
@@ -103,6 +106,9 @@ class Harness {
     String name,
     Widget Function() build, {
     Size size = phone,
+    // Десктопные снимки берём в один пиксель на точку: окно 1440×900 в тройном
+    // масштабе — это картинка на четыре с лишним тысячи пикселей.
+    double pixelRatio = 3,
     Color seed = AppTheme.defaultSeed,
     String language = 'ru',
     Map<String, Object> prefs = const {},
@@ -123,8 +129,8 @@ class Harness {
     // (русские строки длиннее английских на 15–30%).
     LocaleController.instance.setCodeForTest(language);
     tester.view
-      ..physicalSize = size * 3
-      ..devicePixelRatio = 3;
+      ..physicalSize = size * pixelRatio
+      ..devicePixelRatio = pixelRatio;
     addTearDown(tester.view.reset);
 
     for (final mode in const [

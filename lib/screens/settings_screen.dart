@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/app_prefs.dart';
 import '../l10n/locale_controller.dart';
 import '../l10n/strings.dart';
+import '../theme/wickly_design.dart';
 import '../theme/app_theme.dart';
 import '../theme/feedback.dart';
 import '../services/update_service.dart';
@@ -265,7 +266,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(tr('settings'))),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        padding: EdgeInsets.fromLTRB(WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 4,
+            WicklyDesign.sidePad(context, column: WicklyDesign.listWidth), 24),
         children: [
           SettingsSection(tr('section_journal')),
           SettingsGroup([
