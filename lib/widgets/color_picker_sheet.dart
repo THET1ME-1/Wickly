@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 import '../theme/app_theme.dart';
+import 'sheet_scaffold.dart';
 
 /// HEX-строка цвета вида `#RRGGBB` (без альфы).
 String colorToHex(Color color) {
@@ -23,14 +24,8 @@ Future<Color?> showColorPickerSheet(
   String cancelLabel = 'Отмена',
   String applyLabel = 'Применить',
 }) {
-  final scheme = Theme.of(context).colorScheme;
-  return showModalBottomSheet<Color>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: scheme.surfaceContainer,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-    ),
+  return showWicklySheet<Color>(
+    context,
     builder: (context) => _ColorPickerSheet(
       initial: initial,
       title: title,
@@ -70,7 +65,9 @@ class _ColorPickerSheetState extends State<_ColorPickerSheet> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
@@ -96,7 +93,10 @@ class _ColorPickerSheetState extends State<_ColorPickerSheet> {
                     decoration: BoxDecoration(
                       color: _color,
                       shape: BoxShape.circle,
-                      border: Border.all(color: scheme.outlineVariant, width: 2),
+                      border: Border.all(
+                        color: scheme.outlineVariant,
+                        width: 2,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),

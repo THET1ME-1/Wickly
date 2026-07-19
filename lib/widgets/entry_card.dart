@@ -72,9 +72,9 @@ class EntryCard extends StatelessWidget {
     return PressableScale(
       child: Card(
         margin: EdgeInsets.zero,
-        // Запертая карточка размывается целиком, и размытие не должно
-        // выползать за её углы на соседей.
-        clipBehavior: item.locked ? Clip.antiAlias : Clip.none,
+        // Обрезка по форме карточки: по ней скругляется обложка, и она же не
+        // даёт размытию запертой записи выползти за углы на соседей.
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           child: _behindLock(
@@ -178,7 +178,7 @@ class EntryCard extends StatelessWidget {
                       const SizedBox(height: 5),
                       Text(
                         snippet,
-                        maxLines: hasCover ? 2 : (tile ? 4 : 3),
+                        maxLines: hasCover ? 2 : (tile ? 5 : 3),
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: AppTheme.bodyFont,

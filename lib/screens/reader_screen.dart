@@ -5,6 +5,7 @@ import '../data/catalog_repository.dart';
 import '../data/entry_repository.dart';
 import '../data/media_repository.dart';
 import '../l10n/strings.dart';
+import '../widgets/sheet_scaffold.dart';
 import '../models/entry.dart';
 import '../models/media.dart';
 import '../services/context_service.dart';
@@ -18,6 +19,7 @@ import '../widgets/markdown_lite.dart';
 import '../widgets/media_grid.dart';
 import '../widgets/media_thumb.dart';
 import '../widgets/media_viewer.dart';
+import '../widgets/panel_route.dart';
 import '../widgets/pressable.dart';
 
 /// Читалка записи — разворот в книге.
@@ -134,12 +136,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     if (e == null) return;
     final scheme = Theme.of(context).colorScheme;
 
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: scheme.surfaceContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+    final action = await showWicklySheet<String>(
+      context,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -415,6 +413,13 @@ class _CoverBar extends StatelessWidget {
         pinned: true,
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
+        // Панель не «предыдущий экран», из неё выходят крестиком.
+        leading: inPanel(context)
+            ? IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => Navigator.of(context).maybePop(),
+              )
+            : null,
         title: Text(
           title == null || title.isEmpty ? tr('entry_untitled') : title,
           // Без обложки это единственное место, где виден заголовок целиком.
@@ -448,7 +453,11 @@ class _CoverBar extends StatelessWidget {
       expandedHeight: 260,
       backgroundColor: scheme.surface,
       foregroundColor: Colors.white,
-      leading: const _RoundIconButton(icon: Icons.arrow_back_rounded),
+      leading: _RoundIconButton(
+        icon: inPanel(context)
+            ? Icons.close_rounded
+            : Icons.arrow_back_rounded,
+      ),
       actions: [
         // Правка левее меню: за ней тянутся чаще, чем за тремя точками.
         _RoundIconButton(icon: Icons.edit_rounded, onTap: onEdit),

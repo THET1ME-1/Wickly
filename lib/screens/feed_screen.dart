@@ -102,7 +102,59 @@ class _FeedViewState extends State<FeedView> {
             ),
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
+          // Шапка широкого окна — панель инструментов, а не растянутый
+          // телефонный заголовок: имя раздела слева, поиск строкой справа,
+          // всё в одной строке и всегда на виду.
+          if (wide)
+            SliverAppBar(
+              pinned: true,
+              toolbarHeight: 88,
+              titleSpacing: WicklyDesign.deskPad,
+              automaticallyImplyLeading: false,
+              backgroundColor: scheme.surface,
+              surfaceTintColor: Colors.transparent,
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tr('tab_feed'),
+                          style: TextStyle(
+                            fontFamily: AppTheme.displayFont,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 26,
+                            letterSpacing: -0.5,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${data.period} · ${Dates.entryCount(data.items.length)}',
+                          style: TextStyle(
+                            fontFamily: AppTheme.bodyFont,
+                            fontSize: 13,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _SearchBox(onTap: widget.onSearch),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    icon: const Icon(Icons.more_vert_rounded),
+                    tooltip: tr('settings'),
+                    onPressed: widget.onMenu,
+                  ),
+                  const SizedBox(width: WicklyDesign.deskPad - 12),
+                ],
+              ),
+            )
+          else
+            SliverAppBar(
             pinned: true,
             expandedHeight: 104,
             backgroundColor: scheme.surface,
@@ -147,20 +199,22 @@ class _FeedViewState extends State<FeedView> {
             ),
           ),
 
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  WicklyDesign.screenPad, 0, WicklyDesign.screenPad, 4),
-              child: Text(
-                '${data.period} · ${Dates.entryCount(data.items.length)}',
-                style: TextStyle(
-                  fontFamily: AppTheme.bodyFont,
-                  fontSize: 13,
-                  color: scheme.onSurfaceVariant,
+          // На широком окне период уже стоит в шапке.
+          if (!wide)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    WicklyDesign.screenPad, 0, WicklyDesign.screenPad, 4),
+                child: Text(
+                  '${data.period} · ${Dates.entryCount(data.items.length)}',
+                  style: TextStyle(
+                    fontFamily: AppTheme.bodyFont,
+                    fontSize: 13,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
-          ),
 
           if (data.items.isEmpty)
             SliverFillRemaining(
@@ -169,13 +223,25 @@ class _FeedViewState extends State<FeedView> {
                 icon: Icons.local_fire_department_rounded,
                 title: tr('feed_empty_title'),
                 subtitle: tr('feed_empty_sub'),
+                // На широком окне кнопка записи живёт в рельсе сбоку — в
+                // пустой ленте её стоит подать ещё раз, прямо под подписью.
+                action: wide
+                    ? FilledButton.icon(
+                        onPressed: widget.onWrite,
+                        icon: const Icon(Icons.edit_rounded),
+                        label: Text(tr('write')),
+                      )
+                    : null,
               ),
             )
           else ...[
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 10,
-                    WicklyDesign.screenPad, 0),
+                padding: EdgeInsets.fromLTRB(
+                    wide ? WicklyDesign.deskPad : WicklyDesign.screenPad,
+                    10,
+                    wide ? WicklyDesign.deskPad : WicklyDesign.screenPad,
+                    0),
                 // Серия и воспоминание: на телефоне одна под другой, на
                 // широком окне рядом — иначе шапка съедает половину экрана
                 // раньше первой записи.
@@ -207,13 +273,15 @@ class _FeedViewState extends State<FeedView> {
             // поэтому дату несёт сама карточка.
             if (wide)
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 12,
-                    WicklyDesign.screenPad, 28),
+                padding: const EdgeInsets.fromLTRB(WicklyDesign.deskPad, 12,
+                    WicklyDesign.deskPad, 28),
                 sliver: SliverGrid.builder(
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: columns,
-                    crossAxisSpacing: WicklyDesign.gapCards,
-                    mainAxisSpacing: WicklyDesign.gapCards,
+                    // На мониторе шаг между карточками крупнее телефонного:
+                    // плитки должны читаться как отдельные, а не как полосы.
+                    crossAxisSpacing: WicklyDesign.gapDesk,
+                    mainAxisSpacing: WicklyDesign.gapDesk,
                     mainAxisExtent: WicklyDesign.feedTileHeight(context),
                   ),
                   itemCount: data.items.length,
@@ -302,6 +370,79 @@ class _DayGroup {
         .toList();
     if (moods.isEmpty) return null;
     return (moods.reduce((a, b) => a + b) / moods.length).round();
+  }
+}
+
+/// Строка поиска в шапке широкого окна.
+///
+/// Не поле ввода, а кнопка в его одежде: набор всё равно идёт на отдельном
+/// экране поиска с фильтрами, и подделывать здесь курсор — врать. Подсказка с
+/// сочетанием клавиш стоит там, где её ищут глазами на десктопе.
+class _SearchBox extends StatefulWidget {
+  final VoidCallback? onTap;
+  const _SearchBox({this.onTap});
+
+  @override
+  State<_SearchBox> createState() => _SearchBoxState();
+}
+
+class _SearchBoxState extends State<_SearchBox> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          width: 300,
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: _hover
+                ? scheme.surfaceContainerHighest
+                : scheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: _hover ? scheme.outline : scheme.outlineVariant,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.search_rounded,
+                  size: 18, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  tr('search_hint'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppTheme.bodyFont,
+                    fontSize: 13.5,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              Text(
+                'Ctrl F',
+                style: TextStyle(
+                  fontFamily: AppTheme.bodyFont,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.outline,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

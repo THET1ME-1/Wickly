@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/wickly_design.dart';
 import 'reveal.dart';
 
 /// Крупная выразительная «заглушка» для пустых/будущих разделов в духе
@@ -23,24 +24,33 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // На широком окне вокруг заглушки много воздуха, и телефонный знак
+    // в 140 точек посреди монитора выглядит потерянным, а не спокойным.
+    final wide = WicklyDesign.isWide(context);
+    final mark = wide ? 104.0 : 140.0;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: Column(
+        child: ConstrainedBox(
+          // Подпись в одну длинную строку на весь монитор не читается.
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Reveal(
               child: Container(
-                width: 140,
-                height: 140,
+                width: mark,
+                height: mark,
                 decoration: BoxDecoration(
                   color: scheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(44),
+                  borderRadius: BorderRadius.circular(mark * 0.31),
                 ),
-                child: Icon(icon, size: 68, color: scheme.onPrimaryContainer),
+                child: Icon(icon,
+                    size: mark * 0.49, color: scheme.onPrimaryContainer),
               ),
             ),
-            const SizedBox(height: 28),
+            SizedBox(height: wide ? 22 : 28),
             Reveal(
               delay: const Duration(milliseconds: 80),
               child: Text(
@@ -49,7 +59,7 @@ class EmptyState extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: AppTheme.displayFont,
                   fontWeight: FontWeight.w800,
-                  fontSize: 26,
+                  fontSize: wide ? 23 : 26,
                   letterSpacing: -0.5,
                   color: scheme.onSurface,
                 ),
@@ -74,6 +84,7 @@ class EmptyState extends StatelessWidget {
               Reveal(delay: const Duration(milliseconds: 200), child: action!),
             ],
           ],
+          ),
         ),
       ),
     );

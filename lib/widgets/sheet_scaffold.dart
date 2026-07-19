@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/wickly_design.dart';
+import 'panel_route.dart';
 
 /// Каркас нижнего листа по ДНК: хват, углы 28, фон `surfaceContainer`.
 ///
@@ -37,18 +39,23 @@ class SheetScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
+    // На широком окне лист открывается окном по центру, и хват для пальца
+    // там лишний: тянуть панель мышью некуда.
+    final sheet = !inPanel(context);
+
     final content = Column(
       mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
       children: [
-        const SizedBox(height: 10),
-        Container(
-          width: 40,
-          height: 4,
-          decoration: BoxDecoration(
-            color: scheme.outlineVariant,
-            borderRadius: BorderRadius.circular(2),
+        SizedBox(height: sheet ? 10 : 14),
+        if (sheet)
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: scheme.outlineVariant,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-        ),
         if (title != null) ...[
           const SizedBox(height: 12),
           Padding(
@@ -89,11 +96,23 @@ class SheetScaffold extends StatelessWidget {
 }
 
 /// Открывает лист с оформлением ДНК: углы 28, фон `surfaceContainer`.
+///
+/// На широком окне вместо нижнего листа — панель по центру: шторка, выезжающая
+/// с нижнего края монитора, читается как чужой телефонный жест, да и тянуться
+/// туда курсором через весь экран незачем.
 Future<T?> showWicklySheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
   bool expand = false,
 }) {
+  if (WicklyDesign.isWide(context)) {
+    return Navigator.of(context).push(PanelRoute<T>(
+      builder: builder,
+      maxWidth: 560,
+      fitContent: !expand,
+    ));
+  }
+
   final scheme = Theme.of(context).colorScheme;
   return showModalBottomSheet<T>(
     context: context,

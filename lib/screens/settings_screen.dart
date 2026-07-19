@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/app_prefs.dart';
 import '../l10n/locale_controller.dart';
 import '../l10n/strings.dart';
+import '../widgets/sheet_scaffold.dart';
 import '../theme/wickly_design.dart';
 import '../theme/app_theme.dart';
 import '../theme/feedback.dart';
@@ -86,12 +87,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _pickLockTimeout() async {
     final scheme = Theme.of(context).colorScheme;
-    final picked = await showModalBottomSheet<int>(
-      context: context,
-      backgroundColor: scheme.surfaceContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+    final picked = await showWicklySheet<int>(
+      context,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -182,12 +179,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _pickLanguage() async {
     final scheme = Theme.of(context).colorScheme;
     final current = LocaleController.instance.code;
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: scheme.surfaceContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+    final picked = await showWicklySheet<String>(
+      context,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

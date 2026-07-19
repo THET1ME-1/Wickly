@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -24,9 +25,11 @@ import '../services/update_service.dart';
 import '../services/widget_service.dart';
 import '../widgets/update_sheet.dart';
 import '../utils/dates.dart';
+import '../widgets/brand_mark.dart';
 import '../widgets/day_sheet.dart';
 import '../widgets/entry_card.dart';
 import '../widgets/journal_gate.dart';
+import '../widgets/panel_route.dart';
 import 'calendar_screen.dart';
 import 'catalog_manager_screen.dart';
 import 'editor_screen.dart';
@@ -91,7 +94,8 @@ class _ShellScreenState extends State<ShellScreen> {
   Future<void> _checkForUpdate() async {
     final prefs = AppPrefs.instance;
     final now = DateTime.now().millisecondsSinceEpoch;
-    if (now - prefs.updateCheckedAt < const Duration(hours: 24).inMilliseconds) {
+    if (now - prefs.updateCheckedAt <
+        const Duration(hours: 24).inMilliseconds) {
       return;
     }
 
@@ -134,7 +138,9 @@ class _ShellScreenState extends State<ShellScreen> {
       if (mounted) {
         _write(
           promptKey: Prompts.keyOfDay(
-              AppPrefs.instance.promptPack, DateTime.now()),
+            AppPrefs.instance.promptPack,
+            DateTime.now(),
+          ),
         );
       }
     });
@@ -158,14 +164,17 @@ class _ShellScreenState extends State<ShellScreen> {
 
   Future<void> _write({String? promptKey, int? mood, DateTime? date}) async {
     final journalId = AppPrefs.instance.lastJournalId ?? 'default';
-    await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => EditorScreen(
-        journalId: journalId,
-        promptKey: promptKey,
-        initialMood: mood,
-        initialDate: date,
+    await Navigator.of(context).push(
+      pageOrPanel(
+        context,
+        (_) => EditorScreen(
+          journalId: journalId,
+          promptKey: promptKey,
+          initialMood: mood,
+          initialDate: date,
+        ),
       ),
-    ));
+    );
     if (mounted) setState(() {});
   }
 
@@ -175,21 +184,26 @@ class _ShellScreenState extends State<ShellScreen> {
     // не в ленте, закрывает заодно лист дня и воспоминания: они открывают
     // записи этим же путём.
     if (JournalLock.isHidden(entry.journalId)) {
-      final journal =
-          await JournalRepository.instance.getById(entry.journalId);
+      final journal = await JournalRepository.instance.getById(entry.journalId);
       if (!mounted || journal == null) return;
       if (!await openJournalGate(context, journal)) return;
       if (!mounted) return;
     }
 
-    await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ReaderScreen(
-        entryId: entry.id,
-        onEdit: (e) => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => EditorScreen(entry: e, journalId: e.journalId),
-        )),
+    await Navigator.of(context).push(
+      pageOrPanel(
+        context,
+        (_) => ReaderScreen(
+          entryId: entry.id,
+          onEdit: (e) => Navigator.of(context).push(
+            pageOrPanel(
+              context,
+              (_) => EditorScreen(entry: e, journalId: e.journalId),
+            ),
+          ),
+        ),
       ),
-    ));
+    );
     if (mounted) setState(() {});
   }
 
@@ -198,13 +212,16 @@ class _ShellScreenState extends State<ShellScreen> {
     final years = entries.map((e) => e.entryDate.year).toSet().toList()
       ..sort((a, b) => b.compareTo(a));
     if (!mounted) return;
-    await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => SearchView(
-        years: years.take(4).toList(),
-        onSearch: (q, f) => SearchService.search(entries, q, filters: f),
-        onOpen: _openEntry,
+    await Navigator.of(context).push(
+      pageOrPanel(
+        context,
+        (_) => SearchView(
+          years: years.take(4).toList(),
+          onSearch: (q, f) => SearchService.search(entries, q, filters: f),
+          onOpen: _openEntry,
+        ),
       ),
-    ));
+    );
   }
 
   Future<void> _openMemories() async {
@@ -212,103 +229,98 @@ class _ShellScreenState extends State<ShellScreen> {
     final memories = await EntryRepository.instance.onThisDay(now);
     final items = await FeedService.decorate(memories);
     if (!mounted) return;
-    await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => MemoriesView(
-        day: now,
-        memories: items,
-        onOpen: _openEntry,
+    await Navigator.of(context).push(
+      pageOrPanel(
+        context,
+        (_) => MemoriesView(day: now, memories: items, onOpen: _openEntry),
       ),
-    ));
+    );
   }
 
   Future<void> _openScreen(Widget screen) async {
-    await Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => screen));
+    await Navigator.of(context).push(pageOrPanel(context, (_) => screen));
     if (mounted) setState(() {});
   }
 
   /// Пункты вкладки «Ещё».
   List<MoreItem> get _moreItems => [
-        MoreItem(
-          icon: Icons.menu_book_rounded,
-          title: tr('journals'),
-          subtitle: tr('journals_and_covers'),
-          onTap: () => _openScreen(const JournalsContainer()),
-        ),
-        MoreItem(
-          icon: Icons.insights_rounded,
-          title: tr('set_mood'),
-          subtitle: tr('mood_x_weather'),
-          onTap: () => _openScreen(const MoodStatsContainer()),
-        ),
-        MoreItem(
-          icon: Icons.water_drop_rounded,
-          title: tr('trackers'),
-          subtitle: tr('habits'),
-          onTap: () => _openScreen(const TrackersContainer()),
-        ),
-        MoreItem(
-          icon: Icons.history_rounded,
-          title: tr('on_this_day'),
-          subtitle: tr('memories_morning'),
-          onTap: _openMemories,
-        ),
-        MoreItem(
-          icon: Icons.mood_rounded,
-          title: tr('emotions_and_activities'),
-          subtitle: tr('mood_behind'),
-          onTap: () => _openScreen(const CatalogManagerScreen()),
-        ),
-        MoreItem(
-          icon: Icons.notifications_rounded,
-          title: tr('reminders'),
-          subtitle: tr('prompt_of_day'),
-          onTap: () => _openScreen(
-              RemindersScreen(onAnswer: (key) => _write(promptKey: key))),
-        ),
-        MoreItem(
-          icon: Icons.search_rounded,
-          title: tr('search'),
-          subtitle: tr('search_start_sub'),
-          onTap: _openSearch,
-        ),
-        MoreItem(
-          icon: Icons.settings_rounded,
-          title: tr('settings'),
-          subtitle: tr('appearance_sub'),
-          onTap: () => _openScreen(const SettingsScreen()),
-        ),
-      ];
+    MoreItem(
+      icon: Icons.menu_book_rounded,
+      title: tr('journals'),
+      subtitle: tr('journals_and_covers'),
+      onTap: () => _openScreen(const JournalsContainer()),
+    ),
+    MoreItem(
+      icon: Icons.insights_rounded,
+      title: tr('set_mood'),
+      subtitle: tr('mood_x_weather'),
+      onTap: () => _openScreen(const MoodStatsContainer()),
+    ),
+    MoreItem(
+      icon: Icons.water_drop_rounded,
+      title: tr('trackers'),
+      subtitle: tr('habits'),
+      onTap: () => _openScreen(const TrackersContainer()),
+    ),
+    MoreItem(
+      icon: Icons.history_rounded,
+      title: tr('on_this_day'),
+      subtitle: tr('memories_morning'),
+      onTap: _openMemories,
+    ),
+    MoreItem(
+      icon: Icons.mood_rounded,
+      title: tr('emotions_and_activities'),
+      subtitle: tr('mood_behind'),
+      onTap: () => _openScreen(const CatalogManagerScreen()),
+    ),
+    MoreItem(
+      icon: Icons.notifications_rounded,
+      title: tr('reminders'),
+      subtitle: tr('prompt_of_day'),
+      onTap: () => _openScreen(
+        RemindersScreen(onAnswer: (key) => _write(promptKey: key)),
+      ),
+    ),
+    MoreItem(
+      icon: Icons.search_rounded,
+      title: tr('search'),
+      subtitle: tr('search_start_sub'),
+      onTap: _openSearch,
+    ),
+    MoreItem(
+      icon: Icons.settings_rounded,
+      title: tr('settings'),
+      subtitle: tr('appearance_sub'),
+      onTap: () => _openScreen(const SettingsScreen()),
+    ),
+  ];
 
   /// Пункты навигации — одни и те же для нижней панели телефона и бокового
   /// рельса десктопа.
   List<({IconData icon, IconData active, String label})> get _tabs => [
-        (
-          icon: Icons.view_agenda_outlined,
-          active: Icons.view_agenda_rounded,
-          label: tr('tab_feed')
-        ),
-        (
-          icon: Icons.calendar_month_outlined,
-          active: Icons.calendar_month_rounded,
-          label: tr('tab_calendar')
-        ),
-        (
-          icon: Icons.map_outlined,
-          active: Icons.map_rounded,
-          label: tr('tab_map')
-        ),
-        (
-          icon: Icons.grid_view_outlined,
-          active: Icons.grid_view_rounded,
-          label: tr('tab_media')
-        ),
-        (
-          icon: Icons.more_horiz_rounded,
-          active: Icons.more_horiz_rounded,
-          label: tr('tab_more')
-        ),
-      ];
+    (
+      icon: Icons.view_agenda_outlined,
+      active: Icons.view_agenda_rounded,
+      label: tr('tab_feed'),
+    ),
+    (
+      icon: Icons.calendar_month_outlined,
+      active: Icons.calendar_month_rounded,
+      label: tr('tab_calendar'),
+    ),
+    (icon: Icons.map_outlined, active: Icons.map_rounded, label: tr('tab_map')),
+    (
+      icon: Icons.grid_view_outlined,
+      active: Icons.grid_view_rounded,
+      label: tr('tab_media'),
+    ),
+    (
+      icon: Icons.more_horiz_rounded,
+      active: Icons.more_horiz_rounded,
+      label: tr('tab_more'),
+    ),
+  ];
 
   void _selectTab(int i) {
     Haptics.tap();
@@ -331,40 +343,118 @@ class _ShellScreenState extends State<ShellScreen> {
       groupAlignment: -0.9,
       // Подписи под значками нужны только сложенному рельсу: у развёрнутого
       // они и так стоят рядом (и Flutter запрещает сочетать их с extended).
-      labelType:
-          extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+      labelType: extended
+          ? NavigationRailLabelType.none
+          : NavigationRailLabelType.all,
       selectedIndex: _tab.index,
       onDestinationSelected: _selectTab,
+      // Ширину рельс шапке не задаёт (колонка внутри него ужимается по
+      // содержимому), поэтому её задаём сами — иначе `Expanded` внутри падает
+      // на бесконечных ограничениях.
       leading: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Column(
-          children: [
-            IconButton(
-              icon: Icon(
-                  extended ? Icons.menu_open_rounded : Icons.menu_rounded),
-              tooltip: tr(extended ? 'rail_collapse' : 'rail_expand'),
-              onPressed: () async {
-                Haptics.tap();
-                await AppPrefs.instance.setRailExtended(!extended);
-                if (mounted) setState(() {});
-              },
-            ),
-            const SizedBox(height: 10),
-            if (extended)
-              FloatingActionButton.extended(
-                heroTag: 'rail-write',
-                onPressed: _write,
-                icon: const Icon(Icons.edit_rounded),
-                label: Text(tr('write')),
-              )
-            else
-              FloatingActionButton(
-                heroTag: 'rail-write',
-                onPressed: _write,
-                tooltip: tr('write'),
-                child: const Icon(Icons.edit_rounded),
+        padding: const EdgeInsets.only(bottom: 10),
+        child: SizedBox(
+          width: extended ? 196 : 56,
+          child: Column(
+            children: [
+              // Имя приложения там, где его ждут на десктопе, — в углу
+              // собственной панели, а не в заголовке окна системы.
+              SizedBox(
+                height: 40,
+                child: Row(
+                  mainAxisAlignment: extended
+                      ? MainAxisAlignment.spaceBetween
+                      : MainAxisAlignment.center,
+                  children: [
+                    if (extended) ...[
+                      const SizedBox(width: 4),
+                      const BrandMark(size: 26),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Wickly',
+                          style: TextStyle(
+                            fontFamily: AppTheme.displayFont,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            letterSpacing: -0.3,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                      ),
+                    ],
+                    IconButton(
+                      icon: Icon(
+                        extended ? Icons.menu_open_rounded : Icons.menu_rounded,
+                        size: 20,
+                      ),
+                      tooltip: tr(extended ? 'rail_collapse' : 'rail_expand'),
+                      onPressed: _toggleRail,
+                    ),
+                  ],
+                ),
               ),
-          ],
+              const SizedBox(height: 12),
+              if (extended)
+                SizedBox(
+                  width: double.infinity,
+                  child: FloatingActionButton.extended(
+                    heroTag: 'rail-write',
+                    onPressed: _write,
+                    icon: const Icon(Icons.edit_rounded),
+                    label: Text(tr('write')),
+                  ),
+                )
+              else
+                FloatingActionButton(
+                  heroTag: 'rail-write',
+                  onPressed: _write,
+                  tooltip: '${tr('write')}  ·  Ctrl N',
+                  child: const Icon(Icons.edit_rounded),
+                ),
+            ],
+          ),
+        ),
+      ),
+      // Настройки внизу, отдельно от разделов дневника: так их держат все
+      // десктопные приложения, и они перестают быть шестым равноправным
+      // пунктом среди ленты и карты.
+      // Настройки прижаты к низу: `Expanded` забирает всё, что осталось от
+      // разделов (их группа выше ужимается по содержимому), и `Align` кладёт
+      // кнопку на самый низ рельса.
+      trailing: Expanded(
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: SizedBox(
+              width: extended ? 196 : 56,
+              child: extended
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: TextButton.icon(
+                        onPressed: () => _openScreen(const SettingsScreen()),
+                        icon: const Icon(Icons.settings_rounded, size: 20),
+                        label: SizedBox(
+                          width: 120,
+                          child: Text(tr('settings')),
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: scheme.onSurfaceVariant,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.settings_rounded),
+                      tooltip: tr('settings'),
+                      onPressed: () => _openScreen(const SettingsScreen()),
+                    ),
+            ),
+          ),
         ),
       ),
       destinations: [
@@ -379,10 +469,42 @@ class _ShellScreenState extends State<ShellScreen> {
     );
   }
 
+  Future<void> _toggleRail() async {
+    Haptics.tap();
+    await AppPrefs.instance.setRailExtended(!AppPrefs.instance.railExtended);
+    if (mounted) setState(() {});
+  }
+
+  /// Сочетания клавиш. На десктопе без них приложение остаётся телефонным:
+  /// за каждой мелочью тянешься мышью.
+  Map<ShortcutActivator, VoidCallback> get _shortcuts => {
+    const SingleActivator(LogicalKeyboardKey.keyN, control: true): () =>
+        _write(),
+    const SingleActivator(LogicalKeyboardKey.keyF, control: true): () =>
+        _openSearch(),
+    const SingleActivator(LogicalKeyboardKey.keyB, control: true): () =>
+        _toggleRail(),
+    for (final (i, key) in const [
+      LogicalKeyboardKey.digit1,
+      LogicalKeyboardKey.digit2,
+      LogicalKeyboardKey.digit3,
+      LogicalKeyboardKey.digit4,
+      LogicalKeyboardKey.digit5,
+    ].indexed)
+      SingleActivator(key, control: true): () => _selectTab(i),
+  };
+
   @override
   Widget build(BuildContext context) {
     final wide = WicklyDesign.isWide(context);
 
+    return CallbackShortcuts(
+      bindings: _shortcuts,
+      child: Focus(autofocus: true, child: _scaffold(context, wide)),
+    );
+  }
+
+  Widget _scaffold(BuildContext context, bool wide) {
     return Scaffold(
       body: StreamBuilder<List<Entry>>(
         stream: EntryRepository.instance.watchEntries(),
@@ -407,19 +529,19 @@ class _ShellScreenState extends State<ShellScreen> {
               ),
             ),
             child: _Body(
-            key: ValueKey(_tab),
-            tab: _tab,
-            entries: entries,
-            month: _month,
-            moreItems: _moreItems,
-            onChangeMonth: (m) => setState(() => _month = m),
-            onWrite: _write,
-            onWriteOn: (day) => _write(date: day),
-            onOpenEntry: _openEntry,
-            onSearch: _openSearch,
-            onMemories: _openMemories,
-            onStats: () => _openScreen(const MoodStatsContainer()),
-            onSettings: () => _openScreen(const SettingsScreen()),
+              key: ValueKey(_tab),
+              tab: _tab,
+              entries: entries,
+              month: _month,
+              moreItems: _moreItems,
+              onChangeMonth: (m) => setState(() => _month = m),
+              onWrite: _write,
+              onWriteOn: (day) => _write(date: day),
+              onOpenEntry: _openEntry,
+              onSearch: _openSearch,
+              onMemories: _openMemories,
+              onStats: () => _openScreen(const MoodStatsContainer()),
+              onSettings: () => _openScreen(const SettingsScreen()),
             ),
           );
 
@@ -512,18 +634,22 @@ class _Body extends StatelessWidget {
         return StreamBuilder<List<Entry>>(
           stream: EntryRepository.instance.watchLockedEntries(),
           builder: (context, lockedSnapshot) {
-            final feed =
-                FeedService.withLocked(entries, lockedSnapshot.data ?? const []);
+            final feed = FeedService.withLocked(
+              entries,
+              lockedSnapshot.data ?? const [],
+            );
             return FutureBuilder<List<EntryCardItem>>(
               future: FeedService.decorate(feed),
               builder: (context, snapshot) {
                 final items = snapshot.data ?? const <EntryCardItem>[];
                 final memories = items
-                    .where((i) =>
-                        !i.locked &&
-                        i.entry.entryDate.month == now.month &&
-                        i.entry.entryDate.day == now.day &&
-                        i.entry.entryDate.year != now.year)
+                    .where(
+                      (i) =>
+                          !i.locked &&
+                          i.entry.entryDate.month == now.month &&
+                          i.entry.entryDate.day == now.day &&
+                          i.entry.entryDate.year != now.year,
+                    )
                     .toList();
                 return FeedView(
                   data: FeedData(
@@ -548,9 +674,11 @@ class _Body extends StatelessWidget {
 
       case ShellTab.calendar:
         final ofMonth = entries
-            .where((e) =>
-                e.entryDate.year == month.year &&
-                e.entryDate.month == month.month)
+            .where(
+              (e) =>
+                  e.entryDate.year == month.year &&
+                  e.entryDate.month == month.month,
+            )
             .toList();
         // Охват считаем по прошедшим дням месяца: «17 из 31» в середине июля
         // выглядит как провал, хотя половина месяца ещё не наступила.
@@ -561,13 +689,15 @@ class _Body extends StatelessWidget {
             moodByDay: StatsService.moodByDay(entries),
             writtenDays: StatsService.writtenDays(entries),
             summary: StatsService.summary(
-                entries, DateTime(month.year, month.month, 1), to),
+              entries,
+              DateTime(month.year, month.month, 1),
+              to,
+            ),
             streak: StatsService.streak(entries, now: now),
             month: month,
             now: now,
             entriesThisMonth: ofMonth.length,
-            wordsThisMonth:
-                ofMonth.fold<int>(0, (sum, e) => sum + e.wordCount),
+            wordsThisMonth: ofMonth.fold<int>(0, (sum, e) => sum + e.wordCount),
           ),
           onChangeMonth: onChangeMonth,
           onWrite: onWrite,
@@ -575,10 +705,12 @@ class _Body extends StatelessWidget {
           // остальные, а с пустого дня нельзя было начать запись.
           onOpenDay: (day) async {
             final ofDay = entries
-                .where((e) =>
-                    e.entryDate.year == day.year &&
-                    e.entryDate.month == day.month &&
-                    e.entryDate.day == day.day)
+                .where(
+                  (e) =>
+                      e.entryDate.year == day.year &&
+                      e.entryDate.month == day.month &&
+                      e.entryDate.day == day.day,
+                )
                 .toList();
             final items = await FeedService.decorate(ofDay);
             if (!context.mounted) return;
@@ -619,8 +751,9 @@ class _Body extends StatelessWidget {
               media: media,
               onSearch: onSearch,
               onOpen: (m) {
-                final entry =
-                    entries.where((e) => e.id == m.entryId).firstOrNull;
+                final entry = entries
+                    .where((e) => e.id == m.entryId)
+                    .firstOrNull;
                 if (entry != null) onOpenEntry(entry);
               },
             );

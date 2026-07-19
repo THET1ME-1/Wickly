@@ -9,6 +9,7 @@ import '../data/entry_repository.dart';
 import '../data/journal_repository.dart';
 import '../data/media_repository.dart';
 import '../l10n/strings.dart';
+import '../widgets/sheet_scaffold.dart';
 import '../models/entry.dart';
 import '../models/media.dart';
 import '../services/context_service.dart';
@@ -134,12 +135,8 @@ class _EditorScreenState extends State<EditorScreen> {
   Future<void> _pickJournal() async {
     if (_journals.length < 2) return;
     final scheme = Theme.of(context).colorScheme;
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: scheme.surfaceContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+    final picked = await showWicklySheet<String>(
+      context,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

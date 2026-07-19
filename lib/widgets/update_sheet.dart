@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../data/app_prefs.dart';
 import '../l10n/strings.dart';
+import 'sheet_scaffold.dart';
 import '../services/update_service.dart';
 import '../theme/app_theme.dart';
 
@@ -27,13 +28,8 @@ class UpdateSheet extends StatefulWidget {
     UpdateInfo info,
     String currentVersion,
   ) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+    return showWicklySheet<void>(
+      context,
       builder: (_) => UpdateSheet(info: info, currentVersion: currentVersion),
     );
   }
