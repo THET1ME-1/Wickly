@@ -18,6 +18,7 @@
 #   tool/linux.sh            — собрать debug и запустить
 #   tool/linux.sh release    — собрать release и запустить
 #   tool/linux.sh build      — только собрать (debug)
+#   tool/linux.sh install    — собрать release и поставить в ~/.local
 #   XDG_DATA_HOME=~/.wickly-b tool/linux.sh run — второй экземпляр со своими
 #                              данными: так проверяется синхронизация на одной
 #                              машине (у каждого своя база и свои вложения).
@@ -48,7 +49,7 @@ if command -v gcc >/dev/null && command -v g++ >/dev/null; then
 fi
 
 BUILD_MODE=debug
-[ "$MODE" = "release" ] && BUILD_MODE=release
+case "$MODE" in release|install) BUILD_MODE=release ;; esac
 
 BUNDLE="build/linux/x64/$BUILD_MODE/bundle/wickly"
 
@@ -61,6 +62,15 @@ if [ "$MODE" != "run" ]; then
 fi
 
 [ "$MODE" = "build" ] && exit 0
+
+if [ "$MODE" = "install" ]; then
+  BUNDLE="build/linux/x64/release/bundle"
+  cp linux/packaging/install.sh "$BUNDLE/install.sh"
+  chmod +x "$BUNDLE/install.sh"
+  cp android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png "$BUNDLE/wickly.png"
+  (cd "$BUNDLE" && ./install.sh)
+  exit 0
+fi
 
 if [ ! -x "$BUNDLE" ]; then
   echo "нет сборки: $BUNDLE" >&2
