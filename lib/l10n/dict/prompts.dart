@@ -698,6 +698,22 @@ const Map<String, Map<String, String>> promptStrings = {
     'fr': 'Saisir à la main', 'es': 'Escribir a mano',
     'it': 'Inserisci a mano', 'pt': 'Digitar manualmente',
   },
+  'sync_no_camera': {
+    'ru': 'На этом устройстве нет камеры для QR — нужны адрес и фраза с того, '
+        'которое показывает код',
+    'en': 'No camera for QR on this device — take the address and phrase from '
+        'the one showing the code',
+    'de': 'Kein Kamera-QR auf diesem Gerät — Adresse und Phrase vom Gerät mit '
+        'dem Code nehmen',
+    'fr': 'Pas de caméra pour le QR ici — prenez l’adresse et la phrase sur '
+        'l’appareil qui affiche le code',
+    'es': 'Este dispositivo no tiene cámara para el QR: hace falta la '
+        'dirección y la frase del que muestra el código',
+    'it': 'Qui non c’è una fotocamera per il QR: servono indirizzo e frase dal '
+        'dispositivo che mostra il codice',
+    'pt': 'Sem câmera para o QR neste aparelho — pegue o endereço e a frase no '
+        'que mostra o código',
+  },
   'sync_address': {
     'ru': 'Адрес устройства', 'en': 'Device address', 'de': 'Geräteadresse',
     'fr': 'Adresse de l’appareil', 'es': 'Dirección del dispositivo',

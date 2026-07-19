@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -5,6 +7,7 @@ import '../l10n/strings.dart';
 import '../services/p2p_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/wickly_design.dart';
+import '../widgets/empty_state.dart';
 
 /// Сканер QR для сопряжения устройств.
 ///
@@ -19,13 +22,30 @@ class ScanScreen extends StatefulWidget {
 }
 
 class _ScanScreenState extends State<ScanScreen> {
-  final _controller = MobileScannerController();
+  /// Камера есть только на телефоне: на десктопе у `mobile_scanner` нет
+  /// реализации, и сканер там не с чем открывать. Без этой развилки
+  /// сопряжение на Linux упиралось в пустой чёрный кадр.
+  static bool get _hasCamera => Platform.isAndroid || Platform.isIOS;
+
+  late final MobileScannerController? _controller =
+      _hasCamera ? MobileScannerController() : null;
   bool _handled = false;
   String? _status;
 
   @override
+  void initState() {
+    super.initState();
+    // Без камеры сканировать нечего — сразу спрашиваем адрес и фразу.
+    if (!_hasCamera) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _manual();
+      });
+    }
+  }
+
+  @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -37,7 +57,7 @@ class _ScanScreenState extends State<ScanScreen> {
     if (invite == null) return;
 
     _handled = true;
-    await _controller.stop();
+    await _controller?.stop();
     await _connect(invite);
   }
 
@@ -55,7 +75,7 @@ class _ScanScreenState extends State<ScanScreen> {
           _status = tr('sync_failed');
           _handled = false;
         });
-        await _controller.start();
+        await _controller?.start();
       }
     }
   }
@@ -126,9 +146,21 @@ class _ScanScreenState extends State<ScanScreen> {
       ),
       body: Stack(
         children: [
-          MobileScanner(controller: _controller, onDetect: _onDetect),
+          if (_controller case final controller?)
+            MobileScanner(controller: controller, onDetect: _onDetect)
+          else
+            EmptyState(
+              icon: Icons.keyboard_rounded,
+              title: tr('sync_manual'),
+              subtitle: tr('sync_no_camera'),
+              action: FilledButton(
+                onPressed: _manual,
+                child: Text(tr('sync_manual')),
+              ),
+            ),
           // Рамка прицела: без неё непонятно, куда наводить.
-          Center(
+          if (_controller != null)
+            Center(
             child: Container(
               width: 230,
               height: 230,

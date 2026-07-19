@@ -36,13 +36,16 @@ class NotificationsService {
     if (_ready) return;
     tz.initializeTimeZones();
 
-    const settings = InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      iOS: DarwinInitializationSettings(
+    final settings = InitializationSettings(
+      android: const AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: const DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
         requestSoundPermission: false,
       ),
+      // Без этой ветки плагин на Linux бросает прямо на `initialize`, и на
+      // десктопе падало ВСЁ планирование напоминаний.
+      linux: LinuxInitializationSettings(defaultActionName: tr('write')),
     );
     await _plugin.initialize(
       settings: settings,
@@ -75,7 +78,11 @@ class NotificationsService {
     if (ios != null) {
       return await ios.requestPermissions(alert: true, sound: true) ?? false;
     }
-    return false;
+    // На Linux разрешения не спрашивают: уведомления шлёт шина, и отказать
+    // тут некому. Иначе тумблер напоминаний на десктопе не включался бы.
+    final linux = _plugin.resolvePlatformSpecificImplementation<
+        LinuxFlutterLocalNotificationsPlugin>();
+    return linux != null;
   }
 
   /// Перепланирует всё по текущим настройкам. Вызывается после любой правки
