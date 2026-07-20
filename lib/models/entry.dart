@@ -61,7 +61,15 @@ class Journal {
     required this.createdAt,
     this.passHash,
     this.passSalt,
+    this.readable = true,
   });
+
+  /// Расшифровался ли payload дневника. Живёт только в памяти, в базу и в
+  /// синхронизацию не уходит.
+  ///
+  /// В payload лежат имя и пароль замка: перезапись нечитаемого дневника —
+  /// хоть сменой цвета — стёрла бы и то, и другое.
+  final bool readable;
 
   /// Замок стоит и есть чем открывать. Дневник с флагом, но без пароля остался
   /// от версий, где замок спрашивал код приложения, — такой попросит придумать
@@ -113,8 +121,9 @@ class Journal {
 
   factory Journal.fromStorage(
     Map<String, Object?> row,
-    Map<String, Object?> payload,
-  ) =>
+    Map<String, Object?> payload, {
+    bool readable = true,
+  }) =>
       Journal(
         id: row['id'] as String,
         // Приоритет у расшифрованного имени; строки из v1 читаются из `name`.
@@ -128,6 +137,7 @@ class Journal {
             DateTime.fromMillisecondsSinceEpoch((row['created_at'] as int?) ?? 0),
         passHash: payload['pass'] as String?,
         passSalt: payload['salt'] as String?,
+        readable: readable,
       );
 
   Journal copyWith({
@@ -154,6 +164,7 @@ class Journal {
         createdAt: createdAt,
         passHash: clearPass ? null : (passHash ?? this.passHash),
         passSalt: clearPass ? null : (passSalt ?? this.passSalt),
+        readable: readable,
       );
 }
 
@@ -244,7 +255,16 @@ class Entry {
     this.pinned = false,
     this.hidden = false,
     this.draft = false,
+    this.readable = true,
   });
+
+  /// Расшифровался ли payload записи. Живёт только в памяти, в базу и в
+  /// синхронизацию не уходит.
+  ///
+  /// Запись с чужим ключом (приехала с устройства, куда не переносили бэкап)
+  /// выглядит пустой. Сохранять такую нельзя: перезапись `enc` своим ключом
+  /// уничтожит настоящий текст, поэтому `EntryRepository.update` её отклоняет.
+  final bool readable;
 
   /// Новая запись с сгенерированным [id] и текущим временем.
   factory Entry.create({
@@ -310,8 +330,9 @@ class Entry {
   /// Собирает запись из плейнтекст-строки и расшифрованного payload.
   factory Entry.fromStorage(
     Map<String, Object?> row,
-    Map<String, Object?> payload,
-  ) =>
+    Map<String, Object?> payload, {
+    bool readable = true,
+  }) =>
       Entry(
         id: row['id'] as String,
         journalId: row['journal_id'] as String,
@@ -343,6 +364,7 @@ class Entry {
           for (final v in (payload['blockTimes'] as List?) ?? const [])
             if (v is num) v.toInt(),
         ],
+        readable: readable,
       );
 
   /// `null` в аргументе означает «не трогать»; чтобы стереть значение,
@@ -401,5 +423,7 @@ class Entry {
         pinned: pinned ?? this.pinned,
         hidden: hidden ?? this.hidden,
         draft: draft ?? this.draft,
+        // Правка нечитаемой записи не делает её читаемой.
+        readable: readable,
       );
 }

@@ -445,7 +445,9 @@ class _EditorScreenState extends State<EditorScreen> {
 
   Future<void> _close() async {
     _autosave?.cancel();
-    if (_isEmpty) {
+    // Нечитаемая запись (чужой ключ) выглядит пустой, но пустой не является:
+    // удаление разъехалось бы тумбстоуном по всем устройствам и убило оригинал.
+    if (_isEmpty && _entry.readable) {
       if (widget.entry != null) await EntryRepository.instance.delete(_entry.id);
       if (mounted) Navigator.of(context).pop();
       return;

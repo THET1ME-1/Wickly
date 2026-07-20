@@ -14,7 +14,10 @@ class EncCache {
 
   static const _empty = <String, Object?>{};
 
-  static Future<Map<String, Object?>> decode(String? enc) async {
+  /// `null` — строку не удалось расшифровать (чужой ключ или порча). Это не
+  /// то же самое, что пустая запись: вызывающий обязан различать, иначе
+  /// пустота уедет в сохранение и затрёт настоящий текст.
+  static Future<Map<String, Object?>?> decode(String? enc) async {
     if (enc == null || enc.isEmpty) return _empty;
     final hit = _map[enc];
     if (hit != null) return hit;
@@ -22,8 +25,9 @@ class EncCache {
     try {
       payload = await Crypto.instance.decryptJson(enc);
     } catch (_) {
-      // Чужой ключ или битая строка — не роняем экран, показываем пустое.
-      return _empty;
+      // Чужой ключ или битая строка — экран не роняем, но и пустоту не выдаём
+      // за содержимое.
+      return null;
     }
     if (_map.length >= _limit) {
       // Простое усечение: кэш — ускорение, а не источник истины.

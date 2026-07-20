@@ -38,7 +38,7 @@ class CatalogRepository {
   }
 
   Future<Emotion> _decodeEmotion(Map<String, Object?> row) async =>
-      Emotion.fromStorage(row, await EncCache.decode(row['enc'] as String?));
+      _decodeRow(row, Emotion.fromStorage);
 
   Future<void> insertEmotion(Emotion e) async {
     await _db.execute(
@@ -56,7 +56,20 @@ class CatalogRepository {
     );
   }
 
+  /// Расшифровывает строку справочника, отмечая, удалась ли расшифровка:
+  /// нечитаемую запись нельзя сохранять — перезапись стёрла бы название.
+  Future<T> _decodeRow<T>(
+    Map<String, Object?> row,
+    T Function(Map<String, Object?>, Map<String, Object?>, {bool readable})
+        build,
+  ) async {
+    final payload = await EncCache.decode(row['enc'] as String?);
+    return build(row, payload ?? const {}, readable: payload != null);
+  }
+
   Future<void> updateEmotion(Emotion e) async {
+    // Нечитаемый payload (чужой ключ) затёр бы название эмоции.
+    if (!e.readable) return;
     await _db.execute(
       'UPDATE emotions SET kind = ?1, color = ?2, icon = ?3, sort = ?4, '
       'enc = ?5 WHERE id = ?6',
@@ -102,7 +115,7 @@ class CatalogRepository {
   }
 
   Future<Activity> _decodeActivity(Map<String, Object?> row) async =>
-      Activity.fromStorage(row, await EncCache.decode(row['enc'] as String?));
+      _decodeRow(row, Activity.fromStorage);
 
   Future<void> insertActivity(Activity a) async {
     await _db.execute(
@@ -121,6 +134,8 @@ class CatalogRepository {
   }
 
   Future<void> updateActivity(Activity a) async {
+    // Нечитаемый payload (чужой ключ) затёр бы название действия.
+    if (!a.readable) return;
     await _db.execute(
       'UPDATE activities SET category = ?1, color = ?2, icon = ?3, sort = ?4, '
       'enc = ?5 WHERE id = ?6',
@@ -156,7 +171,7 @@ class CatalogRepository {
         'SELECT id, created_at, enc FROM tags WHERE is_deleted = 0 '
         'ORDER BY created_at DESC');
     return Future.wait(rows.map((r) async =>
-        Tag.fromStorage(r, await EncCache.decode(r['enc'] as String?))));
+        _decodeRow(r, Tag.fromStorage)));
   }
 
   Stream<List<Tag>> watchTags() {
@@ -165,7 +180,7 @@ class CatalogRepository {
         .watch('SELECT id, created_at, enc FROM tags WHERE is_deleted = 0 '
             'ORDER BY created_at DESC')
         .asyncMap((rows) => Future.wait(rows.map((r) async =>
-            Tag.fromStorage(r, await EncCache.decode(r['enc'] as String?)))));
+            _decodeRow(r, Tag.fromStorage))));
   }
 
   /// Находит тег по имени (без учёта регистра) или заводит новый.

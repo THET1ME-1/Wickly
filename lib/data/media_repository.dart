@@ -77,7 +77,13 @@ class MediaRepository {
       Future.wait(rows.map(_decode));
 
   Future<Media> _decode(Map<String, Object?> row) async =>
-      Media.fromStorage(row, await EncCache.decode(row['enc'] as String?));
+      _decodeRow(row);
+
+  Future<Media> _decodeRow(Map<String, Object?> row) async {
+    final payload = await EncCache.decode(row['enc'] as String?);
+    return Media.fromStorage(row, payload ?? const {},
+        readable: payload != null);
+  }
 
   Future<void> insert(Media m) async {
     final enc = await Crypto.instance.encryptJson(m.toPayload());
@@ -98,6 +104,8 @@ class MediaRepository {
   }
 
   Future<void> update(Media m) async {
+    // Нечитаемый payload затёр бы подпись, место съёмки и распознанный текст.
+    if (!m.readable) return;
     final enc = await Crypto.instance.encryptJson(m.toPayload());
     await _db.execute(
       'UPDATE media SET thumb = ?1, sort = ?2, enc = ?3 WHERE id = ?4',

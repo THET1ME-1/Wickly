@@ -33,7 +33,13 @@ class TrackerRepository {
   }
 
   Future<Tracker> _decode(Map<String, Object?> row) async =>
-      Tracker.fromStorage(row, await EncCache.decode(row['enc'] as String?));
+      _decodeRow(row);
+
+  Future<Tracker> _decodeRow(Map<String, Object?> row) async {
+    final payload = await EncCache.decode(row['enc'] as String?);
+    return Tracker.fromStorage(row, payload ?? const {},
+        readable: payload != null);
+  }
 
   Future<void> insert(Tracker t) async {
     await _db.execute(
@@ -54,6 +60,8 @@ class TrackerRepository {
   }
 
   Future<void> update(Tracker t) async {
+    // Нечитаемый payload затёр бы название трекера и дни недели.
+    if (!t.readable) return;
     await _db.execute(
       'UPDATE trackers SET kind = ?1, unit = ?2, goal = ?3, icon = ?4, '
       'color = ?5, sort = ?6, enc = ?7 WHERE id = ?8',

@@ -75,7 +75,13 @@ class JournalRepository {
       Future.wait(rows.map(_decode));
 
   Future<Journal> _decode(Map<String, Object?> row) async =>
-      Journal.fromStorage(row, await EncCache.decode(row['enc'] as String?));
+      _decodeRow(row);
+
+  Future<Journal> _decodeRow(Map<String, Object?> row) async {
+    final payload = await EncCache.decode(row['enc'] as String?);
+    return Journal.fromStorage(row, payload ?? const {},
+        readable: payload != null);
+  }
 
   Future<void> insert(Journal j) async {
     final enc = await Crypto.instance.encryptJson(j.toPayload());
@@ -97,6 +103,8 @@ class JournalRepository {
   }
 
   Future<void> update(Journal j) async {
+    // Нечитаемый payload (чужой ключ) затёр бы имя дневника и пароль замка.
+    if (!j.readable) return;
     final enc = await Crypto.instance.encryptJson(j.toPayload());
     await _db.execute(
       'UPDATE journals SET color = ?1, icon = ?2, cover = ?3, locked = ?4, '

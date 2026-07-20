@@ -84,7 +84,12 @@ class Emotion with CatalogItem {
     this.icon,
     this.color,
     this.sort = 0,
+    this.readable = true,
   });
+
+  /// Расшифровался ли payload. Только в памяти: нечитаемую запись
+  /// справочника нельзя сохранять — перезапись стёрла бы название.
+  final bool readable;
 
   factory Emotion.create({
     required String name,
@@ -115,8 +120,9 @@ class Emotion with CatalogItem {
 
   factory Emotion.fromStorage(
     Map<String, Object?> row,
-    Map<String, Object?> payload,
-  ) =>
+    Map<String, Object?> payload, {
+    bool readable = true,
+  }) =>
       Emotion(
         id: row['id'] as String,
         name: (payload['name'] as String?) ?? '',
@@ -125,6 +131,7 @@ class Emotion with CatalogItem {
         icon: row['icon'] as String?,
         color: row['color'] as int?,
         sort: (row['sort'] as int?) ?? 0,
+        readable: readable,
       );
 
   Emotion copyWith({
@@ -142,6 +149,7 @@ class Emotion with CatalogItem {
         icon: icon ?? this.icon,
         color: color ?? this.color,
         sort: sort ?? this.sort,
+        readable: readable,
       );
 }
 
@@ -170,7 +178,12 @@ class Activity with CatalogItem {
     this.icon,
     this.color,
     this.sort = 0,
+    this.readable = true,
   });
+
+  /// Расшифровался ли payload. Только в памяти: нечитаемую запись
+  /// справочника нельзя сохранять — перезапись стёрла бы название.
+  final bool readable;
 
   factory Activity.create({
     required String name,
@@ -201,8 +214,9 @@ class Activity with CatalogItem {
 
   factory Activity.fromStorage(
     Map<String, Object?> row,
-    Map<String, Object?> payload,
-  ) =>
+    Map<String, Object?> payload, {
+    bool readable = true,
+  }) =>
       Activity(
         id: row['id'] as String,
         name: (payload['name'] as String?) ?? '',
@@ -211,6 +225,7 @@ class Activity with CatalogItem {
         icon: row['icon'] as String?,
         color: row['color'] as int?,
         sort: (row['sort'] as int?) ?? 0,
+        readable: readable,
       );
 
   Activity copyWith({
@@ -228,6 +243,7 @@ class Activity with CatalogItem {
         icon: icon ?? this.icon,
         color: color ?? this.color,
         sort: sort ?? this.sort,
+        readable: readable,
       );
 }
 
@@ -272,7 +288,12 @@ class Tracker with CatalogItem {
     this.color,
     this.sort = 0,
     this.weekdays = 0,
+    this.readable = true,
   });
+
+  /// Расшифровался ли payload. Только в памяти: нечитаемую запись
+  /// справочника нельзя сохранять — перезапись стёрла бы название.
+  final bool readable;
 
   factory Tracker.create({
     required String name,
@@ -313,8 +334,9 @@ class Tracker with CatalogItem {
 
   factory Tracker.fromStorage(
     Map<String, Object?> row,
-    Map<String, Object?> payload,
-  ) =>
+    Map<String, Object?> payload, {
+    bool readable = true,
+  }) =>
       Tracker(
         id: row['id'] as String,
         name: (payload['name'] as String?) ?? '',
@@ -326,6 +348,7 @@ class Tracker with CatalogItem {
         color: row['color'] as int?,
         sort: (row['sort'] as int?) ?? 0,
         weekdays: (payload['weekdays'] as num?)?.toInt() ?? 0,
+        readable: readable,
       );
 
   /// Ожидается ли привычка в этот день.
@@ -363,6 +386,7 @@ class Tracker with CatalogItem {
         color: color ?? this.color,
         sort: sort ?? this.sort,
         weekdays: weekdays ?? this.weekdays,
+        readable: readable,
       );
 }
 
@@ -372,7 +396,16 @@ class Tag {
   final String name;
   final DateTime createdAt;
 
-  const Tag({required this.id, required this.name, required this.createdAt});
+  const Tag({
+    required this.id,
+    required this.name,
+    required this.createdAt,
+    this.readable = true,
+  });
+
+  /// Расшифровался ли payload. Только в памяти: нечитаемую запись
+  /// справочника нельзя сохранять — перезапись стёрла бы название.
+  final bool readable;
 
   factory Tag.create(String name) =>
       Tag(id: _uuid.v4(), name: name, createdAt: DateTime.now());
@@ -386,13 +419,15 @@ class Tag {
 
   factory Tag.fromStorage(
     Map<String, Object?> row,
-    Map<String, Object?> payload,
-  ) =>
+    Map<String, Object?> payload, {
+    bool readable = true,
+  }) =>
       Tag(
         id: row['id'] as String,
         name: (payload['name'] as String?) ?? '',
         createdAt:
             DateTime.fromMillisecondsSinceEpoch((row['created_at'] as int?) ?? 0),
+        readable: readable,
       );
 }
 

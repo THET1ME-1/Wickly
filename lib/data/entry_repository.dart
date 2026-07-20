@@ -110,7 +110,15 @@ class EntryRepository {
   }
 
   Future<Entry> _decode(Map<String, Object?> row) async =>
-      Entry.fromStorage(row, await EncCache.decode(row['enc'] as String?));
+      _decodeRow(row);
+
+  Future<Entry> _decodeRow(Map<String, Object?> row) async {
+    final payload = await EncCache.decode(row['enc'] as String?);
+    // payload == null — расшифровки не вышло: помечаем запись нечитаемой,
+    // чтобы её нельзя было сохранить поверх настоящего текста.
+    return Entry.fromStorage(row, payload ?? const {},
+        readable: payload != null);
+  }
 
   Future<List<Entry>> allEntries({
     bool includeHidden = false,
@@ -196,6 +204,9 @@ class EntryRepository {
   }
 
   Future<void> update(Entry e) async {
+    // Запись, которую не удалось расшифровать, пришла бы сюда с пустым текстом
+    // и затёрла настоящий шифртекст своим. Молча выходим: содержимое дороже.
+    if (!e.readable) return;
     final enc = await Crypto.instance.encryptJson(e.toPayload());
     await _db.execute(
       'UPDATE entries SET journal_id = ?1, entry_date = ?2, favorite = ?3, '

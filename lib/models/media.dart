@@ -75,7 +75,12 @@ class Media {
     this.width,
     this.height,
     this.ocr,
+    this.readable = true,
   });
+
+  /// Расшифровался ли payload вложения. Только в памяти: перезапись
+  /// нечитаемого медиа стёрла бы подпись, место съёмки и распознанный текст.
+  final bool readable;
 
   factory Media.create({
     required String entryId,
@@ -138,8 +143,9 @@ class Media {
 
   factory Media.fromStorage(
     Map<String, Object?> row,
-    Map<String, Object?> payload,
-  ) {
+    Map<String, Object?> payload, {
+    bool readable = true,
+  }) {
     final taken = payload['takenAt'] as int?;
     return Media(
       id: row['id'] as String,
@@ -159,6 +165,7 @@ class Media {
       width: payload['width'] as int?,
       height: payload['height'] as int?,
       ocr: payload['ocr'] as String?,
+      readable: readable,
     );
   }
 
@@ -186,5 +193,6 @@ class Media {
         width: width,
         height: height,
         ocr: ocr ?? this.ocr,
+        readable: readable,
       );
 }
