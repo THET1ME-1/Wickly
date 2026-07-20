@@ -54,3 +54,7 @@ test_golden/failures/
 *.jks
 *.keystore
 key.properties
+
+# Личные заметки для Claude Code — в репозиторий не уезжают.
+CLAUDE.md
+CLAUDE.local.md
