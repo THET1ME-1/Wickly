@@ -23,6 +23,11 @@ void main() {
           streak: Samples.streak,
           month: DateTime(2026, 7),
           now: now,
+          // Счётчики приходят из оболочки, а не из `StatsService`, поэтому в
+          // снимке их надо задать: иначе рядом с «17 дней с записью» стоит
+          // «0 записей, 0 слов».
+          entriesThisMonth: month.length,
+          wordsThisMonth: month.fold<int>(0, (sum, e) => sum + e.wordCount),
         ),
       ),
     );

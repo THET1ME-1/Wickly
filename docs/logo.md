@@ -85,6 +85,15 @@ python3 tool/gen_icon.py --tint amber      # нужен cairosvg + pillow
 Иконку Linux-сборки берёт `linux/packaging/install.sh` из
 `mipmap-xxxhdpi/ic_launcher.png` — отдельного файла ей не нужно.
 
+## Витрина экранов
+
+`docs/logo/screenshots.png` (1728×812) — четыре экрана в ряд под шапкой README.
+Собирает `python3 tool/gen_shots.py` из снимков `test_golden/goldens/`, поэтому
+после `flutter test --update-goldens test_golden` витрину надо пересобрать.
+Экраны перечислены в `SHOTS`; тёмный кадр среди светлых стоит намеренно —
+обе темы видны сразу. Фон холста — уголь знака, кадры обведены: без обводки
+тёмный экран сливается с фоном и читается дырой.
+
 ## Не сделано
 
 Выбор колеровки в настройках через `activity-alias`, как в Kadr и Togetherly.

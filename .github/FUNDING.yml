@@ -1,0 +1,4 @@
+# Блок «Sponsor this project» в боковой панели репозитория.
+# GitHub Sponsors / Buy Me a Coffee недоступны для выплат в РФ, поэтому обе
+# ссылки идут через custom (лимит — 4).
+custom: ["https://boosty.to/sntcompany", "https://www.donationalerts.com/r/thet1me"]
