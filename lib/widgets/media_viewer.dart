@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../data/media_store.dart';
+import '../l10n/strings.dart';
 import '../models/media.dart';
+import '../services/media_export.dart';
 import '../theme/app_theme.dart';
+import '../theme/feedback.dart';
 import '../utils/dates.dart';
 
 /// Полноэкранный просмотр вложений с листанием и зумом.
@@ -37,10 +40,41 @@ class _MediaViewerState extends State<_MediaViewer> {
       PageController(initialPage: widget.initialIndex);
   late int _index = widget.initialIndex;
 
+  /// Идёт сохранение. Пока идёт — кнопка не отвечает: два подряд нажатия
+  /// клали в галерею две копии одного снимка.
+  bool _saving = false;
+
   @override
   void dispose() {
     _pages.dispose();
     super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    final result = await MediaExport.saveToDevice(widget.media[_index]);
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (result == SaveResult.cancelled) return;
+    if (result == SaveResult.saved) Haptics.commit();
+    final message = switch (result) {
+      SaveResult.saved => Platform.isAndroid || Platform.isIOS
+          ? tr('media_saved_gallery')
+          : tr('media_saved_file'),
+      SaveResult.denied => tr('media_save_denied'),
+      _ => tr('media_save_failed'),
+    };
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _share() async {
+    final ok = await MediaExport.share(widget.media[_index]);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('media_save_failed'))));
+    }
   }
 
   @override
@@ -63,6 +97,26 @@ class _MediaViewerState extends State<_MediaViewer> {
             color: Colors.white,
           ),
         ),
+        actions: [
+          IconButton(
+            tooltip: tr('media_save'),
+            onPressed: _saving ? null : _save,
+            icon: _saving
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.file_download_outlined),
+          ),
+          IconButton(
+            tooltip: tr('share_entry'),
+            onPressed: _share,
+            icon: const Icon(Icons.ios_share_rounded),
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
       extendBodyBehindAppBar: true,
       body: Stack(

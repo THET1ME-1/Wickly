@@ -185,6 +185,61 @@ const Map<String, Map<String, String>> catalogStrings = {
     'ru': 'Цвет', 'en': 'Color', 'de': 'Farbe', 'fr': 'Couleur',
     'es': 'Color', 'it': 'Colore', 'pt': 'Cor',
   },
+  // Группы полного списка иконок.
+  'ig_people': {
+    'ru': 'Люди', 'en': 'People', 'de': 'Menschen', 'fr': 'Personnes',
+    'es': 'Personas', 'it': 'Persone', 'pt': 'Pessoas',
+  },
+  'ig_feelings': {
+    'ru': 'Чувства', 'en': 'Feelings', 'de': 'Gefühle', 'fr': 'Émotions',
+    'es': 'Emociones', 'it': 'Emozioni', 'pt': 'Emoções',
+  },
+  'ig_body': {
+    'ru': 'Тело и здоровье', 'en': 'Body and health',
+    'de': 'Körper und Gesundheit', 'fr': 'Corps et santé',
+    'es': 'Cuerpo y salud', 'it': 'Corpo e salute',
+    'pt': 'Corpo e saúde',
+  },
+  'ig_food': {
+    'ru': 'Еда и напитки', 'en': 'Food and drink',
+    'de': 'Essen und Trinken', 'fr': 'Repas et boissons',
+    'es': 'Comida y bebida', 'it': 'Cibo e bevande',
+    'pt': 'Comida e bebida',
+  },
+  'ig_household': {
+    'ru': 'Дом и дела', 'en': 'Home and chores',
+    'de': 'Zuhause und Aufgaben', 'fr': 'Maison et tâches',
+    'es': 'Casa y tareas', 'it': 'Casa e faccende',
+    'pt': 'Casa e tarefas',
+  },
+  'ig_work': {
+    'ru': 'Работа и учёба', 'en': 'Work and study',
+    'de': 'Arbeit und Lernen', 'fr': 'Travail et études',
+    'es': 'Trabajo y estudio', 'it': 'Lavoro e studio',
+    'pt': 'Trabalho e estudo',
+  },
+  'ig_leisure': {
+    'ru': 'Отдых и увлечения', 'en': 'Leisure and hobbies',
+    'de': 'Freizeit und Hobbys', 'fr': 'Loisirs et passions',
+    'es': 'Ocio y aficiones', 'it': 'Tempo libero e hobby',
+    'pt': 'Lazer e passatempos',
+  },
+  'ig_outdoors': {
+    'ru': 'Природа и погода', 'en': 'Nature and weather',
+    'de': 'Natur und Wetter', 'fr': 'Nature et météo',
+    'es': 'Naturaleza y clima', 'it': 'Natura e meteo',
+    'pt': 'Natureza e clima',
+  },
+  'ig_journey': {
+    'ru': 'Дорога и места', 'en': 'Travel and places',
+    'de': 'Reise und Orte', 'fr': 'Voyage et lieux',
+    'es': 'Viajes y lugares', 'it': 'Viaggi e luoghi',
+    'pt': 'Viagens e lugares',
+  },
+  'ig_symbols': {
+    'ru': 'Знаки', 'en': 'Symbols', 'de': 'Zeichen', 'fr': 'Symboles',
+    'es': 'Símbolos', 'it': 'Simboli', 'pt': 'Símbolos',
+  },
   'category': {
     'ru': 'Категория', 'en': 'Category', 'de': 'Kategorie', 'fr': 'Catégorie',
     'es': 'Categoría', 'it': 'Categoria', 'pt': 'Categoria',

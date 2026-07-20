@@ -6,8 +6,8 @@ import '../models/catalog.dart';
 import '../theme/app_theme.dart';
 import '../utils/dates.dart';
 import '../theme/feedback.dart';
-import '../theme/icon_keys.dart';
 import '../utils/catalog_names.dart';
+import 'icon_picker_sheet.dart';
 import 'sheet_scaffold.dart';
 
 /// Заводит или правит трекер: имя, вид, цель, единица и иконка.
@@ -230,32 +230,11 @@ class _TrackerEditorState extends State<_TrackerEditor> {
             const SizedBox(height: 16),
             Text(tr('icon'), style: label()),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final key in AppIcons.pickerOrder.take(20))
-                  GestureDetector(
-                    onTap: () => setState(() => _icon = key),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: _icon == key
-                            ? scheme.primaryContainer
-                            : scheme.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        AppIcons.resolve(key),
-                        size: 20,
-                        color: _icon == key
-                            ? scheme.onPrimaryContainer
-                            : scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-              ],
+            IconChoiceGrid(
+              selected: _icon,
+              tint: scheme.primary,
+              count: 20,
+              onPick: (key) => setState(() => _icon = key),
             ),
             const SizedBox(height: 8),
           ],

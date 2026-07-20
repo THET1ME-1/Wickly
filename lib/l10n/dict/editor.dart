@@ -232,6 +232,43 @@ const Map<String, Map<String, String>> editorStrings = {
     'ru': 'Поделиться', 'en': 'Share', 'de': 'Teilen', 'fr': 'Partager',
     'es': 'Compartir', 'it': 'Condividi', 'pt': 'Compartilhar',
   },
+  // Вложение обратно на устройство: дневник держит только свою копию.
+  'media_save': {
+    'ru': 'Сохранить на устройство', 'en': 'Save to device',
+    'de': 'Auf Gerät speichern', 'fr': 'Enregistrer sur l’appareil',
+    'es': 'Guardar en el dispositivo', 'it': 'Salva sul dispositivo',
+    'pt': 'Salvar no dispositivo',
+  },
+  'media_saved_gallery': {
+    'ru': 'Сохранено в галерею, альбом «Wickly»',
+    'en': 'Saved to the gallery, album “Wickly”',
+    'de': 'In der Galerie gespeichert, Album „Wickly“',
+    'fr': 'Enregistré dans la galerie, album « Wickly »',
+    'es': 'Guardado en la galería, álbum «Wickly»',
+    'it': 'Salvato nella galleria, album «Wickly»',
+    'pt': 'Salvo na galeria, álbum “Wickly”',
+  },
+  'media_saved_file': {
+    'ru': 'Файл сохранён', 'en': 'File saved', 'de': 'Datei gespeichert',
+    'fr': 'Fichier enregistré', 'es': 'Archivo guardado',
+    'it': 'File salvato', 'pt': 'Arquivo salvo',
+  },
+  'media_save_failed': {
+    'ru': 'Сохранить не вышло', 'en': 'Could not save it',
+    'de': 'Speichern hat nicht geklappt', 'fr': 'Enregistrement impossible',
+    'es': 'No se pudo guardar', 'it': 'Non è stato possibile salvare',
+    'pt': 'Não foi possível salvar',
+  },
+  'media_save_denied': {
+    'ru': 'Галерея закрыта для дневника — доступ можно дать в настройках',
+    'en': 'The gallery is closed to the journal — allow it in settings',
+    'de': 'Die Galerie ist für das Tagebuch gesperrt — in den Einstellungen '
+        'erlauben',
+    'fr': 'La galerie est fermée au journal — autorisez-la dans les réglages',
+    'es': 'La galería está cerrada al diario: dale acceso en los ajustes',
+    'it': 'La galleria è chiusa al diario: consentila nelle impostazioni',
+    'pt': 'A galeria está fechada ao diário — permita nos ajustes',
+  },
   'move_to_journal': {
     'ru': 'Перенести в дневник', 'en': 'Move to journal',
     'de': 'In Tagebuch verschieben', 'fr': 'Déplacer vers un journal',

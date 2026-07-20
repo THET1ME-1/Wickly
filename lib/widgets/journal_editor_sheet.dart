@@ -4,8 +4,8 @@ import '../data/journal_repository.dart';
 import '../l10n/strings.dart';
 import '../models/entry.dart';
 import '../theme/app_theme.dart';
-import '../theme/icon_keys.dart';
 import '../theme/wickly_design.dart';
+import 'icon_picker_sheet.dart';
 import 'journal_password_sheet.dart';
 import 'sheet_scaffold.dart';
 
@@ -205,32 +205,11 @@ class _JournalEditorState extends State<_JournalEditor> {
             const SizedBox(height: 16),
             Text(tr('icon'), style: _label(scheme)),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final key in AppIcons.pickerOrder.take(16))
-                  GestureDetector(
-                    onTap: () => setState(() => _icon = key),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: _icon == key
-                            ? scheme.primaryContainer
-                            : scheme.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        AppIcons.resolve(key),
-                        size: 20,
-                        color: _icon == key
-                            ? scheme.onPrimaryContainer
-                            : scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-              ],
+            IconChoiceGrid(
+              selected: _icon,
+              tint: scheme.primary,
+              count: 16,
+              onPick: (key) => setState(() => _icon = key),
             ),
             const SizedBox(height: 8),
             SwitchListTile(

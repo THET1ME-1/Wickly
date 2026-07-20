@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../theme/icon_keys.dart';
 import '../utils/catalog_names.dart';
 import 'color_picker_sheet.dart';
+import 'icon_picker_sheet.dart';
 import 'sheet_scaffold.dart';
 
 /// Заводит или правит свою эмоцию.
@@ -222,18 +223,10 @@ class _CatalogEditorState<T> extends State<_CatalogEditor<T>> {
             ),
             const SizedBox(height: 18),
             _Label(tr('icon')),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final key in AppIcons.pickerOrder)
-                  _IconCell(
-                    icon: AppIcons.resolve(key),
-                    selected: key == _icon,
-                    tint: tint,
-                    onTap: () => setState(() => _icon = key),
-                  ),
-              ],
+            IconChoiceGrid(
+              selected: _icon,
+              tint: tint,
+              onPick: (key) => setState(() => _icon = key),
             ),
             const SizedBox(height: 18),
             _Label(tr('color')),
@@ -306,43 +299,6 @@ class _Label extends StatelessWidget {
           ),
         ),
       );
-}
-
-class _IconCell extends StatelessWidget {
-  final IconData icon;
-  final bool selected;
-  final Color tint;
-  final VoidCallback onTap;
-
-  const _IconCell({
-    required this.icon,
-    required this.selected,
-    required this.tint,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: selected ? tint.withValues(alpha: 0.16) : scheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(14),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: selected ? Border.all(color: tint, width: 2) : null,
-          ),
-          child: Icon(icon,
-              size: 21, color: selected ? tint : scheme.onSurfaceVariant),
-        ),
-      ),
-    );
-  }
 }
 
 class _ColorCell extends StatelessWidget {
