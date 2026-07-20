@@ -297,6 +297,28 @@ const Map<String, Map<String, String>> coreStrings = {
     'es': 'Código fuente en GitHub', 'it': 'Codice sorgente su GitHub',
     'pt': 'Código-fonte no GitHub',
   },
+  'support_authors': {
+    'ru': 'Поддержать авторов', 'en': 'Support the authors',
+    'de': 'Autoren unterstützen', 'fr': 'Soutenir les auteurs',
+    'es': 'Apoya a los autores', 'it': 'Sostieni gli autori',
+    'pt': 'Apoiar os autores',
+  },
+  'support_intro': {
+    'ru': 'Wickly — бесплатное приложение с открытым кодом. '
+        'Любой донат помогает развивать проект.',
+    'en': 'Wickly is a free, open-source app. '
+        'Any donation helps the project grow.',
+    'de': 'Wickly ist eine kostenlose Open-Source-App. '
+        'Jede Spende hilft dem Projekt zu wachsen.',
+    'fr': 'Wickly est une application libre et open-source. '
+        'Chaque don aide le projet à grandir.',
+    'es': 'Wickly es una app gratuita y de código abierto. '
+        'Cualquier donación ayuda a que el proyecto crezca.',
+    'it': 'Wickly è un\'app gratuita e open-source. '
+        'Ogni donazione aiuta il progetto a crescere.',
+    'pt': 'Wickly é um app gratuito e de código aberto. '
+        'Qualquer doação ajuda o projeto a crescer.',
+  },
 
   'today': {
     'ru': 'сегодня', 'en': 'today', 'de': 'heute', 'fr': 'aujourd’hui',

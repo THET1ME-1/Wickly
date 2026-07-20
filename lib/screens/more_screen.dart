@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../theme/wickly_design.dart';
 import '../widgets/pressable.dart';
 import '../widgets/reveal.dart';
+import '../widgets/support_card.dart';
 
 /// Один пункт хаба «Ещё».
 class MoreItem {
@@ -36,19 +37,48 @@ class MoreScreen extends StatelessWidget {
     final list = items ?? const <MoreItem>[];
     return Scaffold(
       appBar: AppBar(title: Text(tr('tab_more'))),
-      body: GridView.count(
-        crossAxisCount: WicklyDesign.gridColumns(context, 260),
-        padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 8,
-            WicklyDesign.screenPad, 24),
-        crossAxisSpacing: WicklyDesign.gapCards,
-        mainAxisSpacing: WicklyDesign.gapCards,
-        childAspectRatio: 1.35,
-        children: [
-          for (var i = 0; i < list.length; i++)
-            Reveal(
-              delay: Duration(milliseconds: 40 * (i < 5 ? i : 5)),
-              child: _MoreTile(item: list[i]),
+      body: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(WicklyDesign.screenPad, 8,
+                WicklyDesign.screenPad, 0),
+            sliver: SliverGrid.count(
+              crossAxisCount: WicklyDesign.gridColumns(context, 260),
+              crossAxisSpacing: WicklyDesign.gapCards,
+              mainAxisSpacing: WicklyDesign.gapCards,
+              childAspectRatio: 1.35,
+              children: [
+                for (var i = 0; i < list.length; i++)
+                  Reveal(
+                    delay: Duration(milliseconds: 40 * (i < 5 ? i : 5)),
+                    child: _MoreTile(item: list[i]),
+                  ),
+              ],
             ),
+          ),
+          // Донат-блок закрывает список: приложение бесплатное, и просьба
+          // стоит после того, ради чего сюда заходят.
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+                WicklyDesign.screenPad,
+                WicklyDesign.gapCards,
+                WicklyDesign.screenPad,
+                24),
+            sliver: SliverToBoxAdapter(
+              child: Reveal(
+                delay: const Duration(milliseconds: 40 * 5),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  // На мониторе карточка во всю ширину выглядит рекламным
+                  // баннером — держим её в размер плитки.
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: const SupportCard(),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
