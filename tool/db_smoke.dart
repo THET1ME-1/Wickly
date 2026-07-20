@@ -63,6 +63,17 @@ Future<void> main() async {
   _check('имя не лежит открытым текстом',
       rawJournal['name'] == '' && (rawJournal['enc'] as String).isNotEmpty);
 
+  // Куда ляжет новая запись. Раньше «Записать» брало id из настроек вслепую, и
+  // запись уходила на удалённый дневник: метки в ленте нет, в дневнике её нет,
+  // а редактор показывал первый дневник списка и выглядел правдиво.
+  _check('живой дневник остаётся выбранным',
+      await journals.resolveTarget(Schema.defaultJournalId) ==
+          Schema.defaultJournalId);
+  _check('мёртвый дневник заменяется живым',
+      await journals.resolveTarget('его-удалили') == Schema.defaultJournalId);
+  _check('без выбора берётся первый',
+      await journals.resolveTarget(null) == Schema.defaultJournalId);
+
   print('\n— Каталог —');
   _check('эмоции засеяны', (await catalog.emotions()).length == 9);
   _check('действия засеяны', (await catalog.activities()).length == 12);
@@ -145,6 +156,54 @@ Future<void> main() async {
   _check('запись удалена', (await entries.getById(e.id)) == null);
   _check('связи записи сняты', (await catalog.tagIdsOf(e.id)).isEmpty);
   _check('вложения записи сняты', (await media.forEntry(e.id)).isEmpty);
+
+  // Записи, осиротевшие прежними версиями: ссылка ведёт на дневник, которого
+  // нет. Такая запись не показывалась ни в ленте с меткой, ни в самом дневнике.
+  print('\n— Осиротевшие записи —');
+  final orphan = Entry.create(
+    journalId: 'дневника-нет',
+    title: 'Ничей вечер',
+    body: 'Запись со ссылкой в никуда.',
+  );
+  await entries.insert(orphan);
+  await Schema.adoptOrphanEntries(crdt);
+  final adopted = await entries.getById(orphan.id);
+  _check('запись вернулась в первый дневник',
+      adopted?.journalId == Schema.defaultJournalId);
+  _check('запись цела', adopted?.title == 'Ничей вечер');
+  _check('дневник видит её у себя',
+      (await entries.byJournal(Schema.defaultJournalId))
+          .any((x) => x.id == orphan.id));
+
+  final before = await entries.getById(orphan.id);
+  await Schema.adoptOrphanEntries(crdt);
+  _check('второй проход ничего не двигает',
+      (await entries.getById(orphan.id))?.journalId == before?.journalId);
+
+  // Тот же путь, которым пойдёт база с телефона: она открыта версией 2, а
+  // приложение обновилось до 3. Работаем сырым SQL — интересует одна
+  // плейнтекст-колонка, расшифровывать запись незачем.
+  print('\n— Обновление схемы v2 → v3 —');
+  final dbFile = '${tmp.path}/upgrade.db';
+  final old = await SqliteCrdt.open(dbFile,
+      version: 2, onCreate: Schema.onCreate, onUpgrade: Schema.onUpgrade);
+  await Schema.ensureSeeds(old, 'Личное');
+  await old.execute(
+    'INSERT INTO entries (id, journal_id, entry_date, created_at, favorite, '
+    'pinned, hidden, draft, enc) VALUES (?1, ?2, ?3, ?4, 0, 0, 0, 0, ?5)',
+    ['ghost', 'дневника-нет', 0, 0, 'x'],
+  );
+  await old.close();
+
+  final upgraded = await SqliteCrdt.open(dbFile,
+      version: Schema.version,
+      onCreate: Schema.onCreate,
+      onUpgrade: Schema.onUpgrade);
+  final ghost = await upgraded
+      .query('SELECT journal_id FROM entries WHERE id = ?1', ['ghost']);
+  _check('обновление вернуло запись в дневник',
+      ghost.first['journal_id'] == Schema.defaultJournalId);
+  await upgraded.close();
 
   print('\n— Синк —');
   _check('чейнджсет собирается', (await crdt.getChangeset()).isNotEmpty);

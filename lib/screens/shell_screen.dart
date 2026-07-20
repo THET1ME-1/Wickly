@@ -182,7 +182,11 @@ class _ShellScreenState extends State<ShellScreen> {
   // ----------------------------- Переходы -----------------------------
 
   Future<void> _write({String? promptKey, int? mood, DateTime? date}) async {
-    final journalId = AppPrefs.instance.lastJournalId ?? 'default';
+    // Спрашиваем у базы живой дневник, а не берём id из настроек вслепую:
+    // запомненный дневник могли удалить, а сид-строки `default` может не быть.
+    final journalId = await JournalRepository.instance
+        .resolveTarget(AppPrefs.instance.lastJournalId);
+    if (!mounted) return;
     await Navigator.of(context).push(
       pageOrPanel(
         context,

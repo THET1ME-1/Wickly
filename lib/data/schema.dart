@@ -12,7 +12,8 @@ class Schema {
   const Schema._();
 
   /// v1 — журналы и записи. v2 — медиа, теги, эмоции/действия, трекеры.
-  static const version = 2;
+  /// v3 — данных не добавляет: возвращает в дневник осиротевшие записи.
+  static const version = 3;
 
   /// Стабильный id дневника по умолчанию (на него ссылаются первые записи).
   static const defaultJournalId = 'default';
@@ -58,6 +59,11 @@ class Schema {
         await db.execute(sql);
       }
       await _createV2(db);
+    }
+    if (from < 3) {
+      // Ссылки в никуда, оставленные версиями до 1.4.0. Новым базам чинить
+      // нечего, поэтому в `onCreate` этого шага нет.
+      await adoptOrphanEntries(db);
     }
   }
 
@@ -236,5 +242,39 @@ class Schema {
       );
     }
     await CatalogSeed.ensure(crdt);
+  }
+
+  /// Возвращает в дневник записи, чья ссылка никуда не ведёт.
+  ///
+  /// «Записать» из ленты брало id дневника из настроек вслепую, поэтому запись
+  /// могла получить ссылку на удалённый дневник или на сид-строку `default`,
+  /// которой в этой базе никогда не было. В ленте у такой записи не рисовалась
+  /// метка дневника, на экран дневника она не попадала — при том что редактор
+  /// показывал первый дневник списка и выглядело всё правильно.
+  ///
+  /// Перевешиваем ровно туда, куда всё это время показывал редактор: на первый
+  /// дневник по порядку. Записи при этом не трогаются ничем, кроме ссылки.
+  ///
+  /// Идёт **разовой миграцией**, а не при каждом старте: пакет синхронизации
+  /// может привезти записи раньше их дневника, и ежедневная уборка растащила
+  /// бы их по чужим дневникам ещё до того, как дневник доедет.
+  static Future<void> adoptOrphanEntries(CrdtApi crdt) async {
+    final orphans = await crdt.query(
+      'SELECT COUNT(*) AS c FROM entries WHERE is_deleted = 0 AND journal_id '
+      'NOT IN (SELECT id FROM journals WHERE is_deleted = 0)',
+    );
+    if ((orphans.first['c'] as int? ?? 0) == 0) return;
+
+    final first = await crdt.query(
+      'SELECT id FROM journals WHERE is_deleted = 0 '
+      'ORDER BY sort, created_at LIMIT 1',
+    );
+    if (first.isEmpty) return;
+
+    await crdt.execute(
+      'UPDATE entries SET journal_id = ?1 WHERE is_deleted = 0 AND journal_id '
+      'NOT IN (SELECT id FROM journals WHERE is_deleted = 0)',
+      [first.first['id'] as String],
+    );
   }
 }

@@ -4,6 +4,7 @@ import '../models/entry.dart';
 import 'db.dart';
 import 'crypto.dart';
 import 'enc_cache.dart';
+import 'schema.dart';
 
 /// Дневники (журналы): «Личное», «Путешествия», «Благодарность».
 ///
@@ -32,6 +33,33 @@ class JournalRepository {
       'SELECT $_cols FROM journals WHERE is_deleted = 0 ORDER BY sort, created_at',
     );
     return _decodeRows(rows);
+  }
+
+  /// Куда положить новую запись: [preferred], если такой дневник жив, иначе
+  /// первый по порядку, иначе дневник по умолчанию.
+  ///
+  /// Раньше «Записать» из ленты брало id из настроек вслепую (`?? 'default'`).
+  /// Дневник могли удалить — преф о нём не знает; сид-строки `default` могло не
+  /// быть вовсе (её вставляют, только когда таблица пуста). Запись получала
+  /// ссылку в никуда: в ленте метка дневника не рисовалась, в сам дневник
+  /// запись не попадала, а редактор показывал первый дневник в списке и потому
+  /// выглядел так, будто всё в порядке.
+  Future<String> resolveTarget(String? preferred) async {
+    if (!Db.isReady) return Schema.defaultJournalId;
+    if (preferred != null) {
+      final rows = await _db.query(
+        'SELECT id FROM journals WHERE id = ?1 AND is_deleted = 0',
+        [preferred],
+      );
+      if (rows.isNotEmpty) return preferred;
+    }
+    final first = await _db.query(
+      'SELECT id FROM journals WHERE is_deleted = 0 '
+      'ORDER BY sort, created_at LIMIT 1',
+    );
+    return first.isEmpty
+        ? Schema.defaultJournalId
+        : first.first['id'] as String;
   }
 
   Future<Journal?> getById(String id) async {
@@ -96,6 +124,10 @@ class JournalRepository {
     }
     await _db.execute('DELETE FROM entries WHERE journal_id = ?1', [id]);
     await _db.execute('DELETE FROM journals WHERE id = ?1', [id]);
+    // Настройка «следующая запись ляжет сюда же» продолжает помнить удалённый
+    // дневник — чистить её отсюда нельзя: `AppPrefs` тянет за собой Flutter, а
+    // слой данных гоняется в чистой Dart VM (`tool/db_smoke.dart`). Мёртвый id
+    // безвреден: [resolveTarget] проверяет его перед каждой новой записью.
   }
 
   /// Сколько живых записей в каждом дневнике — для подписей на обложках.

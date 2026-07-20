@@ -129,7 +129,27 @@ class _EditorScreenState extends State<EditorScreen> {
 
   Future<void> _loadJournals() async {
     final journals = await JournalRepository.instance.all();
-    if (mounted) setState(() => _journals = journals);
+    if (!mounted) return;
+    setState(() => _journals = journals);
+
+    // Запись может ссылаться на дневник, которого больше нет: его удалили, или
+    // ссылку поставила прежняя версия, бравшая id из настроек вслепую. Чип
+    // такую запись показывал первым дневником списка — и человек видел
+    // «Личное», хотя в базе стояло никуда не ведущее имя, из-за чего метка
+    // дневника в ленте не появлялась. Молча показывать чужой дневник нельзя:
+    // либо запись действительно в нём, либо чипу неоткуда взяться.
+    if (journals.isEmpty ||
+        journals.any((j) => j.id == _entry.journalId)) {
+      return;
+    }
+    // Только состояние: `_save` попутно ставит `draft`, и отложенное
+    // сохранение превратило бы открытую готовую запись в черновик. В базу
+    // новый дневник уйдёт с ближайшим сохранением — им же кончается выход из
+    // редактора.
+    setState(() {
+      _entry = _entry.copyWith(journalId: journals.first.id);
+      _dirty = true;
+    });
   }
 
   /// Перенос записи в другой дневник. Выбранный запоминается: следующая запись

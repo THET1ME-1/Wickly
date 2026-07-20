@@ -289,9 +289,14 @@ class AppPrefs extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setLastJournal(String id) async {
+  /// Куда легла последняя запись. `null` — забыть (дневник удалён).
+  Future<void> setLastJournal(String? id) async {
     _lastJournalId = id;
-    await _p?.setString(_kLastJournal, id);
+    if (id == null) {
+      await _p?.remove(_kLastJournal);
+    } else {
+      await _p?.setString(_kLastJournal, id);
+    }
     notifyListeners();
   }
 
