@@ -235,7 +235,29 @@ class _ReaderScreenState extends State<ReaderScreen> {
       ));
       return;
     }
-    widget.onOpen?.call(found);
+    _openEntry(found);
+  }
+
+  /// Открыть другую запись — по ссылке в тексте и по упоминанию.
+  ///
+  /// Обработчик снаружи передаёт только «Разворот»: там читалка живёт в колонке
+  /// и меняет содержимое на месте. Из ленты, дневника и скрытых записей его
+  /// нет — и без запасного пути тап по ссылке молча не делал НИЧЕГО.
+  /// Открываем сами, унося обработчики дальше.
+  void _openEntry(Entry target) {
+    final onOpen = widget.onOpen;
+    if (onOpen != null) {
+      onOpen(target);
+      return;
+    }
+    Navigator.of(context).push(pageOrPanel(
+      context,
+      (_) => ReaderScreen(
+        entryId: target.id,
+        onEdit: widget.onEdit,
+        onTag: widget.onTag,
+      ),
+    ));
   }
 
   @override
@@ -373,7 +395,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                           borderRadius: BorderRadius.circular(18),
                           clipBehavior: Clip.antiAlias,
                           child: InkWell(
-                            onTap: () => widget.onOpen?.call(b),
+                            onTap: () => _openEntry(b),
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
                               child: Column(

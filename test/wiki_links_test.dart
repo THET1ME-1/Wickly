@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wickly/models/entry.dart';
 import 'package:wickly/services/wiki_links.dart';
@@ -100,5 +101,41 @@ void main() {
       MarkdownLite.strip('Продолжение [[Вечер у реки]] на новый лад'),
       'Продолжение Вечер у реки на новый лад',
     );
+  });
+
+  testWidgets('Название ссылки в тексте видно целиком', (tester) async {
+    // Пилюля с многоточием прячет ровно то, по чему ссылку и узнают.
+    const long = 'Долгий вечер у реки, когда мы жгли костёр до самого утра';
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          width: 300,
+          child: MarkdownBody(source: 'Продолжение [[$long]] на новый лад'),
+        ),
+      ),
+    ));
+
+    final label = tester.widget<Text>(find.descendant(
+      of: find.byType(WikiLinkSpan),
+      matching: find.byType(Text),
+    ));
+    expect(label.data, long);
+    expect(label.maxLines, isNull);
+    expect(label.overflow, isNot(TextOverflow.ellipsis));
+  });
+
+  testWidgets('Тап по ссылке зовёт переход', (tester) async {
+    String? tapped;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: MarkdownBody(
+          source: 'Смотри [[Вечер у реки]]',
+          onLink: (target) => tapped = target,
+        ),
+      ),
+    ));
+
+    await tester.tap(find.byType(WikiLinkSpan));
+    expect(tapped, 'Вечер у реки');
   });
 }

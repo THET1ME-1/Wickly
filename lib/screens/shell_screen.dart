@@ -214,6 +214,7 @@ class _ShellScreenState extends State<ShellScreen> {
         context,
         (_) => ReaderScreen(
           entryId: entry.id,
+          onTag: (tag) => _openSearch(tag: tag),
           onEdit: (e) => Navigator.of(context).push(
             pageOrPanel(
               context,

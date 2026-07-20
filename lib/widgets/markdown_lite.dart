@@ -762,19 +762,17 @@ class _WikiLinkSpanState extends State<WikiLinkSpan> {
         onTap: widget.onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-          // Ссылка не переносится по строкам (это один виджет), поэтому
-          // длинное название режется: строка не должна уезжать за край.
-          constraints: const BoxConstraints(maxWidth: 260),
           decoration: BoxDecoration(
             color: _hover
                 ? scheme.secondaryContainer
                 : scheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(6),
           ),
+          // Название записи показываем целиком: обрезанное многоточием, оно
+          // перестаёт быть узнаваемым, а по нему ссылку и находят. Ширину
+          // ограничивает сам абзац — внутри пилюли длинное имя переносится.
           child: Text(
             widget.target,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
             style: widget.style.copyWith(
               color: _hover ? scheme.onSecondaryContainer : scheme.primary,
               fontWeight: FontWeight.w600,
