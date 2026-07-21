@@ -2,13 +2,13 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:exif/exif.dart';
-import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
 import '../data/media_repository.dart';
 import '../data/media_store.dart';
 import '../data/system_pause.dart';
 import '../models/media.dart';
+import 'image_prep.dart';
 
 /// Кладёт фото, видео и рисунки в запись.
 ///
@@ -134,7 +134,7 @@ class MediaService {
 
     final exif = await _readExif(bytes);
     final thumb = await _makeThumb(bytes);
-    final size = _sizeOf(bytes);
+    final size = await ImagePrep.size(bytes);
 
     final media = Media.create(
       entryId: entryId,
@@ -161,49 +161,11 @@ class MediaService {
     return RegExp(r'^[a-z0-9]{1,5}$').hasMatch(ext) ? ext : 'jpg';
   }
 
-  /// Предел на число пикселей, которое соглашаемся раскодировать (~60 Мп).
-  /// «Декомпресс-бомба» — маленький файл, разворачивающийся в гигапиксельный
-  /// кадр, — иначе кладёт процесс на превью/размерах. Размеры берём из
-  /// заголовка, не разворачивая всё изображение.
-  static const _maxPixels = 60 * 1000 * 1000;
-
-  static bool _tooLarge(Uint8List bytes) {
-    try {
-      final info = img.findDecoderForData(bytes)?.startDecode(bytes);
-      if (info == null) return false; // формат неизвестен — решит сам decode
-      return info.width * info.height > _maxPixels;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  /// Размеры кадра. Формат может оказаться незнакомым (HEIC с айфона) —
-  /// тогда сетка возьмёт пропорции по умолчанию.
-  static (int, int)? _sizeOf(Uint8List bytes) {
-    if (_tooLarge(bytes)) return null;
-    try {
-      final decoded = img.decodeImage(bytes);
-      if (decoded == null) return null;
-      return (decoded.width, decoded.height);
-    } catch (_) {
-      return null;
-    }
-  }
-
   static Future<String?> _makeThumb(Uint8List bytes) async {
-    if (_tooLarge(bytes)) return null;
+    final small = await ImagePrep.thumb(bytes, _thumbSide);
+    if (small == null) return null;
     try {
-      final decoded = img.decodeImage(bytes);
-      if (decoded == null) return null;
-      final side = decoded.width >= decoded.height ? decoded.width : decoded.height;
-      if (side <= _thumbSide) return null; // мелкое превью не нужно
-      final resized = decoded.width >= decoded.height
-          ? img.copyResize(decoded, width: _thumbSide)
-          : img.copyResize(decoded, height: _thumbSide);
-      return MediaStore.instance.put(
-        Uint8List.fromList(img.encodeJpg(resized, quality: 82)),
-        ext: 'jpg',
-      );
+      return await MediaStore.instance.put(small, ext: 'jpg');
     } catch (_) {
       return null;
     }

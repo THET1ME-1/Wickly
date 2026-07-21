@@ -1,7 +1,7 @@
 name: wickly
 description: "Wickly — тёплый личный дневник без аккаунта. Локально, приватно, с P2P-синхронизацией. Material 3 Expressive."
 publish_to: 'none'
-version: 1.4.2+22
+version: 1.4.3+23
 
 environment:
   sdk: ^3.11.5
